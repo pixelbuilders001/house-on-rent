@@ -1,0 +1,1 @@
+'use client';export default function ErrorPage({reset}:{reset:()=>void}){return <div className="container section"><h2>That didn’t load <em className="title-accent">quite right.</em></h2><p className="muted">कमरे ढूँढने के लिए फिर से कोशिश करें।</p><button className="btn" onClick={()=>reset()}>Try again</button></div>}

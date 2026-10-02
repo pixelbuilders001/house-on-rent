@@ -1,0 +1,1 @@
+export const mockLeads = [{id:'lead-1',name:'Rahul Sharma',budget:6000,lookingFor:'3 sharing',destination:'ABC College',status:'New'},{id:'lead-2',name:'Ananya Kumari',budget:7000,lookingFor:'Private room',destination:'XYZ Hospital',status:'Contacted'},{id:'lead-3',name:'Vikash Kumar',budget:5000,lookingFor:'Bed',destination:'Industrial Area',status:'New'}];

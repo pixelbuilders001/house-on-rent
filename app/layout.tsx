@@ -1,0 +1,3 @@
+import type {Metadata} from 'next';import './globals.css';import {AppShell} from '@/components/AppShell';
+export const metadata:Metadata={title:'Find Affordable Rooms & PGs Near Your College or Workplace | RoomSaathi',description:'Rooms, PGs and shared accommodation near your college or workplace. Compare real monthly costs in Samastipur.',openGraph:{title:'RoomSaathi — Find a room you can actually afford.',description:'Affordable rooms, PGs and shared accommodation near your college or workplace.'}};
+export default function RootLayout({children}:{children:React.ReactNode}){return <html lang="en"><body><AppShell>{children}</AppShell></body></html>}

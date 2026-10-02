@@ -1,0 +1,1 @@
+export const mockReviews = [{name:'Ananya',rating:5,text:'Clean room and helpful people. The commute to campus is easy.'},{name:'Rohit',rating:4,text:'Good value for the area. Food is simple and Wi-Fi works well.'},{name:'Priya',rating:5,text:'The rooms feel safe and the common areas are kept tidy.'}];
