@@ -1,1 +1,67 @@
-'use client';import {useState} from 'react';import Link from 'next/link';import {ArrowLeft,ArrowRight,Check} from 'lucide-react';import {setStorageItem,getStorageItem} from '@/lib/storage';const steps=['Property type','Basic details','Location','Rooms','Beds','Pricing','Amenities','Photos','Preview','Publish'];export default function ListProperty(){const [step,setStep]=useState(0);const [done,setDone]=useState(false);const [form,setForm]=useState<any>({type:'PG',name:'',area:'',rooms:4,beds:12,rent:5500,deposit:2000});function field(k:string,v:any){setForm({...form,[k]:v})}function publish(){const id=`owner-${Date.now()}`;const property={...form,id,city:'Samastipur',distanceKm:1.5,commuteMinutes:10,rating:0,reviewCount:0,verified:false,verificationLevel:'pending',brokerage:0,electricity:300,wifiCost:200,maintenance:200,foodCost:0,foodAvailable:false,foodIncluded:false,wifi:true,electricityIncluded:false,availableBeds:Number(form.beds),totalBeds:Number(form.beds),accommodation:'3 Sharing',amenities:['Fan','Wi-Fi'],color:'#e4eee8',description:'New owner demo listing',owner:'Raj Kumar',rules:['Keep shared spaces tidy'],updated:'just now',destination:'abc-college'};setStorageItem('roomsaathi_owner_created',[...getStorageItem<any[]>('roomsaathi_owner_created',[]),property]);setDone(true)}return <div className="container section" style={{maxWidth:800}}><Link href="/owner" className="muted"><ArrowLeft size={14}/> Owner dashboard</Link><div className="eyebrow" style={{marginTop:20}}>मालिक के लिए listing बनाएँ · demo</div><h2 style={{marginTop:8}}>List your <em className="title-accent">property</em></h2><div style={{display:'flex',gap:5,margin:'22px 0'}}>{steps.map((s,i)=><div title={s} key={s} style={{height:5,borderRadius:8,flex:1,background:i<=step?'#176b58':'#e6ece7'}}/>)}</div>{done?<div className="panel" style={{textAlign:'center',padding:40}}><div className="dest-icon" style={{margin:'0 auto 15px'}}><Check/></div><h3>Your listing is live in <em className="title-accent">demo</em></h3><p className="muted">{form.name||'Your property'} is saved locally. No external property service was contacted.</p><div className="sidebar-links" style={{justifyContent:'center'}}><Link href="/owner/properties">Manage listings</Link><Link href="/owner">Dashboard</Link></div></div>:<div className="panel"><div className="muted">Step {step+1} of 10</div><h3 style={{margin:'7px 0 18px'}}>{steps[step]}</h3>{step===0&&<div className="quickrow" style={{flexWrap:'wrap'}}>{['PG','Hostel','Room','Flat'].map(v=><button className={`pill ${form.type===v?'selected':''}`} onClick={()=>field('type',v)} key={v}>{v}</button>)}</div>}{step===1&&<div className="stack"><div className="field"><label>Property name</label><input className="input" value={form.name} onChange={e=>field('name',e.target.value)} placeholder="e.g. Shree Residency"/></div><div className="field"><label>Contact name</label><input className="input" defaultValue="Raj Kumar"/></div></div>}{step===2&&<div className="stack"><div className="field"><label>City</label><input className="input" value="Samastipur, Bihar" readOnly/></div><div className="field"><label>Area / landmark</label><input className="input" value={form.area} onChange={e=>field('area',e.target.value)} placeholder="e.g. Station Road"/></div></div>}{step===3&&<div className="field"><label>Number of rooms</label><input className="input" type="number" value={form.rooms} onChange={e=>field('rooms',e.target.value)}/></div>}{step===4&&<div className="field"><label>Total beds</label><input className="input" type="number" value={form.beds} onChange={e=>field('beds',e.target.value)}/></div>}{step===5&&<div className="two-col"><div className="field"><label>Monthly rent (₹)</label><input className="input" type="number" value={form.rent} onChange={e=>field('rent',e.target.value)}/></div><div className="field"><label>Deposit (₹)</label><input className="input" type="number" value={form.deposit} onChange={e=>field('deposit',e.target.value)}/></div></div>}{step===6&&<div className="quickrow" style={{flexWrap:'wrap'}}>{['Wi-Fi','Food','Laundry','Parking','Fan','Kitchen','Study table'].map(v=><button key={v} className={`pill ${form[v]?'selected':''}`} onClick={()=>field(v,!form[v])}>{form[v]?'✓ ':''}{v}</button>)}</div>}{step===7&&<div className="stack"><div className="field"><label>Choose photos (demo only)</label><input className="input" type="file" accept="image/*" multiple onChange={e=>field('photos',Array.from(e.target.files??[]).map(x=>x.name))}/></div><div className="demo-note">Selected files are not uploaded or stored in this prototype.</div></div>}{step===8&&<div className="panel"><h3>{form.name||'Your property'}</h3><p className="muted">{form.type} · {form.area||'Samastipur'} · {form.beds} beds</p><h3>₹{Number(form.rent).toLocaleString()}/month rent</h3><div className="muted">Deposit ₹{Number(form.deposit).toLocaleString()} · Estimated monthly includes recurring charges.</div></div>}{step===9&&<div className="demo-note">Publishing adds this listing to your local owner demo. Admin verification is still pending.</div>}<div style={{display:'flex',justifyContent:'space-between',marginTop:25}}><button className="btn outline" disabled={!step} onClick={()=>setStep(Math.max(0,step-1))}>Back</button>{step===9?<button className="btn" onClick={publish}>Publish demo listing <Check size={15}/></button>:<button className="btn" onClick={()=>setStep(step+1)}>Continue <ArrowRight size={15}/></button>}</div></div>}</div>}
+'use client';
+
+import Link from 'next/link';
+import { ArrowLeft, Building2, ShieldCheck, ArrowRight, CheckCircle2 } from 'lucide-react';
+
+const OWNER_PORTAL_URL = 'https://hosue-on-rent-owner-tenant.vercel.app?role=owner';
+
+export default function ListProperty() {
+  return (
+    <div className="container section" style={{ maxWidth: 760 }}>
+      <Link href="/" className="muted" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+        <ArrowLeft size={14} /> Back to room search
+      </Link>
+
+      <div className="eyebrow" style={{ marginTop: 20 }}>Host Listing Gateway</div>
+      <h2 style={{ marginTop: 8 }}>
+        List your <em className="title-accent">property</em>
+      </h2>
+      <p className="muted">
+        Connect your PG, hostel, or rented flat to thousands of verified students and bachelors in Samastipur.
+      </p>
+
+      <div className="panel" style={{ padding: '36px 30px', marginTop: 24 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+          <div className="dest-icon" style={{ background: '#eaf4ee', color: '#176b58' }}>
+            <Building2 size={24} />
+          </div>
+          <div>
+            <h3 style={{ margin: 0 }}>Add Property on RoomSaathi Host Portal</h3>
+            <span className="muted" style={{ fontSize: 13 }}>Authenticated Cloud Sync with Google OAuth</span>
+          </div>
+        </div>
+
+        <p className="muted" style={{ lineHeight: 1.6, marginBottom: 24 }}>
+          To ensure verified properties and keep tenant data safe, all property listings and room configurations are managed on the dedicated RoomSaathi Host Portal with Google OAuth authentication.
+        </p>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginBottom: 28 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <CheckCircle2 size={18} style={{ color: '#176b58' }} />
+            <span><b>Automated Room & Bed Allocation</b>: Define 1, 2, or 3 sharing rooms with instant bed vacancy tracking.</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <CheckCircle2 size={18} style={{ color: '#176b58' }} />
+            <span><b>Transparent Pricing</b>: Configure base rent, electricity meter rate, Wi-Fi, and food costs.</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <CheckCircle2 size={18} style={{ color: '#176b58' }} />
+            <span><b>Verified Host Badge</b>: Get your listing verified for higher student trust and booking priority.</span>
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+          <a
+            className="btn"
+            href={OWNER_PORTAL_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ padding: '12px 26px', fontSize: 15 }}
+          >
+            Open Host Portal to List Property <ArrowRight size={16} />
+          </a>
+        </div>
+      </div>
+    </div>
+  );
+}

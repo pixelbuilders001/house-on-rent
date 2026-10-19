@@ -1,1 +1,83 @@
-import Link from 'next/link';import {ArrowRight,Building2,CalendarDays,ChartNoAxesColumnIncreasing,Plus,Users} from 'lucide-react';import {mockProperties} from '@/lib/mock-data/properties';import {mockLeads} from '@/lib/mock-data/leads';export default function Owner(){const totalBeds=mockProperties.slice(0,8).reduce((a,p)=>a+p.totalBeds,0);const available=mockProperties.slice(0,8).reduce((a,p)=>a+p.availableBeds,0);return <div className="container section"><div className="section-head"><div><div className="eyebrow">मालिक का dashboard · demo</div><h2 style={{marginTop:8}}>Good morning, <em className="title-accent">Raj</em> 👋</h2><p>आपकी properties और उनकी activity का छोटा-सा हाल।</p></div><Link className="btn" href="/list-property"><Plus size={16}/> Add a property</Link></div><div className="stats">{[['Properties','8',Building2],['Beds',String(totalBeds),Users],['Available',String(available),Building2],['Occupancy','85%',ChartNoAxesColumnIncreasing],['New leads','12',Users],['Visits','4',CalendarDays],['Bookings','3',Building2],['Revenue potential','₹4.2L',ChartNoAxesColumnIncreasing]].map(([l,v,I]:any)=><div className="stat" key={l}><div className="muted"><I size={15}/> {l}</div><strong>{v}</strong><span className="muted">This month · mock</span></div>)}</div><div className="two-col"><section className="panel"><div className="section-head"><h3>Your <em className="title-accent">properties</em></h3><Link href="/owner/properties" className="muted">Manage all →</Link></div>{mockProperties.slice(0,3).map(p=><div className="breakdown-row" key={p.id}><span><b>{p.name}</b><br/><small>{p.totalBeds} beds · {p.availableBeds} available</small></span><Link className="btn outline small" href={`/owner/properties/${p.id}`}>Manage</Link></div>)}</section><section className="panel"><div className="section-head"><h3>Recent <em className="title-accent">leads</em></h3><Link href="/owner/leads" className="muted">View all →</Link></div>{mockLeads.map(l=><div className="breakdown-row" key={l.id}><span><b>{l.name}</b><br/><small>{l.lookingFor} · {l.destination}</small></span><span className="tag">{l.status}</span></div>)}</section></div><section className="panel"><h3>Performance <em className="title-accent">snapshot</em></h3><p className="muted">कितने beds भरे हैं और कितनी कमाई हो सकती है · sample data</p><div style={{display:'flex',alignItems:'end',gap:12,height:145,borderBottom:'1px solid #dde7df',padding:'10px 15px'}}>{[64,75,70,82,76,88,85,92,81,88,85,90].map((v,i)=><div key={i} title={`${v}%`} style={{height:`${v}%`,flex:1,background:i===11?'#176b58':'#b6d5c3',borderRadius:'5px 5px 0 0'}}/>)}</div><div className="muted" style={{display:'flex',justifyContent:'space-between',paddingTop:8}}><span>Jan</span><span>Jun</span><span>Dec</span></div></section><div className="sidebar-links"><Link href="/owner/properties">Properties</Link><Link href="/owner/leads">Leads</Link><Link href="/owner/visits">Visits</Link><Link href="/list-property">Create listing</Link></div></div>}
+'use client';
+
+import { Building2, Plus, ShieldCheck, Users, IndianRupee, ArrowRight, CheckCircle2 } from 'lucide-react';
+
+const OWNER_PORTAL_URL = 'https://hosue-on-rent-owner-tenant.vercel.app?role=owner';
+
+export default function OwnerGateway() {
+  return (
+    <div className="container section" style={{ maxWidth: 840 }}>
+      <div className="section-head">
+        <div>
+          <div className="eyebrow">RoomSaathi Host Portal</div>
+          <h2 style={{ marginTop: 8 }}>
+            Host & Landlord <em className="title-accent">Dashboard</em>
+          </h2>
+          <p className="muted">
+            Manage your PGs, hostels, rooms, tenant onboarding, and automated rent collection in one place.
+          </p>
+        </div>
+        <a 
+          className="btn" 
+          href={OWNER_PORTAL_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <Building2 size={16} /> Open Host Portal <ArrowRight size={14} />
+        </a>
+      </div>
+
+      <div className="panel" style={{ padding: '32px 28px', marginTop: 20 }}>
+        <h3 style={{ marginBottom: 12 }}>Manage Your Listings with Google Sign-In</h3>
+        <p className="muted" style={{ lineHeight: 1.6, marginBottom: 24 }}>
+          To ensure verified listings and secure rent tracking, property management is hosted on the dedicated RoomSaathi Host & Resident Portal. Sign in with your Google account to list new properties, configure room types, track inquiries, and generate instant rent receipts.
+        </p>
+
+        <div className="stats" style={{ marginBottom: 28 }}>
+          <div className="stat">
+            <span className="muted"><Building2 size={16} /> Properties</span>
+            <strong>Cloud Synced</strong>
+            <span className="muted">Supabase live database</span>
+          </div>
+          <div className="stat">
+            <span className="muted"><Users size={16} /> Tenants</span>
+            <strong>Room & Bed</strong>
+            <span className="muted">Real-time occupancy</span>
+          </div>
+          <div className="stat">
+            <span className="muted"><IndianRupee size={16} /> Rent Khata</span>
+            <strong>Automated</strong>
+            <span className="muted">Electricity & rent billing</span>
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 28 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <CheckCircle2 size={18} style={{ color: '#176b58' }} />
+            <span>Strict Google Authentication ensures only verified owners manage property data.</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <CheckCircle2 size={18} style={{ color: '#176b58' }} />
+            <span>Instant inquiry sync: inquiries submitted by students appear in your live Host inbox.</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <CheckCircle2 size={18} style={{ color: '#176b58' }} />
+            <span>Share digital rent receipts directly to tenants on WhatsApp.</span>
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
+          <a
+            className="btn"
+            href={OWNER_PORTAL_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ padding: '12px 24px', fontSize: 15 }}
+          >
+            Launch Host Portal & Sign In <ArrowRight size={16} />
+          </a>
+        </div>
+      </div>
+    </div>
+  );
+}
