@@ -5,24 +5,31 @@ import { calculateMatchScore, type SearchPreferences } from '../matching';
 import { getStorageItem } from '../storage';
 import { getSupabaseBrowserClient } from '../supabase/client';
 
-export type PropertyFilters = SearchPreferences & { type?: string; deposit?: string; brokerage?: boolean; amenities?: string[] };
+export type PropertyFilters = SearchPreferences & {
+  q?: string;
+  type?: string;
+  deposit?: string;
+  brokerage?: boolean;
+  amenities?: string[];
+  verifiedOnly?: boolean;
+};
 
 type PropertyRow = Record<string, any>;
 function fromRow(row: PropertyRow): Property {
   return {
     id: row.id, name: row.name, type: row.type, city: row.city, area: row.area,
-    distanceKm: Number(row.distance_km), commuteMinutes: Number(row.commute_minutes),
-    rating: Number(row.rating), reviewCount: row.review_count, verified: row.verified,
-    verificationLevel: row.verification_level, rent: row.rent, deposit: row.deposit,
-    brokerage: row.brokerage, electricity: row.electricity, wifiCost: row.wifi_cost,
-    maintenance: row.maintenance, foodCost: row.food_cost, foodAvailable: row.food_available,
-    foodIncluded: row.food_included, wifi: row.wifi, electricityIncluded: row.electricity_included,
-    availableBeds: row.available_beds, totalBeds: row.total_beds, accommodation: row.accommodation,
-    amenities: row.amenities ?? [], image: row.image ?? '',
+    distanceKm: Number(row.distance_km || 0), commuteMinutes: Number(row.commute_minutes || 0),
+    rating: Number(row.rating || 4.8), reviewCount: row.review_count || 12, verified: row.verified ?? true,
+    verificationLevel: row.verification_level || 'Direct Owner', rent: Number(row.rent || 0), deposit: Number(row.deposit || 0),
+    brokerage: Number(row.brokerage || 0), electricity: Number(row.electricity || 400), wifiCost: Number(row.wifi_cost || 0),
+    maintenance: Number(row.maintenance || 200), foodCost: Number(row.food_cost || 0), foodAvailable: Boolean(row.food_available),
+    foodIncluded: Boolean(row.food_included), wifi: Boolean(row.wifi ?? true), electricityIncluded: Boolean(row.electricity_included),
+    availableBeds: Number(row.available_beds || 1), totalBeds: Number(row.total_beds || 4), accommodation: row.accommodation || 'Sharing Room',
+    amenities: Array.isArray(row.amenities) ? row.amenities : [], image: row.image ?? '',
     images: Array.isArray(row.images) && row.images.length > 0 ? row.images : (row.image ? [row.image] : []),
     color: row.color ?? '#0f766e',
-    description: row.description, owner: row.owner_name, rules: row.rules ?? [],
-    updated: row.updated_label, destination: row.destination_id ?? '',
+    description: row.description || '', owner: row.owner_name || 'Verified Host', rules: Array.isArray(row.rules) ? row.rules : [],
+    updated: row.updated_label || 'Today', destination: row.destination_id ?? '',
     stationDistanceKm: row.station_distance_km != null ? Number(row.station_distance_km) : undefined,
     busStandDistanceKm: row.bus_stand_distance_km != null ? Number(row.bus_stand_distance_km) : undefined,
     pincode: row.pincode,
@@ -30,21 +37,110 @@ function fromRow(row: PropertyRow): Property {
 }
 
 function matches(p: Property, f: PropertyFilters) {
-  return (f.min == null || p.rent >= f.min) && (f.max == null || p.rent <= f.max) &&
-    (f.distance == null || p.commuteMinutes <= f.distance) &&
-    (!f.accommodation || f.accommodation === 'Any' || p.accommodation.toLowerCase().includes(f.accommodation.toLowerCase())) &&
-    (!f.destination || p.destination === f.destination) && (!f.type || p.type === f.type) &&
-    (!f.brokerage || p.brokerage === 0) && (!f.deposit || f.deposit === 'any' || (f.deposit === '0' ? p.deposit === 0 : p.deposit <= Number(f.deposit))) &&
-    (!f.food || f.food === 'any' || (f.food === 'included' ? p.foodIncluded : f.food === 'available' ? p.foodAvailable : !p.foodIncluded)) &&
-    (!f.amenities?.length || f.amenities.every((a) => p.amenities.some((x) => x.toLowerCase() === a.toLowerCase())));
+  // 1. Text Search Query (Name, Area, City, Pin, Amenities, Accommodation)
+  if (f.q && f.q.trim()) {
+    const tokens = f.q.trim().toLowerCase().split(/\s+/).filter(Boolean);
+    const corpus = `${p.name} ${p.area} ${p.city} ${p.pincode ?? ''} ${p.type} ${p.accommodation} ${p.description} ${p.amenities.join(' ')}`.toLowerCase();
+    const hasAllTokens = tokens.every((token) => corpus.includes(token));
+    if (!hasAllTokens) return false;
+  }
+
+  // 2. Monthly Budget Min & Max
+  if (f.min != null && p.rent < f.min) return false;
+  if (f.max != null && f.max > 0 && p.rent > f.max) return false;
+
+  // 3. Travel Time (Only apply when user explicitly constrains it)
+  if (f.distance != null && f.distance > 0 && f.distance < 60) {
+    if (p.commuteMinutes > f.distance && p.distanceKm > (f.distance / 2)) return false;
+  }
+
+  // 4. Accommodation Type (Fuzzy Sharing/Room Matching)
+  if (f.accommodation && f.accommodation !== 'Any' && f.accommodation !== '') {
+    const target = f.accommodation.toLowerCase();
+    const current = (p.accommodation || '').toLowerCase();
+    const isMatch = current.includes(target) || target.includes(current) ||
+      (target.includes('private') && (current.includes('single') || current.includes('1 bhk') || current.includes('private'))) ||
+      (target.includes('2') && (current.includes('2') || current.includes('double'))) ||
+      (target.includes('3') && (current.includes('3') || current.includes('triple'))) ||
+      (target.includes('4') && (current.includes('4') || current.includes('four'))) ||
+      (target.includes('bed') && (current.includes('bed') || current.includes('sharing')));
+    if (!isMatch) return false;
+  }
+
+  // 5. Destination (Area / College Landmark)
+  if (f.destination && f.destination !== 'any' && f.destination !== '') {
+    if (p.destination) {
+      if (p.destination !== f.destination && !p.area.toLowerCase().includes(f.destination.toLowerCase())) {
+        return false;
+      }
+    }
+  }
+
+  // 6. Property Type (PG, Hostel, Room, Flat)
+  if (f.type && f.type !== 'any' && f.type !== '') {
+    if (p.type.toLowerCase() !== f.type.toLowerCase()) return false;
+  }
+
+  // 7. Brokerage
+  if (f.brokerage && p.brokerage > 0) return false;
+
+  // 8. Security Deposit
+  if (f.deposit && f.deposit !== 'any' && f.deposit !== '') {
+    const maxDep = Number(f.deposit);
+    if (!isNaN(maxDep) && p.deposit > maxDep) return false;
+  }
+
+  // 9. Food Options
+  if (f.food && f.food !== 'any' && f.food !== '') {
+    if (f.food === 'included' && !p.foodIncluded) return false;
+    if (f.food === 'available' && (!p.foodAvailable && !p.foodIncluded)) return false;
+    if (f.food === 'none' && p.foodIncluded) return false;
+  }
+
+  // 10. Amenities (Fuzzy Match & Synonyms)
+  if (f.amenities && f.amenities.length > 0) {
+    const propAmenities = p.amenities.map((a) => a.toLowerCase());
+    const hasAll = f.amenities.every((required) => {
+      const req = required.toLowerCase();
+      if (req.includes('wifi') || req.includes('wi-fi')) {
+        return propAmenities.some((a) => a.includes('wifi') || a.includes('wi-fi') || a.includes('internet'));
+      }
+      if (req.includes('food') || req.includes('meal')) {
+        return propAmenities.some((a) => a.includes('food') || a.includes('meal') || a.includes('mess') || a.includes('kitchen') || p.foodIncluded || p.foodAvailable);
+      }
+      if (req.includes('laundry') || req.includes('wash')) {
+        return propAmenities.some((a) => a.includes('wash') || a.includes('laundry'));
+      }
+      if (req.includes('park')) {
+        return propAmenities.some((a) => a.includes('park') || a.includes('bike') || a.includes('car'));
+      }
+      if (req.includes('power') || req.includes('backup')) {
+        return propAmenities.some((a) => a.includes('power') || a.includes('backup') || a.includes('inverter') || a.includes('generator'));
+      }
+      if (req.includes('water') || req.includes('ro')) {
+        return propAmenities.some((a) => a.includes('water') || a.includes('ro'));
+      }
+      if (req.includes('cctv') || req.includes('security')) {
+        return propAmenities.some((a) => a.includes('cctv') || a.includes('security') || a.includes('guard'));
+      }
+      return propAmenities.some((a) => a.includes(req) || req.includes(a));
+    });
+    if (!hasAll) return false;
+  }
+
+  // 11. Verified Only
+  if (f.verifiedOnly && !p.verified) return false;
+
+  return true;
 }
 
 function sortProperties(results: Property[], filters: PropertyFilters, sort: string) {
-  if (sort === 'cost') results.sort((a, b) => calculateMonthlyCost(a) - calculateMonthlyCost(b));
-  else if (sort === 'closest') results.sort((a, b) => a.distanceKm - b.distanceKm);
+  if (sort === 'cost' || sort === 'price-asc') results.sort((a, b) => a.rent - b.rent);
+  else if (sort === 'price-desc') results.sort((a, b) => b.rent - a.rent);
+  else if (sort === 'closest') results.sort((a, b) => (a.stationDistanceKm ?? a.distanceKm) - (b.stationDistanceKm ?? b.distanceKm));
   else if (sort === 'movein') results.sort((a, b) => (a.rent + a.deposit + a.brokerage) - (b.rent + b.deposit + b.brokerage));
   else if (sort === 'rating') results.sort((a, b) => b.rating - a.rating);
-  else if (sort === 'newest') results.sort((a, b) => Number.parseInt(a.updated) - Number.parseInt(b.updated));
+  else if (sort === 'newest') results.sort((a, b) => Number.parseInt(a.updated || '0') - Number.parseInt(b.updated || '0'));
   else results.sort((a, b) => calculateMatchScore(b, filters) - calculateMatchScore(a, filters));
   return results;
 }
