@@ -1,6 +1,7 @@
 'use client';
+import { useState, useRef } from 'react';
 import Link from 'next/link';
-import { Heart, MapPin, Clock, Star, Utensils, Wifi, ShieldCheck, ArrowUpRight } from 'lucide-react';
+import { Heart, MapPin, Clock, Star, Utensils, Wifi, ShieldCheck, ArrowUpRight, ChevronLeft, ChevronRight } from 'lucide-react';
 import type { Property } from '@/lib/mock-data/types';
 import { calculateMonthlyCost, calculateMoveInCost } from '@/lib/pricing';
 
@@ -16,10 +17,54 @@ export function PropertyCard({
   const crop = Number(property.id.slice(-1)) % 4;
   const position = ['0% 0%', '100% 0%', '0% 100%', '100% 100%'][crop];
   
-  const hasCustomImage = Boolean(property.image && property.image.trim() !== '' && !property.image.includes('roomsaathi-property-gallery.png'));
-  const imageBg = hasCustomImage ? `url(${property.image})` : 'url(/mock/roomsaathi-property-gallery.png)';
+  const rawImages = (property.images && property.images.length > 0)
+    ? property.images
+    : (property.image && property.image.trim() !== '' ? [property.image] : []);
+
+  const [activeSlide, setActiveSlide] = useState(0);
+  const touchStartX = useRef<number | null>(null);
+
+  const hasMultiplePhotos = rawImages.length > 1;
+  const currentPhoto = rawImages[activeSlide] || rawImages[0] || '';
+  const hasCustomImage = Boolean(currentPhoto && !currentPhoto.includes('roomsaathi-property-gallery.png'));
+  const imageBg = hasCustomImage ? `url(${currentPhoto})` : 'url(/mock/roomsaathi-property-gallery.png)';
   const bgSize = hasCustomImage ? 'cover' : undefined;
   const bgPos = hasCustomImage ? 'center' : position;
+
+  const handlePrev = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setActiveSlide(prev => (prev === 0 ? rawImages.length - 1 : prev - 1));
+  };
+
+  const handleNext = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setActiveSlide(prev => (prev === rawImages.length - 1 ? 0 : prev + 1));
+  };
+
+  const handleDotClick = (e: React.MouseEvent, index: number) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setActiveSlide(index);
+  };
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartX.current === null) return;
+    const diff = touchStartX.current - e.changedTouches[0].clientX;
+    if (Math.abs(diff) > 40) {
+      if (diff > 0) {
+        setActiveSlide(prev => (prev === rawImages.length - 1 ? 0 : prev + 1));
+      } else {
+        setActiveSlide(prev => (prev === 0 ? rawImages.length - 1 : prev - 1));
+      }
+    }
+    touchStartX.current = null;
+  };
 
   return (
     <article className="property-card">
@@ -28,8 +73,11 @@ export function PropertyCard({
         style={{
           backgroundImage: imageBg,
           backgroundSize: bgSize,
-          backgroundPosition: bgPos
+          backgroundPosition: bgPos,
+          position: 'relative'
         }}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
       >
         <span className="image-label">
           {property.verified ? (
@@ -40,6 +88,98 @@ export function PropertyCard({
             'Owner verified'
           )}
         </span>
+
+        {/* Multi-Photo Carousel Slider Controls */}
+        {hasMultiplePhotos && (
+          <>
+            <button
+              type="button"
+              onClick={handlePrev}
+              aria-label="Previous image"
+              style={{
+                position: 'absolute',
+                left: 8,
+                top: '50%',
+                transform: 'translateY(-50%)',
+                width: 28,
+                height: 28,
+                borderRadius: '50%',
+                background: 'rgba(15, 23, 42, 0.7)',
+                color: 'white',
+                border: 'none',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                zIndex: 4,
+                boxShadow: '0 2px 6px rgba(0,0,0,0.3)'
+              }}
+            >
+              <ChevronLeft size={16} />
+            </button>
+
+            <button
+              type="button"
+              onClick={handleNext}
+              aria-label="Next image"
+              style={{
+                position: 'absolute',
+                right: 8,
+                top: '50%',
+                transform: 'translateY(-50%)',
+                width: 28,
+                height: 28,
+                borderRadius: '50%',
+                background: 'rgba(15, 23, 42, 0.7)',
+                color: 'white',
+                border: 'none',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                zIndex: 4,
+                boxShadow: '0 2px 6px rgba(0,0,0,0.3)'
+              }}
+            >
+              <ChevronRight size={16} />
+            </button>
+
+            {/* Slider Dots */}
+            <div
+              style={{
+                position: 'absolute',
+                bottom: 8,
+                left: 0,
+                right: 0,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 5,
+                zIndex: 4
+              }}
+            >
+              {rawImages.map((_, idx) => (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={(e) => handleDotClick(e, idx)}
+                  aria-label={`Go to photo ${idx + 1}`}
+                  style={{
+                    width: activeSlide === idx ? 16 : 6,
+                    height: 6,
+                    borderRadius: 3,
+                    background: activeSlide === idx ? '#10b981' : 'rgba(255, 255, 255, 0.75)',
+                    border: 'none',
+                    padding: 0,
+                    cursor: 'pointer',
+                    transition: 'all 0.2s'
+                  }}
+                />
+              ))}
+            </div>
+          </>
+        )}
+
         <button
           className={`heart ${saved ? 'is-saved' : ''}`}
           aria-label={saved ? 'Unsave property' : 'Save property'}

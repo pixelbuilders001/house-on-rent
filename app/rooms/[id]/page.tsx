@@ -43,28 +43,69 @@ return (
     <div className="detail-layout">
       <article>
         <div className="gallery">
-          {hasPhoto ? (
-            <div
-              className="property-image has-photo"
-              style={{
-                backgroundImage: `url(${p.image})`,
-                backgroundSize: 'cover',
-                backgroundPosition: 'center'
-              }}
-            >
-              <span className="image-label">Property photo</span>
-            </div>
-          ) : (
-            <div className="property-image" data-tone={Number(p.id.slice(-1))%5}>
-              <span className="image-label">Demo property photo</span>
-            </div>
-          )}
-          <div className="property-image" data-tone={(Number(p.id.slice(-1))+1)%5}>
-            <span className="image-label">Shared spaces</span>
-          </div>
-          <div className="property-image" data-tone={(Number(p.id.slice(-1))+2)%5}>
-            <span className="image-label">Rooms</span>
-          </div>
+          {(() => {
+            const propImages = (p.images && p.images.length > 0)
+              ? p.images
+              : (p.image && p.image.trim() !== '' && !p.image.includes('roomsaathi-property-gallery.png') ? [p.image] : []);
+            const slot1 = propImages[0];
+            const slot2 = propImages[1];
+            const slot3 = propImages[2];
+
+            return (
+              <>
+                {slot1 ? (
+                  <div
+                    className="property-image has-photo"
+                    style={{
+                      backgroundImage: `url(${slot1})`,
+                      backgroundSize: 'cover',
+                      backgroundPosition: 'center'
+                    }}
+                  >
+                    <span className="image-label">Cover photo</span>
+                  </div>
+                ) : (
+                  <div className="property-image" data-tone={Number(p.id.slice(-1))%5}>
+                    <span className="image-label">Property photo</span>
+                  </div>
+                )}
+
+                {slot2 ? (
+                  <div
+                    className="property-image has-photo"
+                    style={{
+                      backgroundImage: `url(${slot2})`,
+                      backgroundSize: 'cover',
+                      backgroundPosition: 'center'
+                    }}
+                  >
+                    <span className="image-label">Room & Interior</span>
+                  </div>
+                ) : (
+                  <div className="property-image" data-tone={(Number(p.id.slice(-1))+1)%5}>
+                    <span className="image-label">Shared spaces</span>
+                  </div>
+                )}
+
+                {slot3 ? (
+                  <div
+                    className="property-image has-photo"
+                    style={{
+                      backgroundImage: `url(${slot3})`,
+                      backgroundSize: 'cover',
+                      backgroundPosition: 'center'
+                    }}
+                  >
+                    <span className="image-label">Washroom & Amenities</span>
+                  </div>
+                ) : (
+                  <div className="property-image" data-tone={(Number(p.id.slice(-1))+2)%5}>
+                    <span className="image-label">Rooms</span>
+                  </div>
+                )}
+              </>
+            );
+          })()}
         </div>
 
         <div className="detail-head" style={{display:'flex',justifyContent:'space-between',gap:15,marginTop:22}}>
