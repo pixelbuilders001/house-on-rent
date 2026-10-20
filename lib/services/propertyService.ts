@@ -18,9 +18,12 @@ function fromRow(row: PropertyRow): Property {
     maintenance: row.maintenance, foodCost: row.food_cost, foodAvailable: row.food_available,
     foodIncluded: row.food_included, wifi: row.wifi, electricityIncluded: row.electricity_included,
     availableBeds: row.available_beds, totalBeds: row.total_beds, accommodation: row.accommodation,
-    amenities: row.amenities ?? [], image: row.image ?? '', color: row.color,
+    amenities: row.amenities ?? [], image: row.image ?? '', color: row.color ?? '#0f766e',
     description: row.description, owner: row.owner_name, rules: row.rules ?? [],
     updated: row.updated_label, destination: row.destination_id ?? '',
+    stationDistanceKm: row.station_distance_km != null ? Number(row.station_distance_km) : undefined,
+    busStandDistanceKm: row.bus_stand_distance_km != null ? Number(row.bus_stand_distance_km) : undefined,
+    pincode: row.pincode,
   };
 }
 
