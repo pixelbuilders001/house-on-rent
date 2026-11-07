@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
@@ -8,55 +8,50 @@ import {
   GraduationCap,
   Hospital,
   Train,
-  Bus,
   MapPin,
-  SlidersHorizontal,
   Search,
-  Navigation,
   Crosshair,
   Sparkles,
-  ShieldCheck,
   X,
-  ChevronRight,
+  Compass,
 } from 'lucide-react';
 import { mockProperties as propertiesSeed } from '@/lib/mock-data/properties';
 import type { Property } from '@/lib/mock-data/types';
 import { getProperties } from '@/lib/services/propertyService';
-import { mockDestinations } from '@/lib/mock-data/destinations';
-import { getDestinations, type Destination } from '@/lib/services/catalogService';
 import { PropertyCard } from '@/components/PropertyCard';
 import { getStorageItem, setStorageItem } from '@/lib/storage';
 import {
-  SAMASTIPUR_LANDMARKS,
-  PINCODE_CLUSTERS,
-  getLiveDeviceCoordinates,
-} from '@/lib/locationData';
+  searchPlacesLive,
+  getBrowserLocation,
+  type GeocodedPlace,
+} from '@/lib/services/geocodingService';
+import { extractLiveLocationFacets } from '@/lib/services/dynamicLocationService';
 
 export default function Home() {
   const router = useRouter();
   const [properties, setProperties] = useState<Property[]>(propertiesSeed);
-  const [destinations, setDestinations] = useState<Destination[]>(mockDestinations);
   const [saved, setSaved] = useState<string[]>([]);
 
   // Search State
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedPincode, setSelectedPincode] = useState('');
-  const [selectedLandmark, setSelectedLandmark] = useState('');
   const [maxBudget, setMaxBudget] = useState(7000);
   const [accommodation, setAccommodation] = useState('');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [locating, setLocating] = useState(false);
-  const [locationError, setLocationError] = useState<string | null>(null);
+  const [geoSuggestions, setGeoSuggestions] = useState<GeocodedPlace[]>([]);
+  const [isSearchingPlaces, setIsSearchingPlaces] = useState(false);
 
   const searchContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     getProperties().then(setProperties);
-    getDestinations().then(setDestinations);
     setSaved(getStorageItem('roomsaathi_saved_properties', []));
   }, []);
 
-  // Close dropdown when clicking outside
+  // Compute live facets purely from database inventory
+  const inventory = useMemo(() => extractLiveLocationFacets(properties), [properties]);
+
+  // Close dropdown on outside click
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (
@@ -70,66 +65,54 @@ export default function Home() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // Live OpenStreetMap / Photon Geocoder lookup (debounced)
+  useEffect(() => {
+    const q = searchQuery.trim();
+    if (q.length < 2) {
+      setGeoSuggestions([]);
+      return;
+    }
+
+    let alive = true;
+    setIsSearchingPlaces(true);
+    const timer = setTimeout(() => {
+      searchPlacesLive(q).then((places) => {
+        if (alive) {
+          setGeoSuggestions(places);
+          setIsSearchingPlaces(false);
+        }
+      });
+    }, 220);
+
+    return () => {
+      alive = false;
+      clearTimeout(timer);
+    };
+  }, [searchQuery]);
+
   // 1-Tap "Near Me" GPS Discovery
   const handleNearMeClick = async () => {
     setLocating(true);
-    setLocationError(null);
     try {
-      const coords = await getLiveDeviceCoordinates();
+      const coords = await getBrowserLocation();
+      setLocating(false);
+      setIsDropdownOpen(false);
       if (coords) {
-        setLocating(false);
-        setIsDropdownOpen(false);
-        router.push(
-          `/search?nearMe=true&lat=${coords.latitude}&lng=${coords.longitude}&maxDist=5`
-        );
+        router.push(`/search?nearMe=true&lat=${coords.latitude}&lng=${coords.longitude}&maxDist=5`);
       } else {
-        setLocating(false);
-        // Fallback to central Samastipur
-        router.push(
-          `/search?nearMe=true&lat=25.8631&lng=85.7812&maxDist=5&fallback=1`
-        );
+        router.push(`/search?nearMe=true&lat=25.8631&lng=85.7812&maxDist=5`);
       }
     } catch {
       setLocating(false);
-      setLocationError('Location access was denied or timed out.');
     }
-  };
-
-  // Select Landmark Suggestion
-  const handleSelectLandmark = (landmarkId: string, landmarkName: string) => {
-    setSelectedLandmark(landmarkId);
-    setSelectedPincode('');
-    setSearchQuery(landmarkName);
-    setIsDropdownOpen(false);
-  };
-
-  // Select PIN Code Suggestion
-  const handleSelectPincode = (pincode: string) => {
-    setSelectedPincode(pincode);
-    setSelectedLandmark('');
-    setSearchQuery(pincode);
-    setIsDropdownOpen(false);
-  };
-
-  // Select Sub-area Suggestion
-  const handleSelectSubArea = (area: string, pincode?: string) => {
-    if (pincode) setSelectedPincode(pincode);
-    setSelectedLandmark('');
-    setSearchQuery(area);
-    setIsDropdownOpen(false);
   };
 
   // Submit Search
   const executeSearch = () => {
     const params = new URLSearchParams();
+    const q = searchQuery.trim();
 
-    if (selectedPincode) {
-      params.set('pincode', selectedPincode);
-    } else if (selectedLandmark) {
-      params.set('landmark', selectedLandmark);
-    } else if (searchQuery.trim()) {
-      const q = searchQuery.trim();
-      // Check if it's a 6-digit PIN code
+    if (q) {
       if (/^\d{6}$/.test(q)) {
         params.set('pincode', q);
       } else {
@@ -145,12 +128,28 @@ export default function Home() {
       params.set('accommodation', accommodation);
     }
 
+    setIsDropdownOpen(false);
     router.push(`/search?${params.toString()}`);
+  };
+
+  const handleSelectPlace = (place: GeocodedPlace) => {
+    setSearchQuery(place.name);
+    setIsDropdownOpen(false);
+    router.push(
+      `/search?searchLat=${place.latitude}&searchLng=${place.longitude}&searchPlace=${encodeURIComponent(
+        place.name
+      )}&maxDist=5`
+    );
+  };
+
+  const handleSelectArea = (area: string) => {
+    setSearchQuery(area);
+    setIsDropdownOpen(false);
+    router.push(`/search?area=${encodeURIComponent(area)}`);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
-      setIsDropdownOpen(false);
       executeSearch();
     }
   };
@@ -161,24 +160,19 @@ export default function Home() {
     setStorageItem('roomsaathi_saved_properties', next);
   };
 
-  // Filter autocomplete suggestions based on query
-  const qClean = searchQuery.toLowerCase().trim();
-
-  const matchingLandmarks = SAMASTIPUR_LANDMARKS.filter(
-    (l) =>
-      !qClean ||
-      l.name.toLowerCase().includes(qClean) ||
-      l.shortName.toLowerCase().includes(qClean) ||
-      l.description.toLowerCase().includes(qClean)
-  );
-
-  const matchingPincodes = Object.values(PINCODE_CLUSTERS).filter(
-    (p) =>
-      !qClean ||
-      p.pincode.includes(qClean) ||
-      p.regionName.toLowerCase().includes(qClean) ||
-      p.subAreas.some((sa) => sa.toLowerCase().includes(qClean))
-  );
+  // Dynamic matching properties in DB
+  const matchingPropertiesInDb = useMemo(() => {
+    const q = searchQuery.toLowerCase().trim();
+    if (!q) return [];
+    return properties
+      .filter(
+        (p) =>
+          p.name.toLowerCase().includes(q) ||
+          p.area.toLowerCase().includes(q) ||
+          (p.pincode && p.pincode.includes(q))
+      )
+      .slice(0, 4);
+  }, [properties, searchQuery]);
 
   return (
     <>
@@ -188,7 +182,7 @@ export default function Home() {
           <div className="hero-intro">
             <div className="hero-copy">
               <div className="hero-kicker">
-                <span className="hero-kicker-dot" /> SAMASTIPUR, BIHAR{' '}
+                <span className="hero-kicker-dot" /> LIVE DISCOVERY{' '}
                 <span className="hero-kicker-divider" /> आपके शहर में, आपके बजट में
               </div>
               <h1 className="hero-title">
@@ -205,16 +199,15 @@ export default function Home() {
                 </span>
               </h1>
               <p className="subtitle">
-                PIN code, landmark (स्टेशन, कॉलेज) या GPS “Near Me” से rooms और PGs खोजें।
-                किराया, bills और कुल शिफ्टिंग खर्च—सब पारदर्शी।
+                किसी भी कोचिंग, कॉलेज, स्टेशन, या कॉलोनी का नाम लिखें—सीधे रियल डिस्टेंस और कुल खर्च के साथ कमरे खोजें।
               </p>
               <div className="hero-social-proof">
                 <span className="hero-avatar-stack">
                   <i>R</i><i>A</i><i>V</i>
                 </span>
                 <span>
-                  <b>समस्तीपुर में कमरे सीधे खोजें</b>
-                  <small>कमरे ₹3,500/महीने से · Zero Brokerage verified</small>
+                  <b>कमरे ₹3,500/महीने से शुरू</b>
+                  <small>Zero Brokerage · Direct Verified Landlords</small>
                 </span>
               </div>
             </div>
@@ -225,30 +218,30 @@ export default function Home() {
                 <span className="hero-float-icon">₹</span>
                 <span>
                   <b>Rooms from ₹3,500</b>
-                  <small>Full monthly breakdown</small>
+                  <small>Transparent monthly breakdown</small>
                 </span>
               </div>
               <div className="hero-float hero-float-bottom">
                 <MapPin size={15} />
                 <span>
-                  <b>8 min to ABC College</b>
-                  <small>Sample commute estimate</small>
+                  <b>Live GPS Commute</b>
+                  <small>Real-time distance to your spot</small>
                 </span>
                 <i />
               </div>
               <div className="hero-photo-caption">
-                <span className="hero-live-dot" /> Verified Neighborhoods
+                <span className="hero-live-dot" /> Open Dynamic Search
               </div>
             </div>
           </div>
 
-          {/* 3-Pillar Smart Hero Searchbox */}
+          {/* Dynamic Open Searchbox */}
           <div className="searchbox" style={{ position: 'relative' }} ref={searchContainerRef}>
             <div className="search-grid" style={{ alignItems: 'flex-start' }}>
-              {/* Omni Search with Autocomplete */}
+              {/* Universal Live Input */}
               <div className="field destination-field" style={{ position: 'relative', flex: '1.4' }}>
                 <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <span>Location, PIN or Landmark</span>
+                  <span>Search Any Place, Area or PIN</span>
                   <button
                     type="button"
                     onClick={handleNearMeClick}
@@ -273,13 +266,11 @@ export default function Home() {
                   <input
                     type="text"
                     className="input"
-                    placeholder="e.g. 848101, Station Rd, Kashipur, ABC College"
+                    placeholder="e.g. Samastipur College, Station, Kashipur, 848101..."
                     value={searchQuery}
                     onFocus={() => setIsDropdownOpen(true)}
                     onChange={(e) => {
                       setSearchQuery(e.target.value);
-                      setSelectedPincode('');
-                      setSelectedLandmark('');
                       setIsDropdownOpen(true);
                     }}
                     onKeyDown={handleKeyDown}
@@ -294,8 +285,7 @@ export default function Home() {
                       type="button"
                       onClick={() => {
                         setSearchQuery('');
-                        setSelectedPincode('');
-                        setSelectedLandmark('');
+                        setGeoSuggestions([]);
                       }}
                       style={{
                         position: 'absolute',
@@ -315,7 +305,7 @@ export default function Home() {
                   )}
                 </div>
 
-                {/* Grouped Autocomplete Suggestions Dropdown */}
+                {/* Live Hybrid Autocomplete Dropdown */}
                 {isDropdownOpen && (
                   <div
                     style={{
@@ -326,7 +316,7 @@ export default function Home() {
                       marginTop: 6,
                       background: '#ffffff',
                       borderRadius: 14,
-                      boxShadow: '0 16px 36px -4px rgba(15, 23, 42, 0.18), 0 0 0 1px rgba(0, 0, 0, 0.08)',
+                      boxShadow: '0 18px 40px -4px rgba(15, 23, 42, 0.2), 0 0 0 1px rgba(0, 0, 0, 0.08)',
                       zIndex: 50,
                       maxHeight: 380,
                       overflowY: 'auto',
@@ -343,7 +333,7 @@ export default function Home() {
                           display: 'flex',
                           alignItems: 'center',
                           gap: 10,
-                          padding: '10px 12px',
+                          padding: '9px 12px',
                           background: '#ecfdf5',
                           border: '1px solid #a7f3d0',
                           borderRadius: 10,
@@ -356,35 +346,31 @@ export default function Home() {
                       >
                         <div
                           style={{
-                            width: 28,
-                            height: 28,
+                            width: 26,
+                            height: 26,
                             borderRadius: '50%',
                             background: '#10b981',
                             color: '#ffffff',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            flexShrink: 0,
                           }}
                         >
-                          <Crosshair size={15} />
+                          <Crosshair size={14} />
                         </div>
                         <div style={{ flex: 1 }}>
-                          <div style={{ fontWeight: 600, color: '#064e3b' }}>
-                            {locating ? 'Detecting your GPS location...' : 'Use My Current Location'}
+                          <div style={{ fontWeight: 600 }}>
+                            {locating ? 'Detecting your GPS position...' : 'Use My Current Location'}
                           </div>
                           <div style={{ fontSize: 11, color: '#059669', fontWeight: 400 }}>
-                            Instant distance calculation to all rooms
+                            Find rooms closest to where you are standing right now
                           </div>
                         </div>
-                        <span style={{ fontSize: 11, background: '#d1fae5', padding: '2px 8px', borderRadius: 6 }}>
-                          📍 GPS
-                        </span>
                       </button>
                     </div>
 
-                    {/* Section: Major Landmarks & Transit */}
-                    {matchingLandmarks.length > 0 && (
+                    {/* Section 1: Live Matches from Database Listings */}
+                    {matchingPropertiesInDb.length > 0 && (
                       <div style={{ padding: '6px 0', borderTop: '1px solid #f1f5f9' }}>
                         <div
                           style={{
@@ -392,17 +378,17 @@ export default function Home() {
                             fontWeight: 700,
                             letterSpacing: '0.04em',
                             textTransform: 'uppercase',
-                            color: '#64748b',
+                            color: '#0f766e',
                             padding: '4px 16px 6px',
                           }}
                         >
-                          🏛️ Popular Landmarks & Stations
+                          🏠 Verified Stays in Database
                         </div>
-                        {matchingLandmarks.map((lm) => (
+                        {matchingPropertiesInDb.map((p) => (
                           <button
-                            key={lm.id}
+                            key={p.id}
                             type="button"
-                            onClick={() => handleSelectLandmark(lm.id, lm.name)}
+                            onClick={() => router.push(`/rooms/${p.id}`)}
                             style={{
                               width: '100%',
                               display: 'flex',
@@ -419,25 +405,22 @@ export default function Home() {
                             onMouseEnter={(e) => (e.currentTarget.style.background = '#f8fafc')}
                             onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
                           >
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                              <span style={{ color: '#0f766e', fontSize: 15 }}>
-                                {lm.category === 'transit' ? '🚉' : lm.category === 'college' ? '🎓' : '🏥'}
-                              </span>
-                              <div>
-                                <div style={{ fontWeight: 600 }}>{lm.name}</div>
-                                <div style={{ fontSize: 11, color: '#64748b' }}>{lm.description}</div>
+                            <div>
+                              <div style={{ fontWeight: 600 }}>{p.name}</div>
+                              <div style={{ fontSize: 11, color: '#64748b' }}>
+                                {p.area}, {p.city} · {p.accommodation}
                               </div>
                             </div>
-                            <span style={{ fontSize: 11, color: '#0f766e', fontWeight: 500 }}>
-                              {lm.shortName}
+                            <span style={{ fontWeight: 700, color: '#0f766e' }}>
+                              ₹{p.rent.toLocaleString('en-IN')}/mo
                             </span>
                           </button>
                         ))}
                       </div>
                     )}
 
-                    {/* Section: PIN Code Clusters */}
-                    {matchingPincodes.length > 0 && (
+                    {/* Section 2: Active Inventory Areas from Database */}
+                    {inventory.areas.length > 0 && !searchQuery && (
                       <div style={{ padding: '6px 0', borderTop: '1px solid #f1f5f9' }}>
                         <div
                           style={{
@@ -449,68 +432,103 @@ export default function Home() {
                             padding: '4px 16px 6px',
                           }}
                         >
-                          📮 PIN Codes & Neighborhood Clusters
+                          📍 Active Neighborhoods with Rooms
                         </div>
-                        {matchingPincodes.map((cluster) => (
-                          <div key={cluster.pincode}>
-                            <button
-                              type="button"
-                              onClick={() => handleSelectPincode(cluster.pincode)}
-                              style={{
-                                width: '100%',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'space-between',
-                                padding: '8px 16px',
-                                background: 'transparent',
-                                border: 'none',
-                                cursor: 'pointer',
-                                textAlign: 'left',
-                                fontSize: 13,
-                                color: '#1e293b',
-                              }}
-                              onMouseEnter={(e) => (e.currentTarget.style.background = '#f8fafc')}
-                              onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-                            >
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                                <span style={{ color: '#0284c7', fontSize: 14 }}>📮</span>
-                                <div>
-                                  <span style={{ fontWeight: 700, color: '#0284c7' }}>PIN {cluster.pincode}</span>
-                                  <span style={{ marginLeft: 6, color: '#475569' }}>· {cluster.regionName}</span>
+                        {inventory.areas.map((a) => (
+                          <button
+                            key={a.name}
+                            type="button"
+                            onClick={() => handleSelectArea(a.name)}
+                            style={{
+                              width: '100%',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              padding: '7px 16px',
+                              background: 'transparent',
+                              border: 'none',
+                              cursor: 'pointer',
+                              textAlign: 'left',
+                              fontSize: 13,
+                              color: '#1e293b',
+                            }}
+                            onMouseEnter={(e) => (e.currentTarget.style.background = '#f8fafc')}
+                            onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                          >
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                              <MapPin size={14} color="#059669" />
+                              <span style={{ fontWeight: 500 }}>{a.name}</span>
+                            </div>
+                            <span style={{ fontSize: 11, background: '#ecfdf5', color: '#065f46', padding: '1px 7px', borderRadius: 6, fontWeight: 600 }}>
+                              {a.count} {a.count === 1 ? 'room' : 'rooms'}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Section 3: Live Real-World Places from OpenStreetMap / Photon */}
+                    {geoSuggestions.length > 0 && (
+                      <div style={{ padding: '6px 0', borderTop: '1px solid #f1f5f9' }}>
+                        <div
+                          style={{
+                            fontSize: 11,
+                            fontWeight: 700,
+                            letterSpacing: '0.04em',
+                            textTransform: 'uppercase',
+                            color: '#0369a1',
+                            padding: '4px 16px 6px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                          }}
+                        >
+                          <span>🗺️ Live Places & Landmarks</span>
+                          <span style={{ fontSize: 10, color: '#94a3b8', textTransform: 'none' }}>
+                            OpenStreetMap
+                          </span>
+                        </div>
+                        {geoSuggestions.map((place) => (
+                          <button
+                            key={place.id}
+                            type="button"
+                            onClick={() => handleSelectPlace(place)}
+                            style={{
+                              width: '100%',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              padding: '8px 16px',
+                              background: 'transparent',
+                              border: 'none',
+                              cursor: 'pointer',
+                              textAlign: 'left',
+                              fontSize: 13,
+                              color: '#1e293b',
+                            }}
+                            onMouseEnter={(e) => (e.currentTarget.style.background = '#f8fafc')}
+                            onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                          >
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                              <Compass size={14} color="#0284c7" />
+                              <div>
+                                <div style={{ fontWeight: 600 }}>{place.name}</div>
+                                <div style={{ fontSize: 11, color: '#64748b' }}>
+                                  {place.displayName}
                                 </div>
                               </div>
-                              <span style={{ fontSize: 11, background: '#e0f2fe', color: '#0369a1', padding: '1px 6px', borderRadius: 4 }}>
-                                Cluster
-                              </span>
-                            </button>
-                            {/* Sub-areas under this pincode */}
-                            <div style={{ padding: '2px 16px 8px 40px', display: 'flex', flexWrap: 'wrap', gap: 5 }}>
-                              {cluster.subAreas.slice(0, 5).map((sub) => (
-                                <button
-                                  key={sub}
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleSelectSubArea(sub, cluster.pincode);
-                                  }}
-                                  style={{
-                                    fontSize: 11,
-                                    padding: '2px 8px',
-                                    borderRadius: 6,
-                                    border: '1px solid #e2e8f0',
-                                    background: '#f8fafc',
-                                    color: '#334155',
-                                    cursor: 'pointer',
-                                  }}
-                                  onMouseEnter={(e) => (e.currentTarget.style.background = '#e2e8f0')}
-                                  onMouseLeave={(e) => (e.currentTarget.style.background = '#f8fafc')}
-                                >
-                                  {sub}
-                                </button>
-                              ))}
                             </div>
-                          </div>
+                            <span style={{ fontSize: 11, color: '#0284c7', fontWeight: 500 }}>
+                              Search distance →
+                            </span>
+                          </button>
                         ))}
+                      </div>
+                    )}
+
+                    {isSearchingPlaces && (
+                      <div style={{ padding: '8px 16px', fontSize: 12, color: '#64748b', fontStyle: 'italic' }}>
+                        Searching live places on OpenStreetMap...
                       </div>
                     )}
                   </div>
@@ -555,11 +573,11 @@ export default function Home() {
                 onClick={executeSearch}
                 style={{ height: 44, alignSelf: 'flex-end', display: 'flex', alignItems: 'center', gap: 6 }}
               >
-                <Search size={16} /> Find Rooms
+                <Search size={16} /> Search Rooms
               </button>
             </div>
 
-            {/* Quick 3-Pillar Discovery Pills */}
+            {/* Dynamic Quick Discovery Pills Populated from Active Database Inventory */}
             <div
               style={{
                 display: 'flex',
@@ -572,7 +590,7 @@ export default function Home() {
               }}
             >
               <span style={{ fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                <Sparkles size={13} color="#0f766e" /> Quick Search:
+                <Sparkles size={13} color="#0f766e" /> Quick Stays:
               </span>
 
               {/* Near Me */}
@@ -594,35 +612,31 @@ export default function Home() {
                 <Crosshair size={12} /> Near Me (GPS)
               </button>
 
-              {/* Station Proximity */}
-              <button
-                type="button"
-                onClick={() => router.push('/search?landmark=samastipur-jn&stationMaxKm=2')}
-                className="pill"
-                style={{ cursor: 'pointer' }}
-              >
-                🚉 Near Station (&lt;2km)
-              </button>
+              {/* Dynamic Top Active Areas */}
+              {inventory.areas.slice(0, 3).map((a) => (
+                <button
+                  key={a.name}
+                  type="button"
+                  onClick={() => router.push(`/search?area=${encodeURIComponent(a.name)}`)}
+                  className="pill"
+                  style={{ cursor: 'pointer' }}
+                >
+                  📍 {a.name} ({a.count})
+                </button>
+              ))}
 
-              {/* College Hub */}
-              <button
-                type="button"
-                onClick={() => router.push('/search?landmark=samastipur-college')}
-                className="pill"
-                style={{ cursor: 'pointer' }}
-              >
-                🎓 Colleges
-              </button>
-
-              {/* PIN 848101 */}
-              <button
-                type="button"
-                onClick={() => router.push('/search?pincode=848101')}
-                className="pill"
-                style={{ cursor: 'pointer' }}
-              >
-                📮 PIN 848101
-              </button>
+              {/* Dynamic Top PIN Codes */}
+              {inventory.pincodes.slice(0, 2).map((p) => (
+                <button
+                  key={p.name}
+                  type="button"
+                  onClick={() => router.push(`/search?pincode=${encodeURIComponent(p.name)}`)}
+                  className="pill"
+                  style={{ cursor: 'pointer' }}
+                >
+                  📮 PIN {p.name}
+                </button>
+              ))}
 
               {/* Budget Under 5K */}
               <button
@@ -647,47 +661,7 @@ export default function Home() {
           </div>
 
           <div className="demo-note" style={{ marginTop: 14 }}>
-            Prototype preview · Transparent room discovery with verified rent, bills, and distance.
-          </div>
-        </div>
-      </section>
-
-      {/* College & Landmark Corridor Section */}
-      <section className="section">
-        <div className="container">
-          <div className="section-head">
-            <div>
-              <h2>Explore rooms by <em className="title-accent">landmark</em></h2>
-              <p>कॉलेज, रेलवे स्टेशन या मुख्य बाज़ार के पास कमरे और PGs खोजें।</p>
-            </div>
-            <Link href="/search" className="muted">
-              See all <ArrowRight size={14} />
-            </Link>
-          </div>
-          <div className="destinations">
-            {SAMASTIPUR_LANDMARKS.map((lm) => {
-              const Icon =
-                lm.category === 'transit'
-                  ? Train
-                  : lm.category === 'college'
-                  ? GraduationCap
-                  : Hospital;
-              return (
-                <button
-                  key={lm.id}
-                  className="destination"
-                  onClick={() => router.push(`/search?landmark=${lm.id}`)}
-                >
-                  <div className="dest-icon">
-                    <Icon size={18} />
-                  </div>
-                  <div className="dest-type">
-                    {lm.category === 'transit' ? 'Transit Hub' : lm.category === 'college' ? 'Academic Hub' : 'Healthcare'}
-                  </div>
-                  <div className="dest-name">{lm.shortName}</div>
-                </button>
-              );
-            })}
+            Zero hardcoded boundaries · Live OpenStreetMap geocoding & real-time inventory aggregation.
           </div>
         </div>
       </section>
@@ -709,10 +683,10 @@ export default function Home() {
               ⌂
             </div>
             <h2>
-              No rooms listed in Samastipur <em className="title-accent">yet</em>
+              No rooms listed <em className="title-accent">yet</em>
             </h2>
             <p className="muted" style={{ maxWidth: 480, margin: '8px auto 20px' }}>
-              Are you a PG owner or landlord? Be the first to list your rooms with 100% transparent pricing and manage inquiries directly.
+              Are you a PG owner or landlord? List your rooms with 100% transparent pricing and reach tenants directly.
             </p>
             <Link href="/list-property" className="btn">
               List your property <ArrowRight size={15} />

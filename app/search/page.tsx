@@ -4,41 +4,44 @@ import { useEffect, useState, useMemo, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
-  ArrowUpDown,
   Filter,
   MapPin,
   Search as SearchIcon,
   SlidersHorizontal,
   X,
   Sparkles,
-  ShieldCheck,
-  Check,
-  Home,
   RotateCcw,
   Crosshair,
-  Train,
-  Bus,
-  GraduationCap,
-  Hospital,
-  ChevronRight,
+  Compass,
 } from 'lucide-react';
 import { getProperties, type PropertyFilters } from '@/lib/services/propertyService';
 import type { Property } from '@/lib/mock-data/types';
-import { mockDestinations } from '@/lib/mock-data/destinations';
 import { mockAmenities } from '@/lib/mock-data/amenities';
-import { getDestinations, getAmenities, type Destination } from '@/lib/services/catalogService';
+import { getAmenities } from '@/lib/services/catalogService';
 import { PropertyCard } from '@/components/PropertyCard';
 import { Modal } from '@/components/Modal';
 import { getStorageItem, setStorageItem } from '@/lib/storage';
 import {
-  SAMASTIPUR_LANDMARKS,
-  PINCODE_CLUSTERS,
-  getSubAreasForPincode,
-  getLiveDeviceCoordinates,
-} from '@/lib/locationData';
+  searchPlacesLive,
+  getBrowserLocation,
+  type GeocodedPlace,
+} from '@/lib/services/geocodingService';
+import {
+  extractLiveLocationFacets,
+  getLiveSubAreasForPin,
+} from '@/lib/services/dynamicLocationService';
 
 const defaultFilters: PropertyFilters = {
   q: '',
+  area: '',
+  pincode: '',
+  searchLat: undefined,
+  searchLng: undefined,
+  searchPlaceName: undefined,
+  maxRadiusKm: undefined,
+  nearMe: false,
+  userLat: undefined,
+  userLng: undefined,
   min: 0,
   max: 12000,
   distance: 60,
@@ -49,19 +52,9 @@ const defaultFilters: PropertyFilters = {
   brokerage: false,
   verifiedOnly: false,
   amenities: [],
-  pincode: undefined,
-  subArea: undefined,
-  landmarkId: undefined,
-  nearMe: false,
-  userLat: undefined,
-  userLng: undefined,
-  maxDistanceKm: undefined,
-  stationMaxKm: undefined,
-  busStandMaxKm: undefined,
 };
 
 export default function SearchPage() {
-  const [destinations, setDestinations] = useState<Destination[]>(mockDestinations);
   const [amenityOptions, setAmenityOptions] = useState<string[]>(mockAmenities);
   const [filters, setFilters] = useState<PropertyFilters>(defaultFilters);
   const [searchInput, setSearchInput] = useState('');
@@ -71,42 +64,45 @@ export default function SearchPage() {
   const [compare, setCompare] = useState<string[]>([]);
   const [mobileFilters, setMobileFilters] = useState(false);
   const [busy, setBusy] = useState(true);
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [locating, setLocating] = useState(false);
 
+  // Live Geocoding State
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [geoSuggestions, setGeoSuggestions] = useState<GeocodedPlace[]>([]);
+  const [locating, setLocating] = useState(false);
   const searchContainerRef = useRef<HTMLDivElement>(null);
+
   const router = useRouter();
 
   // Load initial catalog data & URL params
   useEffect(() => {
-    getDestinations().then(setDestinations);
     getAmenities().then(setAmenityOptions);
 
     const p = new URLSearchParams(window.location.search);
     const initialQuery = p.get('q') || '';
-    const initialPin = p.get('pincode') || undefined;
-    const initialSubArea = p.get('subArea') || undefined;
-    const initialLandmark = p.get('landmark') || undefined;
+    const initialArea = p.get('area') || '';
+    const initialPin = p.get('pincode') || '';
+    const searchPlace = p.get('searchPlace') || undefined;
+    const searchLat = p.get('searchLat') ? Number(p.get('searchLat')) : undefined;
+    const searchLng = p.get('searchLng') ? Number(p.get('searchLng')) : undefined;
+    const maxRadius = p.get('maxDist') ? Number(p.get('maxDist')) : undefined;
     const isNearMe = p.get('nearMe') === 'true';
 
-    setSearchInput(initialQuery || initialPin || initialSubArea || '');
+    setSearchInput(searchPlace || initialArea || initialPin || initialQuery);
 
     setFilters({
       ...defaultFilters,
       q: initialQuery,
+      area: initialArea,
       pincode: initialPin,
-      subArea: initialSubArea,
-      landmarkId: initialLandmark,
+      searchPlaceName: searchPlace,
+      searchLat,
+      searchLng,
+      maxRadiusKm: maxRadius,
       nearMe: isNearMe,
       userLat: p.get('lat') ? Number(p.get('lat')) : undefined,
       userLng: p.get('lng') ? Number(p.get('lng')) : undefined,
-      maxDistanceKm: p.get('maxDist') ? Number(p.get('maxDist')) : undefined,
-      stationMaxKm: p.get('stationMaxKm') ? Number(p.get('stationMaxKm')) : undefined,
-      busStandMaxKm: p.get('busStandMaxKm') ? Number(p.get('busStandMaxKm')) : undefined,
       min: p.get('min') ? Number(p.get('min')) : 0,
       max: p.get('max') ? Number(p.get('max')) : 12000,
-      distance: p.get('distance') ? Number(p.get('distance')) : 60,
-      destination: p.get('destination') || undefined,
       accommodation: p.get('accommodation') || '',
       type: p.get('type') || '',
       food: p.get('food') || 'any',
@@ -120,7 +116,7 @@ export default function SearchPage() {
     setCompare(getStorageItem('roomsaathi_compare', []));
   }, []);
 
-  // Close autocomplete dropdown on click outside
+  // Close dropdown on click outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (
@@ -153,6 +149,36 @@ export default function SearchPage() {
     };
   }, [filters, sort]);
 
+  // Live Geocoding Suggestions
+  useEffect(() => {
+    const q = searchInput.trim();
+    if (q.length < 2) {
+      setGeoSuggestions([]);
+      return;
+    }
+
+    let alive = true;
+    const timer = setTimeout(() => {
+      searchPlacesLive(q).then((places) => {
+        if (alive) setGeoSuggestions(places);
+      });
+    }, 220);
+
+    return () => {
+      alive = false;
+      clearTimeout(timer);
+    };
+  }, [searchInput]);
+
+  // Compute live facets from loaded properties
+  const inventory = useMemo(() => extractLiveLocationFacets(properties), [properties]);
+
+  // Sub-areas under active PIN code
+  const activePinSubAreas = useMemo(() => {
+    if (!filters.pincode) return [];
+    return getLiveSubAreasForPin(filters.pincode, properties);
+  }, [filters.pincode, properties]);
+
   // Sync state to URL
   const syncToUrl = (nextFilters: PropertyFilters) => {
     const params = new URLSearchParams();
@@ -164,13 +190,12 @@ export default function SearchPage() {
         v !== false &&
         !(k === 'min' && v === 0) &&
         !(k === 'max' && v === 12000) &&
-        !(k === 'distance' && v === 60) &&
         !(Array.isArray(v) && !v.length)
       ) {
-        if (k === 'landmarkId') params.set('landmark', String(v));
+        if (k === 'searchPlaceName') params.set('searchPlace', String(v));
+        else if (k === 'maxRadiusKm') params.set('maxDist', String(v));
         else if (k === 'userLat') params.set('lat', String(v));
         else if (k === 'userLng') params.set('lng', String(v));
-        else if (k === 'maxDistanceKm') params.set('maxDist', String(v));
         else params.set(k, Array.isArray(v) ? v.join(',') : String(v));
       }
     });
@@ -179,25 +204,23 @@ export default function SearchPage() {
     router.replace(`/search${queryString ? `?${queryString}` : ''}`, { scroll: false });
   };
 
-  // Update specific filter property
   const updateFilter = (key: keyof PropertyFilters, value: any) => {
     const next = { ...filters, [key]: value };
     setFilters(next);
     syncToUrl(next);
   };
 
-  // Update multiple filters atomically
   const updateMultipleFilters = (updates: Partial<PropertyFilters>) => {
     const next = { ...filters, ...updates };
     setFilters(next);
     syncToUrl(next);
   };
 
-  // Trigger Near Me GPS
+  // Near Me Trigger
   const handleNearMeTrigger = async () => {
     setLocating(true);
     try {
-      const coords = await getLiveDeviceCoordinates();
+      const coords = await getBrowserLocation();
       setLocating(false);
       setIsDropdownOpen(false);
       if (coords) {
@@ -205,20 +228,38 @@ export default function SearchPage() {
           nearMe: true,
           userLat: coords.latitude,
           userLng: coords.longitude,
-          maxDistanceKm: 5,
+          searchLat: undefined,
+          searchLng: undefined,
+          searchPlaceName: undefined,
+          maxRadiusKm: 5,
         });
       } else {
-        // Fallback coordinates for Central Samastipur
         updateMultipleFilters({
           nearMe: true,
           userLat: 25.8631,
           userLng: 85.7812,
-          maxDistanceKm: 5,
+          maxRadiusKm: 5,
         });
       }
     } catch {
       setLocating(false);
     }
+  };
+
+  // Select Geocoded Place
+  const handleSelectPlace = (place: GeocodedPlace) => {
+    setSearchInput(place.name);
+    setIsDropdownOpen(false);
+    updateMultipleFilters({
+      searchPlaceName: place.name,
+      searchLat: place.latitude,
+      searchLng: place.longitude,
+      maxRadiusKm: 5,
+      area: '',
+      pincode: '',
+      q: '',
+      nearMe: false,
+    });
   };
 
   // Form submit
@@ -228,7 +269,7 @@ export default function SearchPage() {
     const q = searchInput.trim();
 
     if (/^\d{6}$/.test(q)) {
-      updateMultipleFilters({ pincode: q, subArea: undefined, q: '' });
+      updateMultipleFilters({ pincode: q, area: '', searchLat: undefined, searchLng: undefined, q: '' });
     } else {
       updateFilter('q', q);
     }
@@ -236,7 +277,16 @@ export default function SearchPage() {
 
   const handleClearSearch = () => {
     setSearchInput('');
-    updateMultipleFilters({ q: '', pincode: undefined, subArea: undefined, landmarkId: undefined });
+    updateMultipleFilters({
+      q: '',
+      area: '',
+      pincode: '',
+      searchLat: undefined,
+      searchLng: undefined,
+      searchPlaceName: undefined,
+      nearMe: false,
+      maxRadiusKm: undefined,
+    });
   };
 
   const resetAllFilters = () => {
@@ -261,61 +311,28 @@ export default function SearchPage() {
     setStorageItem('roomsaathi_compare', next);
   };
 
-  // Identify active PIN code from either filters or search input
-  const activePincode = useMemo(() => {
-    if (filters.pincode) return filters.pincode;
-    const match = searchInput.trim().match(/\b(848\d{3})\b/);
-    if (match) return match[1];
-    return null;
-  }, [filters.pincode, searchInput]);
-
-  // Compute sub-areas for active PIN code
-  const subAreasForPincode = useMemo(() => {
-    if (!activePincode) return [];
-    return getSubAreasForPincode(activePincode, properties);
-  }, [activePincode, properties]);
-
-  // Autocomplete matching lists
-  const qClean = searchInput.toLowerCase().trim();
-  const matchingLandmarks = SAMASTIPUR_LANDMARKS.filter(
-    (l) =>
-      !qClean ||
-      l.name.toLowerCase().includes(qClean) ||
-      l.shortName.toLowerCase().includes(qClean)
-  );
-  const matchingPincodes = Object.values(PINCODE_CLUSTERS).filter(
-    (p) =>
-      !qClean ||
-      p.pincode.includes(qClean) ||
-      p.regionName.toLowerCase().includes(qClean) ||
-      p.subAreas.some((sa) => sa.toLowerCase().includes(qClean))
-  );
-
-  // Active filters list for removable tags
+  // Active filter tags
   const activeFilterList = useMemo(() => {
     const list: { key: keyof PropertyFilters; label: string; clearVal: any }[] = [];
-    if (filters.pincode) {
-      list.push({ key: 'pincode', label: `📮 PIN ${filters.pincode}`, clearVal: undefined });
-    }
-    if (filters.subArea) {
-      list.push({ key: 'subArea', label: `📍 Area: ${filters.subArea}`, clearVal: undefined });
+    if (filters.searchPlaceName) {
+      list.push({
+        key: 'searchPlaceName',
+        label: `📍 Near "${filters.searchPlaceName}"`,
+        clearVal: undefined,
+      });
     }
     if (filters.nearMe) {
       list.push({
         key: 'nearMe',
-        label: `📍 Near Me ${filters.maxDistanceKm ? `(<${filters.maxDistanceKm}km)` : ''}`,
+        label: `📍 GPS Near Me (<${filters.maxRadiusKm || 5}km)`,
         clearVal: false,
       });
     }
-    if (filters.landmarkId) {
-      const lm = SAMASTIPUR_LANDMARKS.find((l) => l.id === filters.landmarkId);
-      list.push({ key: 'landmarkId', label: `🏛️ ${lm ? lm.shortName : filters.landmarkId}`, clearVal: undefined });
+    if (filters.area) {
+      list.push({ key: 'area', label: `📍 ${filters.area}`, clearVal: '' });
     }
-    if (filters.stationMaxKm) {
-      list.push({ key: 'stationMaxKm', label: `🚉 Station < ${filters.stationMaxKm} km`, clearVal: undefined });
-    }
-    if (filters.busStandMaxKm) {
-      list.push({ key: 'busStandMaxKm', label: `🚌 Bus Stand < ${filters.busStandMaxKm} km`, clearVal: undefined });
+    if (filters.pincode) {
+      list.push({ key: 'pincode', label: `📮 PIN ${filters.pincode}`, clearVal: '' });
     }
     if (filters.q) list.push({ key: 'q', label: `"${filters.q}"`, clearVal: '' });
     if (filters.max && filters.max < 12000) list.push({ key: 'max', label: `Up to ₹${filters.max.toLocaleString()}`, clearVal: 12000 });
@@ -339,115 +356,56 @@ export default function SearchPage() {
     return list;
   }, [filters]);
 
-  // Sidebar Controls JSX
+  // Sidebar Controls
   const filterControls = (
     <>
-      {/* 1. Pillar 2: GPS Distance (Near Me) */}
-      <div className="filter-group">
-        <div className="filter-title" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <span>GPS &quot;Near Me&quot; Distance</span>
-          <Crosshair size={14} color="#059669" />
-        </div>
-        <button
-          type="button"
-          onClick={handleNearMeTrigger}
-          className="btn outline small"
-          style={{
-            width: '100%',
-            marginBottom: 10,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 6,
-            background: filters.nearMe ? '#ecfdf5' : '#ffffff',
-            borderColor: filters.nearMe ? '#10b981' : '#cbd5e1',
-            color: filters.nearMe ? '#065f46' : '#334155',
-            fontWeight: 600,
-          }}
-        >
-          <Crosshair size={14} /> {locating ? 'Locating...' : filters.nearMe ? '✓ GPS Near Me Active' : '📍 Detect My Location'}
-        </button>
-
-        {filters.nearMe && (
+      {/* 1. Distance Radius if place or Near Me active */}
+      {(filters.searchLat || filters.nearMe) && (
+        <div className="filter-group">
+          <div className="filter-title" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span>Search Distance Radius</span>
+            <Compass size={14} color="#059669" />
+          </div>
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-            {[3, 5, 10, 15].map((km) => (
+            {[3, 5, 10, 20].map((km) => (
               <button
                 key={km}
                 type="button"
-                className={`pill small ${filters.maxDistanceKm === km ? 'selected' : ''}`}
-                style={{ padding: '3px 8px', fontSize: 11 }}
-                onClick={() => updateFilter('maxDistanceKm', filters.maxDistanceKm === km ? undefined : km)}
-              >
-                &lt; {km} km
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* 2. Pillar 1: Transit & Station Proximity */}
-      <div className="filter-group">
-        <div className="filter-title" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <span>Transit Proximity</span>
-          <Train size={14} color="#0f766e" />
-        </div>
-        <div style={{ marginBottom: 10 }}>
-          <div style={{ fontSize: 11.5, color: '#64748b', marginBottom: 5 }}>
-            Distance to Samastipur Jn Station:
-          </div>
-          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-            {[1, 2, 3].map((km) => (
-              <button
-                key={km}
-                type="button"
-                className={`pill small ${filters.stationMaxKm === km ? 'selected' : ''}`}
-                style={{ padding: '3px 8px', fontSize: 11 }}
-                onClick={() => updateFilter('stationMaxKm', filters.stationMaxKm === km ? undefined : km)}
+                className={`pill small ${filters.maxRadiusKm === km ? 'selected' : ''}`}
+                style={{ padding: '4px 9px', fontSize: 11.5 }}
+                onClick={() => updateFilter('maxRadiusKm', filters.maxRadiusKm === km ? undefined : km)}
               >
                 &lt; {km} km
               </button>
             ))}
           </div>
         </div>
+      )}
 
-        <div>
-          <div style={{ fontSize: 11.5, color: '#64748b', marginBottom: 5 }}>
-            Distance to Govt Bus Stand:
-          </div>
+      {/* 2. Dynamic Active Neighborhoods in DB */}
+      {inventory.areas.length > 0 && (
+        <div className="filter-group">
+          <div className="filter-title">Active Neighborhoods</div>
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-            {[1, 2, 3].map((km) => (
-              <button
-                key={km}
-                type="button"
-                className={`pill small ${filters.busStandMaxKm === km ? 'selected' : ''}`}
-                style={{ padding: '3px 8px', fontSize: 11 }}
-                onClick={() => updateFilter('busStandMaxKm', filters.busStandMaxKm === km ? undefined : km)}
-              >
-                &lt; {km} km
-              </button>
-            ))}
+            {inventory.areas.map((a) => {
+              const isSelected = (filters.area || '').toLowerCase() === a.name.toLowerCase();
+              return (
+                <button
+                  key={a.name}
+                  type="button"
+                  className={`pill small ${isSelected ? 'selected' : ''}`}
+                  style={{ padding: '4px 9px', fontSize: 11.5 }}
+                  onClick={() => updateFilter('area', isSelected ? '' : a.name)}
+                >
+                  {a.name} ({a.count})
+                </button>
+              );
+            })}
           </div>
         </div>
-      </div>
+      )}
 
-      {/* 3. Landmark Hub Select */}
-      <div className="filter-group">
-        <div className="filter-title">Primary Landmark Hub</div>
-        <select
-          className="select"
-          value={filters.landmarkId ?? 'any'}
-          onChange={(e) => updateFilter('landmarkId', e.target.value === 'any' ? undefined : e.target.value)}
-        >
-          <option value="any">Any landmark</option>
-          {SAMASTIPUR_LANDMARKS.map((lm) => (
-            <option key={lm.id} value={lm.id}>
-              {lm.name}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      {/* 4. Monthly Budget */}
+      {/* 3. Monthly Budget */}
       <div className="filter-group">
         <div className="filter-title">Monthly Budget</div>
         <div className="range-row" style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
@@ -476,7 +434,6 @@ export default function SearchPage() {
           </div>
         </div>
 
-        {/* Quick Budget Chips */}
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 10 }}>
           {[4000, 6000, 8000, 10000].map((amt) => (
             <button
@@ -491,7 +448,7 @@ export default function SearchPage() {
         </div>
       </div>
 
-      {/* 5. Room Sharing / Accommodation */}
+      {/* 4. Room Sharing */}
       <div className="filter-group">
         <div className="filter-title">Sharing & Room Type</div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -509,7 +466,7 @@ export default function SearchPage() {
         </div>
       </div>
 
-      {/* 6. Property Category */}
+      {/* 5. Property Category */}
       <div className="filter-group">
         <div className="filter-title">Property Category</div>
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
@@ -527,7 +484,7 @@ export default function SearchPage() {
         </div>
       </div>
 
-      {/* 7. Brokerage & Trust */}
+      {/* 6. Trust & Savings */}
       <div className="filter-group">
         <div className="filter-title">Trust & Savings</div>
         <label className="check" style={{ cursor: 'pointer', marginBottom: 8 }}>
@@ -536,7 +493,7 @@ export default function SearchPage() {
             checked={!!filters.brokerage}
             onChange={(e) => updateFilter('brokerage', e.target.checked)}
           />
-          <span style={{ fontWeight: 600, color: '#166534' }}>⚡ Zero Brokerage (Direct Host)</span>
+          <span style={{ fontWeight: 600, color: '#166534' }}>⚡ Zero Brokerage</span>
         </label>
         <label className="check" style={{ cursor: 'pointer' }}>
           <input
@@ -548,7 +505,7 @@ export default function SearchPage() {
         </label>
       </div>
 
-      {/* 8. Food / Mess Option */}
+      {/* 7. Food / Meals */}
       <div className="filter-group">
         <div className="filter-title">Food & Meals</div>
         <select
@@ -563,36 +520,11 @@ export default function SearchPage() {
         </select>
       </div>
 
-      {/* 9. Security Deposit */}
+      {/* 8. Amenities */}
       <div className="filter-group">
-        <div className="filter-title">Max Security Deposit</div>
-        <select
-          className="select"
-          value={filters.deposit ?? 'any'}
-          onChange={(e) => updateFilter('deposit', e.target.value)}
-        >
-          <option value="any">Any deposit amount</option>
-          <option value="0">Zero deposit (₹0)</option>
-          <option value="3000">Under ₹3,000</option>
-          <option value="5000">Under ₹5,000</option>
-          <option value="10000">Under ₹10,000</option>
-        </select>
-      </div>
-
-      {/* 10. Key Amenities */}
-      <div className="filter-group">
-        <div className="filter-title">Popular Amenities</div>
+        <div className="filter-title">Amenities</div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          {[
-            'Wi-Fi',
-            'Food',
-            '24x7 Power Backup',
-            'RO Drinking Water',
-            'CCTV Security',
-            'Washing Machine',
-            'Bike Parking',
-            'Attached bathroom',
-          ].map((a) => {
+          {['Wi-Fi', 'Food', '24x7 Power Backup', 'RO Drinking Water', 'CCTV Security', 'Washing Machine', 'Bike Parking', 'Attached bathroom'].map((a) => {
             const isChecked = filters.amenities?.some((item) => item.toLowerCase() === a.toLowerCase()) ?? false;
             return (
               <label className="check" key={a} style={{ cursor: 'pointer' }}>
@@ -631,14 +563,14 @@ export default function SearchPage() {
       <div style={{ padding: '28px 0 20px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#687b73', marginBottom: 8 }}>
           <MapPin size={15} color="#176b58" />
-          <span>Samastipur, Bihar · 3-Pillar Room Discovery</span>
+          <span>Live Open Geocoding & Inventory Discovery</span>
         </div>
 
         <h1 style={{ fontSize: 'clamp(28px, 4vw, 40px)', fontWeight: 800, margin: '0 0 16px', letterSpacing: '-1.5px', color: 'var(--ink)' }}>
-          Rooms & PGs in <em className="title-accent">Samastipur</em>
+          Find Rooms & PGs <em className="title-accent">Anywhere</em>
         </h1>
 
-        {/* Global Live Omni-Search Bar with Grouped Autocomplete */}
+        {/* Global Live Omni-Search Bar with OpenStreetMap Geocoding */}
         <div style={{ position: 'relative', maxWidth: 740, marginBottom: 16 }} ref={searchContainerRef}>
           <form onSubmit={handleSearchSubmit} style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
             <SearchIcon
@@ -658,7 +590,7 @@ export default function SearchPage() {
                 border: '1.5px solid #d5e2d9',
                 boxShadow: '0 6px 20px rgba(24, 51, 45, 0.05)',
               }}
-              placeholder="Search PIN (848101), landmark (Station, College), or area..."
+              placeholder="Type any landmark, college, hospital, street, or PIN..."
               value={searchInput}
               onFocus={() => setIsDropdownOpen(true)}
               onChange={(e) => {
@@ -667,7 +599,6 @@ export default function SearchPage() {
               }}
             />
 
-            {/* In-bar 1-Tap Near Me & Clear */}
             <div style={{ position: 'absolute', right: 10, display: 'flex', alignItems: 'center', gap: 4 }}>
               {searchInput && (
                 <button
@@ -711,7 +642,7 @@ export default function SearchPage() {
             </div>
           </form>
 
-          {/* Autocomplete Dropdown in Search Page */}
+          {/* Autocomplete Dropdown */}
           {isDropdownOpen && (
             <div
               style={{
@@ -722,14 +653,13 @@ export default function SearchPage() {
                 marginTop: 6,
                 background: '#ffffff',
                 borderRadius: 14,
-                boxShadow: '0 16px 36px -4px rgba(15, 23, 42, 0.18), 0 0 0 1px rgba(0, 0, 0, 0.08)',
+                boxShadow: '0 18px 40px -4px rgba(15, 23, 42, 0.2), 0 0 0 1px rgba(0, 0, 0, 0.08)',
                 zIndex: 50,
                 maxHeight: 380,
                 overflowY: 'auto',
                 padding: '10px 0',
               }}
             >
-              {/* Near Me Row */}
               <div style={{ padding: '0 10px 8px' }}>
                 <button
                   type="button"
@@ -751,23 +681,23 @@ export default function SearchPage() {
                   }}
                 >
                   <Crosshair size={16} />
-                  <span>{locating ? 'Detecting your GPS location...' : 'Use My Current GPS Location (Near Me)'}</span>
+                  <span>{locating ? 'Detecting your GPS position...' : 'Use My Current Location (Near Me)'}</span>
                 </button>
               </div>
 
-              {/* Landmarks */}
-              {matchingLandmarks.length > 0 && (
+              {/* Dynamic Database Neighborhoods */}
+              {inventory.areas.length > 0 && (
                 <div style={{ padding: '6px 0', borderTop: '1px solid #f1f5f9' }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', color: '#64748b', padding: '4px 16px 6px' }}>
-                    🏛️ Landmarks & Stations
+                  <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', color: '#0f766e', padding: '4px 16px 6px' }}>
+                    🏠 Active Neighborhoods in Database
                   </div>
-                  {matchingLandmarks.map((lm) => (
+                  {inventory.areas.slice(0, 4).map((a) => (
                     <button
-                      key={lm.id}
+                      key={a.name}
                       type="button"
                       onClick={() => {
-                        updateMultipleFilters({ landmarkId: lm.id, pincode: undefined, subArea: undefined, q: '' });
-                        setSearchInput(lm.name);
+                        updateMultipleFilters({ area: a.name, searchLat: undefined, searchLng: undefined, searchPlaceName: undefined, q: '' });
+                        setSearchInput(a.name);
                         setIsDropdownOpen(false);
                       }}
                       style={{
@@ -787,81 +717,53 @@ export default function SearchPage() {
                       onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
                     >
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <span>{lm.category === 'transit' ? '🚉' : lm.category === 'college' ? '🎓' : '🏥'}</span>
-                        <span style={{ fontWeight: 600 }}>{lm.name}</span>
+                        <MapPin size={14} color="#059669" />
+                        <span style={{ fontWeight: 600 }}>{a.name}</span>
                       </div>
-                      <span style={{ fontSize: 11, color: '#0f766e' }}>{lm.shortName}</span>
+                      <span style={{ fontSize: 11, color: '#065f46', fontWeight: 600 }}>
+                        {a.count} rooms
+                      </span>
                     </button>
                   ))}
                 </div>
               )}
 
-              {/* PIN Code Clusters */}
-              {matchingPincodes.length > 0 && (
+              {/* Live OpenStreetMap Geocoded Places */}
+              {geoSuggestions.length > 0 && (
                 <div style={{ padding: '6px 0', borderTop: '1px solid #f1f5f9' }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', color: '#64748b', padding: '4px 16px 6px' }}>
-                    📮 PIN Codes & Mohallahs
+                  <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', color: '#0369a1', padding: '4px 16px 6px' }}>
+                    🗺️ Places & Landmarks (OpenStreetMap)
                   </div>
-                  {matchingPincodes.map((cluster) => (
-                    <div key={cluster.pincode}>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          updateMultipleFilters({ pincode: cluster.pincode, subArea: undefined, landmarkId: undefined, q: '' });
-                          setSearchInput(`PIN ${cluster.pincode}`);
-                          setIsDropdownOpen(false);
-                        }}
-                        style={{
-                          width: '100%',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          padding: '8px 16px',
-                          background: 'transparent',
-                          border: 'none',
-                          cursor: 'pointer',
-                          textAlign: 'left',
-                          fontSize: 13,
-                          color: '#1e293b',
-                        }}
-                        onMouseEnter={(e) => (e.currentTarget.style.background = '#f8fafc')}
-                        onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-                      >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                          <span>📮</span>
-                          <span style={{ fontWeight: 700, color: '#0284c7' }}>PIN {cluster.pincode}</span>
-                          <span style={{ color: '#475569' }}>· {cluster.regionName}</span>
+                  {geoSuggestions.map((place) => (
+                    <button
+                      key={place.id}
+                      type="button"
+                      onClick={() => handleSelectPlace(place)}
+                      style={{
+                        width: '100%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '8px 16px',
+                        background: 'transparent',
+                        border: 'none',
+                        cursor: 'pointer',
+                        textAlign: 'left',
+                        fontSize: 13,
+                        color: '#1e293b',
+                      }}
+                      onMouseEnter={(e) => (e.currentTarget.style.background = '#f8fafc')}
+                      onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <Compass size={14} color="#0284c7" />
+                        <div>
+                          <div style={{ fontWeight: 600 }}>{place.name}</div>
+                          <div style={{ fontSize: 11, color: '#64748b' }}>{place.displayName}</div>
                         </div>
-                        <span style={{ fontSize: 11, background: '#e0f2fe', color: '#0369a1', padding: '1px 6px', borderRadius: 4 }}>
-                          Cluster
-                        </span>
-                      </button>
-                      <div style={{ padding: '2px 16px 8px 36px', display: 'flex', flexWrap: 'wrap', gap: 5 }}>
-                        {cluster.subAreas.slice(0, 5).map((sub) => (
-                          <button
-                            key={sub}
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              updateMultipleFilters({ pincode: cluster.pincode, subArea: sub, landmarkId: undefined, q: '' });
-                              setSearchInput(sub);
-                              setIsDropdownOpen(false);
-                            }}
-                            style={{
-                              fontSize: 11,
-                              padding: '2px 8px',
-                              borderRadius: 6,
-                              border: '1px solid #e2e8f0',
-                              background: '#f8fafc',
-                              color: '#334155',
-                              cursor: 'pointer',
-                            }}
-                          >
-                            {sub}
-                          </button>
-                        ))}
                       </div>
-                    </div>
+                      <span style={{ fontSize: 11, color: '#0284c7' }}>Search radius →</span>
+                    </button>
                   ))}
                 </div>
               )}
@@ -869,96 +771,8 @@ export default function SearchPage() {
           )}
         </div>
 
-        {/* =======================================================
-            PILLAR 3: SUB-AREA PROGRESSIVE CHIP RIBBON
-            Shown whenever a PIN code is searched or active!
-            ======================================================= */}
-        {activePincode && (
-          <div
-            style={{
-              background: '#f0f9ff',
-              border: '1.5px solid #bae6fd',
-              borderRadius: 14,
-              padding: '12px 16px',
-              marginBottom: 16,
-              boxShadow: '0 2px 8px rgba(2, 132, 199, 0.06)',
-            }}
-          >
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                flexWrap: 'wrap',
-                gap: 8,
-                marginBottom: 8,
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span style={{ fontSize: 15 }}>📮</span>
-                <b style={{ color: '#0369a1', fontSize: 13.5 }}>
-                  Sub-Areas in PIN {activePincode}{' '}
-                  {PINCODE_CLUSTERS[activePincode] ? `(${PINCODE_CLUSTERS[activePincode].regionName})` : ''}:
-                </b>
-              </div>
-              <span style={{ fontSize: 11.5, color: '#0284c7' }}>
-                Tap a neighborhood chip to narrow down
-              </span>
-            </div>
-
-            {/* Scrollable Sub-Area Chip Ribbon */}
-            <div
-              style={{
-                display: 'flex',
-                gap: 6,
-                overflowX: 'auto',
-                paddingBottom: 4,
-                scrollbarWidth: 'thin',
-              }}
-            >
-              {/* All in this PIN */}
-              <button
-                type="button"
-                className={`pill ${!filters.subArea ? 'selected' : ''}`}
-                style={{
-                  fontSize: 12,
-                  padding: '5px 12px',
-                  fontWeight: !filters.subArea ? 700 : 500,
-                  whiteSpace: 'nowrap',
-                }}
-                onClick={() => updateFilter('subArea', undefined)}
-              >
-                All in {activePincode} ({properties.filter((p) => (p.pincode || '').trim() === activePincode).length})
-              </button>
-
-              {/* Sub-area chips */}
-              {subAreasForPincode.map(({ name, count }) => {
-                const isSelected = (filters.subArea || '').toLowerCase() === name.toLowerCase();
-                return (
-                  <button
-                    key={name}
-                    type="button"
-                    className={`pill ${isSelected ? 'selected' : ''}`}
-                    style={{
-                      fontSize: 12,
-                      padding: '5px 12px',
-                      fontWeight: isSelected ? 700 : 500,
-                      whiteSpace: 'nowrap',
-                    }}
-                    onClick={() => updateFilter('subArea', isSelected ? undefined : name)}
-                  >
-                    {name} {count > 0 ? `(${count})` : ''}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* =======================================================
-            PILLAR 2: NEAR ME GPS ACTIVE RIBBON
-            ======================================================= */}
-        {filters.nearMe && (
+        {/* Live Active Spot / GPS Mode Alert */}
+        {(filters.searchPlaceName || filters.nearMe) && (
           <div
             style={{
               background: '#ecfdf5',
@@ -981,37 +795,48 @@ export default function SearchPage() {
                   borderRadius: '50%',
                   background: '#10b981',
                   color: '#ffffff',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
+                  display: 'grid',
+                  placeItems: 'center',
                 }}
               >
-                <Crosshair size={16} />
+                <Compass size={16} />
               </div>
               <div>
-                <b style={{ color: '#064e3b', fontSize: 13.5 }}>GPS &quot;Near Me&quot; Discovery Active</b>
+                <b style={{ color: '#064e3b', fontSize: 13.5 }}>
+                  {filters.searchPlaceName
+                    ? `Showing stays within distance of "${filters.searchPlaceName}"`
+                    : 'GPS Near Me Discovery Active'}
+                </b>
                 <div style={{ color: '#059669', fontSize: 12 }}>
-                  Showing properties sorted by radial distance from your current position
+                  Sorted by actual straight-line road distance
                 </div>
               </div>
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-              <span style={{ fontSize: 12, color: '#047857', fontWeight: 600 }}>Max radius:</span>
+              <span style={{ fontSize: 12, color: '#047857', fontWeight: 600 }}>Radius:</span>
               {[3, 5, 10, 20].map((km) => (
                 <button
                   key={km}
                   type="button"
-                  className={`pill small ${filters.maxDistanceKm === km ? 'selected' : ''}`}
+                  className={`pill small ${filters.maxRadiusKm === km ? 'selected' : ''}`}
                   style={{ padding: '3px 9px', fontSize: 11 }}
-                  onClick={() => updateFilter('maxDistanceKm', filters.maxDistanceKm === km ? undefined : km)}
+                  onClick={() => updateFilter('maxRadiusKm', filters.maxRadiusKm === km ? undefined : km)}
                 >
                   &lt; {km} km
                 </button>
               ))}
               <button
                 type="button"
-                onClick={() => updateMultipleFilters({ nearMe: false, userLat: undefined, userLng: undefined, maxDistanceKm: undefined })}
+                onClick={() =>
+                  updateMultipleFilters({
+                    searchLat: undefined,
+                    searchLng: undefined,
+                    searchPlaceName: undefined,
+                    nearMe: false,
+                    maxRadiusKm: undefined,
+                  })
+                }
                 style={{
                   border: 'none',
                   background: '#fee2e2',
@@ -1024,8 +849,49 @@ export default function SearchPage() {
                   marginLeft: 4,
                 }}
               >
-                Exit GPS Mode
+                Clear Spot
               </button>
+            </div>
+          </div>
+        )}
+
+        {/* Dynamic Sub-Area Ribbon for Active PIN */}
+        {filters.pincode && activePinSubAreas.length > 0 && (
+          <div
+            style={{
+              background: '#f0f9ff',
+              border: '1.5px solid #bae6fd',
+              borderRadius: 14,
+              padding: '12px 16px',
+              marginBottom: 16,
+            }}
+          >
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#0369a1', marginBottom: 6 }}>
+              📮 Active Areas in PIN {filters.pincode}:
+            </div>
+            <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 4 }}>
+              <button
+                type="button"
+                className={`pill ${!filters.area ? 'selected' : ''}`}
+                style={{ fontSize: 12, padding: '5px 12px' }}
+                onClick={() => updateFilter('area', '')}
+              >
+                All in PIN {filters.pincode}
+              </button>
+              {activePinSubAreas.map((sa) => {
+                const isSelected = (filters.area || '').toLowerCase() === sa.name.toLowerCase();
+                return (
+                  <button
+                    key={sa.name}
+                    type="button"
+                    className={`pill ${isSelected ? 'selected' : ''}`}
+                    style={{ fontSize: 12, padding: '5px 12px' }}
+                    onClick={() => updateFilter('area', isSelected ? '' : sa.name)}
+                  >
+                    {sa.name} ({sa.count})
+                  </button>
+                );
+              })}
             </div>
           </div>
         )}
@@ -1033,7 +899,7 @@ export default function SearchPage() {
         {/* Quick Filter Pill Buttons */}
         <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 6, flexWrap: 'wrap' }}>
           <button
-            className={`pill ${!filters.q && !filters.pincode && !filters.landmarkId && !filters.nearMe && !filters.accommodation && !filters.brokerage && filters.max === 12000 ? 'selected' : ''}`}
+            className={`pill ${!filters.q && !filters.area && !filters.pincode && !filters.searchLat && !filters.nearMe && !filters.accommodation && !filters.brokerage && filters.max === 12000 ? 'selected' : ''}`}
             onClick={resetAllFilters}
           >
             All Stays
@@ -1055,18 +921,6 @@ export default function SearchPage() {
             onClick={() => updateFilter('max', filters.max === 6000 ? 12000 : 6000)}
           >
             Under ₹6,000
-          </button>
-          <button
-            className={`pill ${filters.stationMaxKm === 2 ? 'selected' : ''}`}
-            onClick={() => updateFilter('stationMaxKm', filters.stationMaxKm === 2 ? undefined : 2)}
-          >
-            🚉 &lt; 2km to Station
-          </button>
-          <button
-            className={`pill ${filters.pincode === '848101' ? 'selected' : ''}`}
-            onClick={() => updateFilter('pincode', filters.pincode === '848101' ? undefined : '848101')}
-          >
-            📮 PIN 848101
           </button>
           <button
             className={`pill ${filters.accommodation === '2 Sharing' ? 'selected' : ''}`}
@@ -1134,11 +988,8 @@ export default function SearchPage() {
         )}
       </div>
 
-      {/* =======================================================
-          MAIN 2-COLUMN SEARCH LAYOUT
-          ======================================================= */}
+      {/* 2-Column Search Layout */}
       <div className="search-layout">
-        {/* Desktop Sticky Sidebar */}
         <aside className="filters" style={{ width: 280, borderRadius: 18, padding: 20 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
             <b style={{ fontSize: 16 }}>Filters & Preferences</b>
@@ -1149,7 +1000,6 @@ export default function SearchPage() {
 
         {/* Results Stream */}
         <section style={{ minWidth: 0 }}>
-          {/* Results Header: Count & Sort */}
           <div className="results-head" style={{ marginBottom: 20 }}>
             <div>
               <b style={{ fontSize: 18, color: 'var(--ink)' }}>
@@ -1160,12 +1010,14 @@ export default function SearchPage() {
                   : `${properties.length} verified rooms found`}
               </b>
               <div className="muted" style={{ fontSize: 13, marginTop: 2 }}>
-                {filters.pincode
-                  ? `Showing stays in PIN ${filters.pincode} (${PINCODE_CLUSTERS[filters.pincode]?.regionName || 'Samastipur'})`
+                {filters.searchPlaceName
+                  ? `Showing properties sorted by distance to "${filters.searchPlaceName}"`
                   : filters.nearMe
-                  ? 'Sorted by radial distance from your current location'
+                  ? 'Sorted by distance from your current location'
+                  : filters.area
+                  ? `Showing listings in ${filters.area}`
                   : filters.q
-                  ? `Matching "${filters.q}" across Samastipur`
+                  ? `Matching "${filters.q}"`
                   : 'All prices include estimated monthly utility breakdown'}
               </div>
             </div>
@@ -1191,7 +1043,7 @@ export default function SearchPage() {
             </div>
           </div>
 
-          {/* Mobile Filter Trigger Bar */}
+          {/* Mobile Filter Trigger */}
           <div className="mobile-filterbar" style={{ display: 'none' }}>
             <button
               className="btn outline small"
@@ -1205,7 +1057,7 @@ export default function SearchPage() {
             </span>
           </div>
 
-          {/* Property Cards Grid */}
+          {/* Cards Grid */}
           <div className="property-grid">
             {busy
               ? [1, 2, 3].map((n) => (
@@ -1265,15 +1117,15 @@ export default function SearchPage() {
               </div>
 
               <h3 style={{ fontSize: 21, fontWeight: 800, margin: '0 0 8px', color: 'var(--ink)' }}>
-                No rooms found matching your criteria.
+                No rooms found matching your search.
               </h3>
               <p className="muted" style={{ maxWidth: 460, margin: '0 auto 20px', fontSize: 14 }}>
-                {filters.pincode
-                  ? `No verified rooms found in PIN ${filters.pincode} ${filters.subArea ? `(${filters.subArea})` : ''} yet.`
-                  : filters.nearMe
-                  ? 'No rooms found within this distance from your location.'
+                {filters.searchPlaceName
+                  ? `No verified listings found within ${filters.maxRadiusKm || 5} km of "${filters.searchPlaceName}". Try increasing search radius.`
+                  : filters.area
+                  ? `No verified listings currently in ${filters.area}.`
                   : filters.q
-                  ? `No properties matching "${filters.q}".`
+                  ? `No listings matching "${filters.q}".`
                   : 'Try broadening your budget or clearing filters.'}
               </p>
 
@@ -1282,39 +1134,20 @@ export default function SearchPage() {
                   <RotateCcw size={16} /> Clear All Filters
                 </button>
                 <Link href="/list-property" className="btn outline">
-                  + List a Property in Samastipur
+                  + List a Property Here
                 </Link>
-              </div>
-
-              <div style={{ marginTop: 24, paddingTop: 20, borderTop: '1px solid #e7efe9' }}>
-                <span className="muted" style={{ fontSize: 12.5 }}>
-                  Quick suggestions:
-                </span>
-                <div style={{ display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap', marginTop: 10 }}>
-                  <button className="pill small" onClick={() => updateMultipleFilters({ subArea: undefined, maxDistanceKm: undefined })}>
-                    Expand to all in PIN
-                  </button>
-                  <button className="pill small" onClick={() => updateFilter('max', 12000)}>
-                    Any budget
-                  </button>
-                  <button className="pill small" onClick={() => updateFilter('accommodation', '')}>
-                    Any room type
-                  </button>
-                </div>
               </div>
             </div>
           )}
         </section>
       </div>
 
-      {/* Floating Compare Bar */}
       {compare.length > 0 && (
         <button className="compare-float" onClick={() => router.push('/compare')}>
           Compare {compare.length} room{compare.length > 1 ? 's' : ''} →
         </button>
       )}
 
-      {/* Mobile Filters Modal Bottom Sheet */}
       {mobileFilters && (
         <Modal title="Filters & Preferences" onClose={() => setMobileFilters(false)}>
           <div className="mobile-modal-filters" style={{ maxHeight: '75vh', overflowY: 'auto', paddingRight: 4 }}>
