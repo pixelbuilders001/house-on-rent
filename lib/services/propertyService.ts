@@ -82,8 +82,8 @@ function matches(p: Property, f: PropertyFilters) {
   }
 
   // 2. Dynamic PIN code exact match
-  if (f.pincode && f.pincode.trim() && f.pincode !== 'any') {
-    if ((p.pincode || '').trim() !== f.pincode.trim()) return false;
+  if (f.pincode && String(f.pincode).trim() && String(f.pincode).trim() !== 'any') {
+    if (String(p.pincode || '').trim() !== String(f.pincode).trim()) return false;
   }
 
   // 3. Dynamic Area / Sub-Area match
@@ -119,7 +119,7 @@ function matches(p: Property, f: PropertyFilters) {
 
   // 6. Property Category (PG, Hostel, Room, Flat)
   if (f.type && f.type !== 'any' && f.type !== '') {
-    if (p.type.toLowerCase() !== f.type.toLowerCase()) return false;
+    if (String(p.type || '').toLowerCase() !== String(f.type).toLowerCase()) return false;
   }
 
   // 7. Brokerage
@@ -140,9 +140,9 @@ function matches(p: Property, f: PropertyFilters) {
 
   // 10. Amenities with Intelligent Synonyms
   if (f.amenities && f.amenities.length > 0) {
-    const propAmenities = p.amenities.map((a) => a.toLowerCase());
+    const propAmenities = (p.amenities || []).map((a) => String(a || '').toLowerCase());
     const hasAll = f.amenities.every((required) => {
-      const req = required.toLowerCase();
+      const req = String(required || '').toLowerCase();
       if (req.includes('wifi') || req.includes('wi-fi')) {
         return propAmenities.some((a) => a.includes('wifi') || a.includes('wi-fi') || a.includes('internet'));
       }

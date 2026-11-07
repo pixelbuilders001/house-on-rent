@@ -135,12 +135,20 @@ export default function SearchPage() {
     let alive = true;
     setBusy(true);
     const timer = setTimeout(() => {
-      getProperties(filters, sort).then((data) => {
-        if (alive) {
-          setProperties(data);
-          setBusy(false);
-        }
-      });
+      getProperties(filters, sort)
+        .then((data) => {
+          if (alive) {
+            setProperties(Array.isArray(data) ? data : []);
+            setBusy(false);
+          }
+        })
+        .catch((err) => {
+          console.error('Failed to load properties:', err);
+          if (alive) {
+            setProperties([]);
+            setBusy(false);
+          }
+        });
     }, 200);
 
     return () => {
@@ -160,7 +168,9 @@ export default function SearchPage() {
     let alive = true;
     const timer = setTimeout(() => {
       searchPlacesLive(q).then((places) => {
-        if (alive) setGeoSuggestions(places);
+        if (alive) setGeoSuggestions(places || []);
+      }).catch(() => {
+        if (alive) setGeoSuggestions([]);
       });
     }, 220);
 
@@ -171,12 +181,12 @@ export default function SearchPage() {
   }, [searchInput]);
 
   // Compute live facets from loaded properties
-  const inventory = useMemo(() => extractLiveLocationFacets(properties), [properties]);
+  const inventory = useMemo(() => extractLiveLocationFacets(properties || []), [properties]);
 
   // Sub-areas under active PIN code
   const activePinSubAreas = useMemo(() => {
     if (!filters.pincode) return [];
-    return getLiveSubAreasForPin(filters.pincode, properties);
+    return getLiveSubAreasForPin(String(filters.pincode), properties || []);
   }, [filters.pincode, properties]);
 
   // Sync state to URL
@@ -1070,7 +1080,7 @@ export default function SearchPage() {
                     </div>
                   </div>
                 ))
-              : properties.map((p) => (
+              : (properties || []).map((p) => (
                   <div key={p.id}>
                     <PropertyCard
                       property={p}

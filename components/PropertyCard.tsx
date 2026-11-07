@@ -14,12 +14,15 @@ export function PropertyCard({
   saved?: boolean;
   onSave?: () => void;
 }) {
-  const crop = Number(property.id.slice(-1)) % 4;
-  const position = ['0% 0%', '100% 0%', '0% 100%', '100% 100%'][crop];
+  const idStr = String(property?.id || '0');
+  const lastChar = idStr.slice(-1);
+  const parsedChar = parseInt(lastChar, 10);
+  const crop = isNaN(parsedChar) ? 0 : Math.abs(parsedChar) % 4;
+  const position = ['0% 0%', '100% 0%', '0% 100%', '100% 100%'][crop] || 'center';
   
-  const rawImages = (property.images && property.images.length > 0)
+  const rawImages = (property?.images && property.images.length > 0)
     ? property.images
-    : (property.image && property.image.trim() !== '' ? [property.image] : []);
+    : (property?.image && property.image.trim() !== '' ? [property.image] : []);
 
   const [activeSlide, setActiveSlide] = useState(0);
   const touchStartX = useRef<number | null>(null);
@@ -202,7 +205,7 @@ export function PropertyCard({
         </div>
 
         <div className="price">
-          ₹{property.rent.toLocaleString('en-IN')}
+          ₹{Number(property?.rent || 0).toLocaleString('en-IN')}
           <small>/month rent</small>
         </div>
 
