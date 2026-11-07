@@ -210,7 +210,11 @@ export function PropertyCard({
           <span>
             {property.accommodation} · {property.availableBeds} {property.availableBeds === 1 ? 'bed' : 'beds'} left
           </span>
-          {property.stationDistanceKm != null ? (
+          {property.userDistanceKm != null ? (
+            <span style={{ color: '#059669', fontWeight: 600 }} title="Distance from your location">
+              📍 {property.userDistanceKm} km away
+            </span>
+          ) : property.stationDistanceKm != null ? (
             <span title="Distance from Samastipur Jn Railway Station">
               🚉 {property.stationDistanceKm} km Stn
             </span>
@@ -219,13 +223,9 @@ export function PropertyCard({
               <MapPin size={13} /> {property.distanceKm} km
             </span>
           )}
-          {property.busStandDistanceKm != null ? (
-            <span title="Distance from Govt Bus Stand">
-              🚌 {property.busStandDistanceKm} km Bus
-            </span>
-          ) : (
-            <span>
-              <Clock size={13} /> {property.commuteMinutes} min
+          {property.pincode && (
+            <span style={{ background: '#f1f5f9', padding: '1px 6px', borderRadius: 4, fontSize: 11, color: '#475569', fontWeight: 500 }}>
+              📮 {property.pincode}
             </span>
           )}
         </div>

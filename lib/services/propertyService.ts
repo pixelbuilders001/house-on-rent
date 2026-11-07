@@ -4,6 +4,12 @@ import { calculateMonthlyCost } from '../pricing';
 import { calculateMatchScore, type SearchPreferences } from '../matching';
 import { getStorageItem } from '../storage';
 import { getSupabaseBrowserClient } from '../supabase/client';
+import {
+  getDistanceToProperty,
+  calculateHaversineDistance,
+  SAMASTIPUR_LANDMARKS,
+  PINCODE_CLUSTERS,
+} from '../locationData';
 
 export type PropertyFilters = SearchPreferences & {
   q?: string;
@@ -12,6 +18,15 @@ export type PropertyFilters = SearchPreferences & {
   brokerage?: boolean;
   amenities?: string[];
   verifiedOnly?: boolean;
+  pincode?: string;
+  subArea?: string;
+  nearMe?: boolean;
+  userLat?: number;
+  userLng?: number;
+  maxDistanceKm?: number;
+  stationMaxKm?: number;
+  busStandMaxKm?: number;
+  landmarkId?: string;
 };
 
 type PropertyRow = Record<string, any>;
@@ -32,7 +47,7 @@ function fromRow(row: PropertyRow): Property {
     updated: row.updated_label || 'Today', destination: row.destination_id ?? '',
     stationDistanceKm: row.station_distance_km != null ? Number(row.station_distance_km) : undefined,
     busStandDistanceKm: row.bus_stand_distance_km != null ? Number(row.bus_stand_distance_km) : undefined,
-    pincode: row.pincode,
+    pincode: row.pincode ? String(row.pincode).trim() : undefined,
   };
 }
 
@@ -131,13 +146,83 @@ function matches(p: Property, f: PropertyFilters) {
   // 11. Verified Only
   if (f.verifiedOnly && !p.verified) return false;
 
+  // 12. Pillar 3: PIN Code Filter
+  if (f.pincode && f.pincode.trim() && f.pincode !== 'any') {
+    const targetPin = f.pincode.trim();
+    if ((p.pincode || '').trim() !== targetPin) return false;
+  }
+
+  // 13. Pillar 3: Sub-Area Filter (within or outside a PIN code)
+  if (f.subArea && f.subArea.trim() && f.subArea !== 'any') {
+    const targetSub = f.subArea.trim().toLowerCase();
+    const areaLower = (p.area || '').toLowerCase();
+    const nameLower = (p.name || '').toLowerCase();
+    const descLower = (p.description || '').toLowerCase();
+    if (!areaLower.includes(targetSub) && !nameLower.includes(targetSub) && !descLower.includes(targetSub)) {
+      return false;
+    }
+  }
+
+  // 14. Pillar 1: Landmark Hub Filter
+  if (f.landmarkId && f.landmarkId !== 'any') {
+    const landmark = SAMASTIPUR_LANDMARKS.find((l) => l.id === f.landmarkId);
+    if (landmark) {
+      if (landmark.id === 'samastipur-jn') {
+        const dist = p.stationDistanceKm ?? calculateHaversineDistance(landmark.latitude, landmark.longitude, 25.8631, 85.7812);
+        if (dist > 3.5) return false;
+      } else if (landmark.id === 'bus-stand') {
+        const dist = p.busStandDistanceKm ?? calculateHaversineDistance(landmark.latitude, landmark.longitude, 25.8590, 85.7870);
+        if (dist > 3.5) return false;
+      } else {
+        const dist = getDistanceToProperty(landmark.latitude, landmark.longitude, p);
+        if (dist > 4.0) return false;
+      }
+    }
+  }
+
+  // 15. Transit Proximity Filters (Station / Bus Stand Km)
+  if (f.stationMaxKm != null && f.stationMaxKm > 0) {
+    if (p.stationDistanceKm != null && p.stationDistanceKm > f.stationMaxKm) return false;
+  }
+  if (f.busStandMaxKm != null && f.busStandMaxKm > 0) {
+    if (p.busStandDistanceKm != null && p.busStandDistanceKm > f.busStandMaxKm) return false;
+  }
+
+  // 16. Pillar 2: "Near Me" GPS Distance Radius Filter
+  if (f.nearMe && f.userLat && f.userLng) {
+    const userDist = getDistanceToProperty(f.userLat, f.userLng, p);
+    if (f.maxDistanceKm != null && f.maxDistanceKm > 0 && userDist > f.maxDistanceKm) {
+      return false;
+    }
+  }
+
   return true;
 }
 
 function sortProperties(results: Property[], filters: PropertyFilters, sort: string) {
+  // If Near Me is active with user GPS coordinates, sort by closest radial distance
+  if (filters.nearMe && filters.userLat && filters.userLng) {
+    const uLat = filters.userLat;
+    const uLng = filters.userLng;
+    results.sort((a, b) => {
+      const distA = getDistanceToProperty(uLat, uLng, a);
+      const distB = getDistanceToProperty(uLat, uLng, b);
+      return distA - distB;
+    });
+    return results;
+  }
+
   if (sort === 'cost' || sort === 'price-asc') results.sort((a, b) => a.rent - b.rent);
   else if (sort === 'price-desc') results.sort((a, b) => b.rent - a.rent);
-  else if (sort === 'closest') results.sort((a, b) => (a.stationDistanceKm ?? a.distanceKm) - (b.stationDistanceKm ?? b.distanceKm));
+  else if (sort === 'closest') {
+    if (filters.userLat && filters.userLng) {
+      const uLat = filters.userLat;
+      const uLng = filters.userLng;
+      results.sort((a, b) => getDistanceToProperty(uLat, uLng, a) - getDistanceToProperty(uLat, uLng, b));
+    } else {
+      results.sort((a, b) => (a.stationDistanceKm ?? a.distanceKm) - (b.stationDistanceKm ?? b.distanceKm));
+    }
+  }
   else if (sort === 'movein') results.sort((a, b) => (a.rent + a.deposit + a.brokerage) - (b.rent + b.deposit + b.brokerage));
   else if (sort === 'rating') results.sort((a, b) => b.rating - a.rating);
   else if (sort === 'newest') results.sort((a, b) => Number.parseInt(a.updated || '0') - Number.parseInt(b.updated || '0'));
@@ -146,13 +231,25 @@ function sortProperties(results: Property[], filters: PropertyFilters, sort: str
 }
 
 export async function getProperties(filters: PropertyFilters = {}, sort = 'best'): Promise<Property[]> {
+  const attachUserDistance = (props: Property[]) => {
+    if (filters.userLat && filters.userLng) {
+      props.forEach((p) => {
+        p.userDistanceKm = getDistanceToProperty(filters.userLat!, filters.userLng!, p);
+      });
+    }
+    return props;
+  };
+
   const supabase = getSupabaseBrowserClient();
   if (supabase) {
     const { data, error } = await supabase.from('properties').select('*').eq('is_active', true);
     if (error) console.error('Supabase properties query failed; using prototype data.', error.message);
-    else return sortProperties((data ?? []).map(fromRow).filter((p) => matches(p, filters)), filters, sort);
+    else {
+      const mapped = attachUserDistance((data ?? []).map(fromRow));
+      return sortProperties(mapped.filter((p) => matches(p, filters)), filters, sort);
+    }
   }
-  const all = [...mockProperties, ...getStorageItem<Property[]>('roomsaathi_owner_created', [])];
+  const all = attachUserDistance([...mockProperties, ...getStorageItem<Property[]>('roomsaathi_owner_created', [])]);
   return sortProperties(all.filter((p) => matches(p, filters)), filters, sort);
 }
 
