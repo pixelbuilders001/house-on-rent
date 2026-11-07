@@ -34,8 +34,6 @@ export default function Home() {
 
   // Search State
   const [searchQuery, setSearchQuery] = useState('');
-  const [maxBudget, setMaxBudget] = useState(7000);
-  const [accommodation, setAccommodation] = useState('');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [locating, setLocating] = useState(false);
   const [geoSuggestions, setGeoSuggestions] = useState<GeocodedPlace[]>([]);
@@ -120,16 +118,8 @@ export default function Home() {
       }
     }
 
-    if (maxBudget) {
-      params.set('max', String(maxBudget));
-      setStorageItem('roomsaathi_search', { max: maxBudget });
-    }
-    if (accommodation) {
-      params.set('accommodation', accommodation);
-    }
-
     setIsDropdownOpen(false);
-    router.push(`/search?${params.toString()}`);
+    router.push(params.toString() ? `/search?${params.toString()}` : '/search');
   };
 
   const handleSelectPlace = (place: GeocodedPlace) => {
@@ -237,36 +227,19 @@ export default function Home() {
 
           {/* Dynamic Open Searchbox */}
           <div className="searchbox" style={{ position: 'relative' }} ref={searchContainerRef}>
-            <div className="search-grid" style={{ alignItems: 'flex-start' }}>
+            <div style={{ display: 'flex', gap: 10, alignItems: 'stretch', flexWrap: 'wrap' }}>
               {/* Universal Live Input */}
-              <div className="field destination-field" style={{ position: 'relative', flex: '1.4' }}>
-                <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <span>Search Any Place, Area or PIN</span>
-                  <button
-                    type="button"
-                    onClick={handleNearMeClick}
-                    style={{
-                      background: 'none',
-                      border: 'none',
-                      color: '#059669',
-                      fontSize: 12,
-                      fontWeight: 600,
-                      cursor: 'pointer',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: 4,
-                      padding: 0,
-                    }}
-                  >
-                    <Crosshair size={12} /> {locating ? 'Locating...' : '📍 Near Me'}
-                  </button>
-                </label>
-
-                <div style={{ position: 'relative' }}>
+              <div style={{ position: 'relative', flex: '1 1 320px' }}>
+                <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                  <Search
+                    size={20}
+                    color="#176b58"
+                    style={{ position: 'absolute', left: 16, pointerEvents: 'none' }}
+                  />
                   <input
                     type="text"
                     className="input"
-                    placeholder="e.g. Samastipur College, Station, Kashipur, 848101..."
+                    placeholder="Search any landmark, coaching, college, area, or PIN code..."
                     value={searchQuery}
                     onFocus={() => setIsDropdownOpen(true)}
                     onChange={(e) => {
@@ -275,35 +248,64 @@ export default function Home() {
                     }}
                     onKeyDown={handleKeyDown}
                     style={{
-                      paddingRight: searchQuery ? 32 : 12,
-                      fontSize: 14,
+                      height: 52,
+                      paddingLeft: 48,
+                      paddingRight: searchQuery ? 130 : 100,
+                      fontSize: 15,
                       fontWeight: 500,
+                      borderRadius: 14,
+                      border: '1.5px solid #d5e2d9',
                     }}
                   />
-                  {searchQuery && (
+
+                  {/* Inside-Input Actions: Clear & Near Me */}
+                  <div style={{ position: 'absolute', right: 8, display: 'flex', alignItems: 'center', gap: 4 }}>
+                    {searchQuery && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSearchQuery('');
+                          setGeoSuggestions([]);
+                        }}
+                        style={{
+                          background: '#e9f1ec',
+                          border: 'none',
+                          color: '#465f54',
+                          borderRadius: '50%',
+                          width: 26,
+                          height: 26,
+                          display: 'grid',
+                          placeItems: 'center',
+                          cursor: 'pointer',
+                          padding: 0,
+                        }}
+                        aria-label="Clear query"
+                      >
+                        <X size={14} />
+                      </button>
+                    )}
                     <button
                       type="button"
-                      onClick={() => {
-                        setSearchQuery('');
-                        setGeoSuggestions([]);
-                      }}
+                      onClick={handleNearMeClick}
                       style={{
-                        position: 'absolute',
-                        right: 8,
-                        top: '50%',
-                        transform: 'translateY(-50%)',
-                        background: 'none',
-                        border: 'none',
-                        color: '#94a3b8',
+                        background: '#ecfdf5',
+                        border: '1px solid #a7f3d0',
+                        color: '#065f46',
+                        fontSize: 12,
+                        fontWeight: 600,
+                        borderRadius: 9,
+                        padding: '6px 10px',
                         cursor: 'pointer',
-                        padding: 4,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 4,
                       }}
-                      aria-label="Clear query"
                     >
-                      <X size={15} />
+                      <Crosshair size={13} color="#059669" /> {locating ? '...' : 'Near Me'}
                     </button>
-                  )}
+                  </div>
                 </div>
+
 
                 {/* Live Hybrid Autocomplete Dropdown */}
                 {isDropdownOpen && (
@@ -535,45 +537,25 @@ export default function Home() {
                 )}
               </div>
 
-              {/* Monthly Budget */}
-              <div className="field">
-                <label>Monthly budget up to</label>
-                <input
-                  aria-label="Maximum monthly budget"
-                  className="input"
-                  type="number"
-                  min={0}
-                  step={500}
-                  value={maxBudget}
-                  onChange={(e) => setMaxBudget(Number(e.target.value))}
-                />
-              </div>
-
-              {/* Accommodation Type */}
-              <div className="field">
-                <label>Looking for</label>
-                <select
-                  className="select"
-                  value={accommodation}
-                  onChange={(e) => setAccommodation(e.target.value)}
-                >
-                  <option value="">Any room type</option>
-                  <option value="Private room">Private room</option>
-                  <option value="2 Sharing">2 Sharing</option>
-                  <option value="3 Sharing">3 Sharing</option>
-                  <option value="4 Sharing">4 Sharing</option>
-                  <option value="Bed">Bed only</option>
-                </select>
-              </div>
-
-              {/* Search CTA Button */}
+              {/* Primary Search CTA Button */}
               <button
                 type="button"
                 className="btn"
                 onClick={executeSearch}
-                style={{ height: 44, alignSelf: 'flex-end', display: 'flex', alignItems: 'center', gap: 6 }}
+                style={{
+                  height: 52,
+                  padding: '0 24px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  fontSize: 15,
+                  fontWeight: 700,
+                  borderRadius: 14,
+                  whiteSpace: 'nowrap',
+                  cursor: 'pointer',
+                }}
               >
-                <Search size={16} /> Search Rooms
+                <Search size={17} /> Search Rooms
               </button>
             </div>
 
@@ -638,15 +620,6 @@ export default function Home() {
                 </button>
               ))}
 
-              {/* Budget Under 5K */}
-              <button
-                type="button"
-                onClick={() => router.push('/search?max=5000')}
-                className="pill"
-                style={{ cursor: 'pointer' }}
-              >
-                💰 Under ₹5,000
-              </button>
 
               {/* Zero Brokerage */}
               <button
