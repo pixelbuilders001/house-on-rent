@@ -811,12 +811,9 @@ export default function SearchPage() {
                 </div>
               )}
 
-              {/* Places & Landmarks */}
+              {/* Geocoded Places */}
               {geoSuggestions.length > 0 && (
-                <div style={{ padding: '6px 0', borderTop: '1px solid #f1f5f9' }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', color: '#0369a1', padding: '4px 16px 6px' }}>
-                    📍 Places, Colleges & Landmarks
-                  </div>
+                <div style={{ padding: '4px 0', borderTop: '1px solid #f1f5f9' }}>
                   {geoSuggestions.map((place) => (
                     <button
                       key={place.id}

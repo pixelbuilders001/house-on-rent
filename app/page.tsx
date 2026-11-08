@@ -559,21 +559,9 @@ export default function Home() {
                   </div>
                 )}
 
-                {/* Section 3: Places, Colleges & Landmarks */}
+                {/* Section 3: Geocoded Location Results */}
                 {geoSuggestions.length > 0 && (
-                  <div style={{ padding: '6px 0', borderTop: '1px solid #f1f5f9' }}>
-                    <div
-                      style={{
-                        fontSize: 11,
-                        fontWeight: 700,
-                        letterSpacing: '0.04em',
-                        textTransform: 'uppercase',
-                        color: '#0369a1',
-                        padding: '4px 16px 6px',
-                      }}
-                    >
-                      <span>📍 Places, Colleges & Landmarks</span>
-                    </div>
+                  <div style={{ padding: '4px 0', borderTop: '1px solid #f1f5f9' }}>
                     {geoSuggestions.map((place) => (
                       <button
                         key={place.id}
@@ -814,6 +802,20 @@ export default function Home() {
               </select>
             </div>
 
+            {/* Compact GPS Pill in Topbar */}
+            <button
+              type="button"
+              className="mobile-search-gps-pill"
+              onClick={() => {
+                setIsMobileSearchOpen(false);
+                handleNearMeClick();
+              }}
+              title="Use current GPS position"
+            >
+              <Crosshair size={13} color="#059669" />
+              <span>{locating ? '...' : 'Near Me'}</span>
+            </button>
+
             <button
               type="button"
               className="mobile-search-cancel-btn"
@@ -831,7 +833,7 @@ export default function Home() {
                 ref={mobileInputRef}
                 type="text"
                 className="mobile-search-input-field"
-                placeholder={`Search locality, landmark, or PIN...`}
+                placeholder={`Search locality, area, or PIN...`}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onKeyDown={(e) => {
@@ -842,7 +844,7 @@ export default function Home() {
                 }}
                 autoFocus
               />
-              {searchQuery && (
+              {searchQuery ? (
                 <button
                   type="button"
                   className="mobile-search-clear-btn"
@@ -855,34 +857,25 @@ export default function Home() {
                 >
                   <X size={15} />
                 </button>
+              ) : (
+                <button
+                  type="button"
+                  className="mobile-search-input-nearme-btn"
+                  onClick={() => {
+                    setIsMobileSearchOpen(false);
+                    handleNearMeClick();
+                  }}
+                  title="Use My Current Location"
+                >
+                  <Crosshair size={12} color="#059669" />
+                  <span>{locating ? '...' : 'Near Me'}</span>
+                </button>
               )}
             </div>
           </div>
 
           {/* Scrollable Results & Suggestions Area */}
           <div className="mobile-search-content-scroll">
-            {/* GPS 1-Tap Discovery Banner */}
-            <button
-              type="button"
-              className="mobile-search-gps-banner"
-              onClick={() => {
-                setIsMobileSearchOpen(false);
-                handleNearMeClick();
-              }}
-            >
-              <div className="mobile-search-gps-icon">
-                <Crosshair size={18} color="#ffffff" />
-              </div>
-              <div style={{ flex: 1, textAlign: 'left' }}>
-                <div style={{ fontWeight: 700, fontSize: 13.5, color: '#065f46' }}>
-                  {locating ? 'Detecting your GPS position...' : 'Use My Current Location'}
-                </div>
-                <div style={{ fontSize: 11.5, color: '#047857' }}>
-                  Find verified rooms closest to where you are right now
-                </div>
-              </div>
-              <span className="mobile-search-gps-action">Nearby →</span>
-            </button>
 
             {/* When query is empty: Show curated popular localities, landmarks, and PINs */}
             {!searchQuery.trim() && (
@@ -912,10 +905,10 @@ export default function Home() {
                   </div>
                 )}
 
-                {/* Popular Key Landmarks & Hubs */}
+                {/* Popular Searches */}
                 <div className="mobile-search-group">
                   <div className="mobile-search-group-title">
-                    🎓 Key Hubs & Colleges in {selectedCity}
+                    📍 Popular in {selectedCity}
                   </div>
                   <div className="mobile-search-landmarks-list">
                     {[
@@ -1046,12 +1039,9 @@ export default function Home() {
                   </div>
                 )}
 
-                {/* 3. Live Geocoded Places, Colleges & Landmarks */}
+                {/* 3. Live Geocoded Places */}
                 {geoSuggestions.length > 0 && (
                   <div className="mobile-search-group">
-                    <div className="mobile-search-group-title">
-                      🧭 Places, Colleges & Landmarks
-                    </div>
                     <div className="mobile-search-landmarks-list">
                       {geoSuggestions.map((place) => (
                         <button
@@ -1085,7 +1075,7 @@ export default function Home() {
 
                 {isSearchingPlaces && (
                   <div style={{ padding: '12px 16px', fontSize: 12.5, color: '#64748b', fontStyle: 'italic', textAlign: 'center' }}>
-                    Searching landmarks & colleges...
+                    Searching nearby...
                   </div>
                 )}
 
