@@ -603,36 +603,48 @@ export default function SearchPage() {
         {/* Unified City + Search Bar */}
         <div style={{ position: 'relative', maxWidth: 780, marginBottom: 16, zIndex: 60 }} ref={searchContainerRef}>
           <form onSubmit={handleSearchSubmit} className="search-bar-unified">
-            {/* 1. City Dropdown Selector */}
-            <div className="search-bar-city-btn" title="Select City">
-              <MapPin size={17} color="#0f766e" style={{ flexShrink: 0 }} />
-              <div style={{ display: 'flex', flexDirection: 'column' }}>
-                <span style={{ fontSize: 9.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#64748b', lineHeight: 1.1 }}>
-                  City
-                </span>
-                <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
-                  <select
-                    className="search-bar-city-select"
-                    value={selectedCity}
-                    onChange={(e) => {
-                      const newCity = e.target.value;
-                      setSelectedCity(newCity);
-                    }}
-                    aria-label="Select City"
-                  >
-                    {availableCities.map((c) => (
-                      <option key={c.name} value={c.name}>
-                        {c.name}
-                      </option>
-                    ))}
-                  </select>
-                  <ChevronDown
-                    size={12}
-                    color="#64748b"
-                    style={{ position: 'absolute', right: 0, pointerEvents: 'none' }}
-                  />
+            {/* 1. City Dropdown Selector + Mobile Near Me Top Row */}
+            <div className="search-bar-top-row">
+              <div className="search-bar-city-btn" title="Select City">
+                <div className="search-bar-city-icon-badge">
+                  <MapPin size={14} color="#ffffff" />
                 </div>
+                <div className="search-bar-city-info">
+                  <span className="search-bar-city-label">City</span>
+                  <span className="search-bar-city-name">{selectedCity}</span>
+                </div>
+                <ChevronDown
+                  size={13}
+                  color="#176b58"
+                  className="search-bar-city-chevron"
+                />
+                <select
+                  className="search-bar-city-native-select"
+                  value={selectedCity}
+                  onChange={(e) => {
+                    const newCity = e.target.value;
+                    setSelectedCity(newCity);
+                  }}
+                  aria-label="Select City"
+                >
+                  {availableCities.map((c) => (
+                    <option key={c.name} value={c.name}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
               </div>
+
+              {/* Mobile-Only Near Me Button */}
+              <button
+                type="button"
+                className="search-bar-nearme-mobile"
+                onClick={handleNearMeTrigger}
+                title="Discover rooms near your location"
+              >
+                <Crosshair size={13} color="#059669" />
+                <span>{locating ? '...' : 'Near Me'}</span>
+              </button>
             </div>
 
             {/* 2. Vertical Divider */}
@@ -657,7 +669,7 @@ export default function SearchPage() {
                 }}
               />
 
-              {/* Inside Input Actions: Clear & Near Me */}
+              {/* Inside Input Actions: Clear & Desktop Near Me */}
               <div style={{ position: 'absolute', right: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
                 {searchInput && (
                   <button
@@ -682,6 +694,7 @@ export default function SearchPage() {
                 )}
                 <button
                   type="button"
+                  className="search-bar-nearme-desktop"
                   onClick={handleNearMeTrigger}
                   style={{
                     background: filters.nearMe ? '#ecfdf5' : '#f1f5f9',

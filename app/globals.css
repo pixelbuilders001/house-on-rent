@@ -596,7 +596,7 @@
   border: 1.5px solid #d0dfd6;
   border-radius: 16px;
   box-shadow: 0 10px 28px -4px rgba(23, 107, 88, 0.08), 0 2px 6px rgba(0, 0, 0, 0.03);
-  padding: 5px 6px 5px 12px;
+  padding: 5px 6px 5px 10px;
   gap: 10px;
   transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
   min-height: 56px;
@@ -605,35 +605,87 @@
   border-color: #176b58;
   box-shadow: 0 12px 32px -4px rgba(23, 107, 88, 0.16), 0 0 0 3px rgba(23, 107, 88, 0.1);
 }
+
+.search-bar-top-row {
+  display: contents;
+}
+
 .search-bar-city-btn {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 5px 10px 5px 8px;
-  border-radius: 10px;
+  padding: 5px 10px 5px 6px;
+  border-radius: 11px;
   flex-shrink: 0;
   position: relative;
-  background: #f8faf9;
-  border: 1px solid #e2ede7;
+  background: #f4faf6;
+  border: 1px solid #d2e8dd;
   transition: all 0.15s ease;
+  cursor: pointer;
+  user-select: none;
 }
 .search-bar-city-btn:hover {
-  background: #edf5f0;
-  border-color: #c7ded2;
+  background: #ebf6f0;
+  border-color: #b7ddca;
 }
-.search-bar-city-select {
-  appearance: none;
-  -webkit-appearance: none;
-  background: transparent;
-  border: none;
-  outline: none;
-  font-size: 14px;
+
+.search-bar-city-icon-badge {
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #176b58 0%, #0f5142 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 2px 5px rgba(23, 107, 88, 0.22);
+}
+
+.search-bar-city-info {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+}
+
+.search-bar-city-label {
+  font-size: 9.5px;
+  font-weight: 750;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #55786a;
+}
+
+.search-bar-city-name {
+  font-size: 13.5px;
   font-weight: 750;
   color: #18332d;
-  cursor: pointer;
-  padding-right: 18px;
-  font-family: inherit;
+  white-space: nowrap;
 }
+
+.search-bar-city-chevron {
+  flex-shrink: 0;
+  margin-left: 2px;
+}
+
+.search-bar-city-native-select {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+  font-size: 16px;
+  z-index: 5;
+  border: none;
+  background: transparent;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.search-bar-nearme-mobile {
+  display: none;
+}
+
 .search-bar-divider {
   width: 1px;
   height: 28px;
@@ -682,29 +734,94 @@
   box-shadow: 0 6px 16px rgba(23, 107, 88, 0.32);
   background: #105743;
 }
+
 @media (max-width: 680px) {
   .search-bar-unified {
-    flex-wrap: wrap;
+    flex-direction: column;
+    align-items: stretch;
     padding: 10px;
+    gap: 9px;
+    border-radius: 18px;
+  }
+
+  .search-bar-top-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
     gap: 8px;
   }
+
   .search-bar-city-btn {
-    flex: 1 1 auto;
-    justify-content: space-between;
+    padding: 6px 12px 6px 7px;
+    background: #f0faf4;
+    border: 1px solid #cce5d7;
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(23, 107, 88, 0.05);
   }
+
+  .search-bar-city-icon-badge {
+    width: 28px;
+    height: 28px;
+  }
+
+  .search-bar-city-name {
+    font-size: 14px;
+  }
+
+  .search-bar-nearme-mobile {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: #ecfdf5;
+    border: 1px solid #a7f3d0;
+    color: #065f46;
+    font-size: 12px;
+    font-weight: 650;
+    border-radius: 11px;
+    padding: 7px 11px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.15s ease;
+  }
+  .search-bar-nearme-mobile:active {
+    background: #d1fae5;
+  }
+
   .search-bar-divider {
     display: none;
   }
+
   .search-bar-input-wrap {
-    order: 2;
-    flex: 1 1 100%;
-    border-top: 1px solid #f1f5f9;
-    padding-top: 4px;
+    width: 100%;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 0 8px;
+    min-height: 46px;
   }
+  .search-bar-input-wrap:focus-within {
+    background: #ffffff;
+    border-color: #176b58;
+    box-shadow: 0 0 0 2px rgba(23, 107, 88, 0.1);
+  }
+
+  .search-bar-input {
+    height: 46px;
+    padding-left: 28px;
+    padding-right: 36px;
+    font-size: 14.5px;
+  }
+
+  .search-bar-nearme-desktop {
+    display: none !important;
+  }
+
   .search-bar-btn {
-    order: 3;
     width: 100%;
     justify-content: center;
     height: 46px;
+    border-radius: 12px;
+    font-size: 15px;
   }
 }
