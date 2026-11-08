@@ -567,10 +567,11 @@ export default function Home() {
             </div>
 
             {/* Dynamic Top Localities & PINs */}
+            {/* Dynamic Top Localities (2) & PINs (2 on desktop, 1 on mobile) */}
             {(inventory.areas.length > 0 || inventory.pincodes.length > 0) && (
               <div className="hero-quick-row">
-                {/* Dynamic Top Active Areas */}
-                {inventory.areas.slice(0, 4).map((a) => (
+                {/* 2 Locations for both Desktop & Mobile */}
+                {inventory.areas.slice(0, 2).map((a) => (
                   <button
                     key={a.name}
                     type="button"
@@ -581,13 +582,13 @@ export default function Home() {
                   </button>
                 ))}
 
-                {/* Dynamic Top PIN Codes */}
-                {inventory.pincodes.slice(0, 2).map((p) => (
+                {/* 2 PINs on Desktop, 1 on Mobile */}
+                {inventory.pincodes.slice(0, 2).map((p, idx) => (
                   <button
                     key={p.name}
                     type="button"
                     onClick={() => router.push(`/search?pincode=${encodeURIComponent(p.name)}`)}
-                    className="hero-pill"
+                    className={`hero-pill ${idx > 0 ? 'hero-pill-desktop-only' : ''}`}
                   >
                     📮 PIN {p.name}
                   </button>
