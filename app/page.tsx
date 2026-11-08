@@ -15,6 +15,8 @@ import {
   X,
   Compass,
   ChevronDown,
+  ShieldCheck,
+  Zap,
 } from 'lucide-react';
 import { mockProperties as propertiesSeed } from '@/lib/mock-data/properties';
 import type { Property } from '@/lib/mock-data/types';
@@ -200,7 +202,7 @@ export default function Home() {
           <div className="hero-content">
             <div className="hero-badge">
               <Sparkles size={13} color="#6ee7b7" />
-              <span>Direct Landlords · Zero Brokerage · Live GPS</span>
+              <span>Find your home in Samastipur</span>
             </div>
 
             <h1 className="hero-title-minimal">
@@ -592,6 +594,24 @@ export default function Home() {
                 ))}
               </div>
             )}
+
+            {/* Trust Highlights at Hero Bottom */}
+            <div className="hero-trust-row">
+              <div className="hero-trust-item">
+                <ShieldCheck size={15} color="#6ee7b7" />
+                <span>Owner Verified Listings</span>
+              </div>
+              <span className="hero-trust-dot" aria-hidden="true">•</span>
+              <div className="hero-trust-item">
+                <Zap size={14} color="#6ee7b7" />
+                <span>Zero Brokerage</span>
+              </div>
+              <span className="hero-trust-dot" aria-hidden="true">•</span>
+              <div className="hero-trust-item">
+                <Crosshair size={14} color="#6ee7b7" />
+                <span>Live GPS</span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
