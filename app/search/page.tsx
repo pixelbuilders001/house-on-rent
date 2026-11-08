@@ -395,7 +395,7 @@ export default function SearchPage() {
       {/* 2. Dynamic Active Neighborhoods in DB */}
       {inventory.areas.length > 0 && (
         <div className="filter-group">
-          <div className="filter-title">Active Neighborhoods</div>
+          <div className="filter-title">Popular Localities</div>
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
             {inventory.areas.map((a) => {
               const isSelected = (filters.area || '').toLowerCase() === a.name.toLowerCase();
@@ -573,11 +573,11 @@ export default function SearchPage() {
       <div style={{ padding: '28px 0 20px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#687b73', marginBottom: 8 }}>
           <MapPin size={15} color="#176b58" />
-          <span>Live Open Geocoding & Inventory Discovery</span>
+          <span>Verified Rooms & PGs Across Town</span>
         </div>
 
         <h1 style={{ fontSize: 'clamp(28px, 4vw, 40px)', fontWeight: 800, margin: '0 0 16px', letterSpacing: '-1.5px', color: 'var(--ink)' }}>
-          Find Rooms & PGs <em className="title-accent">Anywhere</em>
+          Find Rooms & PGs <em className="title-accent">Near You</em>
         </h1>
 
         {/* Global Live Omni-Search Bar with OpenStreetMap Geocoding */}
@@ -699,7 +699,7 @@ export default function SearchPage() {
               {inventory.areas.length > 0 && (
                 <div style={{ padding: '6px 0', borderTop: '1px solid #f1f5f9' }}>
                   <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', color: '#0f766e', padding: '4px 16px 6px' }}>
-                    🏠 Active Neighborhoods in Database
+                    🏠 Popular Localities
                   </div>
                   {inventory.areas.slice(0, 4).map((a) => (
                     <button
@@ -738,11 +738,11 @@ export default function SearchPage() {
                 </div>
               )}
 
-              {/* Live OpenStreetMap Geocoded Places */}
+              {/* Places & Landmarks */}
               {geoSuggestions.length > 0 && (
                 <div style={{ padding: '6px 0', borderTop: '1px solid #f1f5f9' }}>
                   <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', color: '#0369a1', padding: '4px 16px 6px' }}>
-                    🗺️ Places & Landmarks (OpenStreetMap)
+                    📍 Places, Colleges & Landmarks
                   </div>
                   {geoSuggestions.map((place) => (
                     <button
@@ -772,7 +772,7 @@ export default function SearchPage() {
                           <div style={{ fontSize: 11, color: '#64748b' }}>{place.displayName}</div>
                         </div>
                       </div>
-                      <span style={{ fontSize: 11, color: '#0284c7' }}>Search radius →</span>
+                      <span style={{ fontSize: 11, color: '#0284c7' }}>Explore nearby →</span>
                     </button>
                   ))}
                 </div>

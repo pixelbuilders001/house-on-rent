@@ -384,7 +384,7 @@ export default function Home() {
                             padding: '4px 16px 6px',
                           }}
                         >
-                          🏠 Verified Stays in Database
+                          🏠 Available Rooms & Hostels
                         </div>
                         {matchingPropertiesInDb.map((p) => (
                           <button
@@ -421,7 +421,7 @@ export default function Home() {
                       </div>
                     )}
 
-                    {/* Section 2: Active Inventory Areas from Database */}
+                    {/* Section 2: Active Localities */}
                     {inventory.areas.length > 0 && !searchQuery && (
                       <div style={{ padding: '6px 0', borderTop: '1px solid #f1f5f9' }}>
                         <div
@@ -434,7 +434,7 @@ export default function Home() {
                             padding: '4px 16px 6px',
                           }}
                         >
-                          📍 Active Neighborhoods with Rooms
+                          📍 Popular Localities
                         </div>
                         {inventory.areas.map((a) => (
                           <button
@@ -469,7 +469,7 @@ export default function Home() {
                       </div>
                     )}
 
-                    {/* Section 3: Live Real-World Places from OpenStreetMap / Photon */}
+                    {/* Section 3: Places, Colleges & Landmarks */}
                     {geoSuggestions.length > 0 && (
                       <div style={{ padding: '6px 0', borderTop: '1px solid #f1f5f9' }}>
                         <div
@@ -480,15 +480,9 @@ export default function Home() {
                             textTransform: 'uppercase',
                             color: '#0369a1',
                             padding: '4px 16px 6px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between',
                           }}
                         >
-                          <span>🗺️ Live Places & Landmarks</span>
-                          <span style={{ fontSize: 10, color: '#94a3b8', textTransform: 'none' }}>
-                            OpenStreetMap
-                          </span>
+                          <span>📍 Places, Colleges & Landmarks</span>
                         </div>
                         {geoSuggestions.map((place) => (
                           <button
@@ -521,7 +515,7 @@ export default function Home() {
                               </div>
                             </div>
                             <span style={{ fontSize: 11, color: '#0284c7', fontWeight: 500 }}>
-                              Search distance →
+                              Explore nearby →
                             </span>
                           </button>
                         ))}
@@ -530,7 +524,7 @@ export default function Home() {
 
                     {isSearchingPlaces && (
                       <div style={{ padding: '8px 16px', fontSize: 12, color: '#64748b', fontStyle: 'italic' }}>
-                        Searching live places on OpenStreetMap...
+                        Searching places...
                       </div>
                     )}
                   </div>
@@ -631,10 +625,6 @@ export default function Home() {
                 ⚡ Zero Brokerage
               </button>
             </div>
-          </div>
-
-          <div className="demo-note" style={{ marginTop: 14 }}>
-            Zero hardcoded boundaries · Live OpenStreetMap geocoding & real-time inventory aggregation.
           </div>
         </div>
       </section>

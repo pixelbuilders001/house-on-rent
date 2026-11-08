@@ -37,7 +37,7 @@ export default function OwnerGateway() {
           <div className="stat">
             <span className="muted"><Building2 size={16} /> Properties</span>
             <strong>Cloud Synced</strong>
-            <span className="muted">Supabase live database</span>
+            <span className="muted">Instant Live Sync</span>
           </div>
           <div className="stat">
             <span className="muted"><Users size={16} /> Tenants</span>
