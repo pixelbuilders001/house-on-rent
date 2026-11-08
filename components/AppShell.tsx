@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Heart, House, Search, Bell, UserRound, Building2 } from 'lucide-react';
@@ -8,6 +9,18 @@ const OWNER_PORTAL_URL = 'https://hosue-on-rent-owner-tenant.vercel.app?role=own
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const path = usePathname();
+  const [isScrolled, setIsScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 30);
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  const isHome = path === '/';
+
   const links = [
     ['Home', '/', House],
     ['Search', '/search', Search],
@@ -18,9 +31,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   
   const active = (href: string) => href === '/' ? path === '/' : path.startsWith(href);
 
+  const headerClass = isHome
+    ? `header header-transparent ${isScrolled ? 'is-scrolled' : ''}`
+    : 'header';
+
   return (
     <>
-      <header className="header">
+      <header className={headerClass}>
         <div className="container" style={{ display: 'flex', alignItems: 'center', width: 'min(1200px, calc(100% - 40px))' }}>
           <Link href="/" className="brand">
             <span className="brand-mark">⌂</span>RoomSaathi
