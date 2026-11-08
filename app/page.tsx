@@ -802,26 +802,13 @@ export default function Home() {
               </select>
             </div>
 
-            {/* Compact GPS Pill in Topbar */}
             <button
               type="button"
-              className="mobile-search-gps-pill"
-              onClick={() => {
-                setIsMobileSearchOpen(false);
-                handleNearMeClick();
-              }}
-              title="Use current GPS position"
-            >
-              <Crosshair size={13} color="#059669" />
-              <span>{locating ? '...' : 'Near Me'}</span>
-            </button>
-
-            <button
-              type="button"
-              className="mobile-search-cancel-btn"
+              className="mobile-search-close-icon-btn"
               onClick={() => setIsMobileSearchOpen(false)}
+              aria-label="Close search"
             >
-              Cancel
+              <X size={20} color="#475569" />
             </button>
           </div>
 
