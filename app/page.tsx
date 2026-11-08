@@ -564,54 +564,34 @@ export default function Home() {
             )}
             </div>
 
-            {/* Dynamic Quick Discovery Pills Populated from Active Database Inventory */}
-            <div className="hero-quick-row">
-              <span style={{ fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 4, color: '#d1fae5' }}>
-                <Sparkles size={12} color="#6ee7b7" /> Quick Stays:
-              </span>
+            {/* Dynamic Top Localities & PINs */}
+            {(inventory.areas.length > 0 || inventory.pincodes.length > 0) && (
+              <div className="hero-quick-row">
+                {/* Dynamic Top Active Areas */}
+                {inventory.areas.slice(0, 4).map((a) => (
+                  <button
+                    key={a.name}
+                    type="button"
+                    onClick={() => router.push(`/search?area=${encodeURIComponent(a.name)}`)}
+                    className="hero-pill"
+                  >
+                    📍 {a.name} ({a.count})
+                  </button>
+                ))}
 
-              {/* Near Me */}
-              <button
-                type="button"
-                onClick={handleNearMeClick}
-                className="hero-pill"
-              >
-                <Crosshair size={12} color="#6ee7b7" /> Near Me (GPS)
-              </button>
-
-              {/* Dynamic Top Active Areas */}
-              {inventory.areas.slice(0, 3).map((a) => (
-                <button
-                  key={a.name}
-                  type="button"
-                  onClick={() => router.push(`/search?area=${encodeURIComponent(a.name)}`)}
-                  className="hero-pill"
-                >
-                  📍 {a.name} ({a.count})
-                </button>
-              ))}
-
-              {/* Dynamic Top PIN Codes */}
-              {inventory.pincodes.slice(0, 2).map((p) => (
-                <button
-                  key={p.name}
-                  type="button"
-                  onClick={() => router.push(`/search?pincode=${encodeURIComponent(p.name)}`)}
-                  className="hero-pill"
-                >
-                  📮 PIN {p.name}
-                </button>
-              ))}
-
-              {/* Zero Brokerage */}
-              <button
-                type="button"
-                onClick={() => router.push('/search?brokerage=true')}
-                className="hero-pill"
-              >
-                ⚡ Zero Brokerage
-              </button>
-            </div>
+                {/* Dynamic Top PIN Codes */}
+                {inventory.pincodes.slice(0, 2).map((p) => (
+                  <button
+                    key={p.name}
+                    type="button"
+                    onClick={() => router.push(`/search?pincode=${encodeURIComponent(p.name)}`)}
+                    className="hero-pill"
+                  >
+                    📮 PIN {p.name}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>
