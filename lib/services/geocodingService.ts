@@ -114,8 +114,10 @@ export async function searchPlacesLive(
     const nomUrl = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(
       q
     )}&format=json&limit=6&countrycodes=in`;
+    const nomHeaders: HeadersInit =
+      typeof window === 'undefined' ? { 'User-Agent': 'RoomSaathi-App/1.0' } : {};
     const res = await fetch(nomUrl, {
-      headers: { 'User-Agent': 'RoomSaathi-App/1.0' },
+      headers: nomHeaders,
     });
 
     if (res.ok) {

@@ -87,12 +87,19 @@ export default function Home() {
     let alive = true;
     setIsSearchingPlaces(true);
     const timer = setTimeout(() => {
-      searchPlacesLive(q, activeCity.lat, activeCity.lng).then((places) => {
-        if (alive) {
-          setGeoSuggestions(places);
-          setIsSearchingPlaces(false);
-        }
-      });
+      searchPlacesLive(q, activeCity.lat, activeCity.lng)
+        .then((places) => {
+          if (alive) {
+            setGeoSuggestions(places);
+            setIsSearchingPlaces(false);
+          }
+        })
+        .catch(() => {
+          if (alive) {
+            setGeoSuggestions([]);
+            setIsSearchingPlaces(false);
+          }
+        });
     }, 220);
 
     return () => {
@@ -178,6 +185,13 @@ export default function Home() {
       .slice(0, 4);
   }, [properties, searchQuery]);
 
+  // Dynamic matching localities
+  const matchingAreas = useMemo(() => {
+    const q = searchQuery.toLowerCase().trim();
+    if (!q) return inventory.areas.slice(0, 4);
+    return inventory.areas.filter((a) => a.name.toLowerCase().includes(q)).slice(0, 4);
+  }, [inventory.areas, searchQuery]);
+
   return (
     <>
       {/* Hero Section */}
@@ -240,138 +254,139 @@ export default function Home() {
           </div>
 
           {/* Enhanced Unified Searchbox with City Dropdown */}
-          <div className="searchbox" style={{ position: 'relative' }} ref={searchContainerRef}>
-            <div className="search-bar-unified">
-              {/* 1. City Dropdown Selector */}
-              <div className="search-bar-city-btn" title="Select City">
-                <MapPin size={17} color="#0f766e" style={{ flexShrink: 0 }} />
-                <div style={{ display: 'flex', flexDirection: 'column' }}>
-                  <span style={{ fontSize: 9.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#64748b', lineHeight: 1.1 }}>
-                    City
-                  </span>
-                  <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
-                    <select
-                      className="search-bar-city-select"
-                      value={selectedCity}
-                      onChange={(e) => setSelectedCity(e.target.value)}
-                      aria-label="Select City"
-                    >
-                      {availableCities.map((c) => (
-                        <option key={c.name} value={c.name}>
-                          {c.name}
-                        </option>
-                      ))}
-                    </select>
-                    <ChevronDown
-                      size={12}
-                      color="#64748b"
-                      style={{ position: 'absolute', right: 0, pointerEvents: 'none' }}
-                    />
+          <div className="searchbox" style={{ position: 'relative', overflow: 'visible' }} ref={searchContainerRef}>
+            {/* Search Bar + Autocomplete Wrapper: Positions dropdown directly below search input */}
+            <div style={{ position: 'relative', width: '100%', zIndex: 60 }}>
+              <div className="search-bar-unified">
+                {/* 1. City Dropdown Selector */}
+                <div className="search-bar-city-btn" title="Select City">
+                  <MapPin size={17} color="#0f766e" style={{ flexShrink: 0 }} />
+                  <div style={{ display: 'flex', flexDirection: 'column' }}>
+                    <span style={{ fontSize: 9.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#64748b', lineHeight: 1.1 }}>
+                      City
+                    </span>
+                    <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
+                      <select
+                        className="search-bar-city-select"
+                        value={selectedCity}
+                        onChange={(e) => setSelectedCity(e.target.value)}
+                        aria-label="Select City"
+                      >
+                        {availableCities.map((c) => (
+                          <option key={c.name} value={c.name}>
+                            {c.name}
+                          </option>
+                        ))}
+                      </select>
+                      <ChevronDown
+                        size={12}
+                        color="#64748b"
+                        style={{ position: 'absolute', right: 0, pointerEvents: 'none' }}
+                      />
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              {/* 2. Vertical Divider */}
-              <div className="search-bar-divider" />
+                {/* 2. Vertical Divider */}
+                <div className="search-bar-divider" />
 
-              {/* 3. Search Input Field */}
-              <div className="search-bar-input-wrap">
-                <Search
-                  size={18}
-                  color="#94a3b8"
-                  style={{ position: 'absolute', left: 4, pointerEvents: 'none' }}
-                />
-                <input
-                  type="text"
-                  className="search-bar-input"
-                  placeholder={`Search locality, landmark, college, or PIN in ${selectedCity}...`}
-                  value={searchQuery}
-                  onFocus={() => setIsDropdownOpen(true)}
-                  onChange={(e) => {
-                    setSearchQuery(e.target.value);
-                    setIsDropdownOpen(true);
-                  }}
-                  onKeyDown={handleKeyDown}
-                />
+                {/* 3. Search Input Field */}
+                <div className="search-bar-input-wrap">
+                  <Search
+                    size={18}
+                    color="#94a3b8"
+                    style={{ position: 'absolute', left: 4, pointerEvents: 'none' }}
+                  />
+                  <input
+                    type="text"
+                    className="search-bar-input"
+                    placeholder={`Search locality, landmark, college, or PIN in ${selectedCity}...`}
+                    value={searchQuery}
+                    onFocus={() => setIsDropdownOpen(true)}
+                    onChange={(e) => {
+                      setSearchQuery(e.target.value);
+                      setIsDropdownOpen(true);
+                    }}
+                    onKeyDown={handleKeyDown}
+                  />
 
-                {/* Inside-Input Actions: Clear & Near Me */}
-                <div style={{ position: 'absolute', right: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
-                  {searchQuery && (
+                  {/* Inside-Input Actions: Clear & Near Me */}
+                  <div style={{ position: 'absolute', right: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
+                    {searchQuery && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSearchQuery('');
+                          setGeoSuggestions([]);
+                        }}
+                        style={{
+                          background: '#f1f5f9',
+                          border: 'none',
+                          color: '#64748b',
+                          borderRadius: '50%',
+                          width: 24,
+                          height: 24,
+                          display: 'grid',
+                          placeItems: 'center',
+                          cursor: 'pointer',
+                          padding: 0,
+                        }}
+                        aria-label="Clear query"
+                      >
+                        <X size={13} />
+                      </button>
+                    )}
                     <button
                       type="button"
-                      onClick={() => {
-                        setSearchQuery('');
-                        setGeoSuggestions([]);
-                      }}
+                      onClick={handleNearMeClick}
                       style={{
-                        background: '#f1f5f9',
-                        border: 'none',
-                        color: '#64748b',
-                        borderRadius: '50%',
-                        width: 24,
-                        height: 24,
-                        display: 'grid',
-                        placeItems: 'center',
+                        background: '#ecfdf5',
+                        border: '1px solid #a7f3d0',
+                        color: '#065f46',
+                        fontSize: 11.5,
+                        fontWeight: 600,
+                        borderRadius: 8,
+                        padding: '5px 9px',
                         cursor: 'pointer',
-                        padding: 0,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 4,
+                        whiteSpace: 'nowrap',
                       }}
-                      aria-label="Clear query"
+                      title="Find stays near your GPS position"
                     >
-                      <X size={13} />
+                      <Crosshair size={12} color="#059669" /> {locating ? '...' : 'Near Me'}
                     </button>
-                  )}
-                  <button
-                    type="button"
-                    onClick={handleNearMeClick}
-                    style={{
-                      background: '#ecfdf5',
-                      border: '1px solid #a7f3d0',
-                      color: '#065f46',
-                      fontSize: 11.5,
-                      fontWeight: 600,
-                      borderRadius: 8,
-                      padding: '5px 9px',
-                      cursor: 'pointer',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: 4,
-                      whiteSpace: 'nowrap',
-                    }}
-                    title="Find stays near your GPS position"
-                  >
-                    <Crosshair size={12} color="#059669" /> {locating ? '...' : 'Near Me'}
-                  </button>
+                  </div>
                 </div>
+
+                {/* 4. Primary Search CTA Button */}
+                <button
+                  type="button"
+                  className="search-bar-btn"
+                  onClick={executeSearch}
+                >
+                  <Search size={16} /> Search Rooms
+                </button>
               </div>
 
-              {/* 4. Primary Search CTA Button */}
-              <button
-                type="button"
-                className="search-bar-btn"
-                onClick={executeSearch}
-              >
-                <Search size={16} /> Search Rooms
-              </button>
-            </div>
-
-            {/* Live Autocomplete Dropdown */}
-            {isDropdownOpen && (
-              <div
-                style={{
-                  position: 'absolute',
-                  top: '100%',
-                  left: 20,
-                  right: 20,
-                  marginTop: 8,
-                  background: '#ffffff',
-                  borderRadius: 14,
-                  boxShadow: '0 18px 40px -4px rgba(15, 23, 42, 0.2), 0 0 0 1px rgba(0, 0, 0, 0.08)',
-                  zIndex: 50,
-                  maxHeight: 380,
-                  overflowY: 'auto',
-                  padding: '10px 0',
-                }}
-              >
+              {/* Live Autocomplete Dropdown - Placed directly below the search bar */}
+              {isDropdownOpen && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: 'calc(100% + 6px)',
+                    left: 0,
+                    right: 0,
+                    background: '#ffffff',
+                    borderRadius: 14,
+                    boxShadow: '0 20px 45px -4px rgba(15, 23, 42, 0.22), 0 0 0 1px rgba(0, 0, 0, 0.08)',
+                    zIndex: 100,
+                    maxHeight: 380,
+                    overflowY: 'auto',
+                    padding: '10px 0',
+                  }}
+                >
                 {/* Near Me Quick Action */}
                 <div style={{ padding: '0 10px 8px' }}>
                   <button
@@ -469,7 +484,7 @@ export default function Home() {
                 )}
 
                 {/* Section 2: Active Localities */}
-                {inventory.areas.length > 0 && !searchQuery && (
+                {matchingAreas.length > 0 && (
                   <div style={{ padding: '6px 0', borderTop: '1px solid #f1f5f9' }}>
                     <div
                       style={{
@@ -481,9 +496,9 @@ export default function Home() {
                         padding: '4px 16px 6px',
                       }}
                     >
-                      📍 Popular Localities
+                      {searchQuery ? '📍 Matching Localities' : '📍 Popular Localities'}
                     </div>
-                    {inventory.areas.map((a) => (
+                    {matchingAreas.map((a) => (
                       <button
                         key={a.name}
                         type="button"
@@ -576,6 +591,7 @@ export default function Home() {
                 )}
               </div>
             )}
+            </div>
 
             {/* Dynamic Quick Discovery Pills Populated from Active Database Inventory */}
             <div

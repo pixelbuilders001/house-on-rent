@@ -196,6 +196,13 @@ export default function SearchPage() {
   // Compute live facets from loaded properties
   const inventory = useMemo(() => extractLiveLocationFacets(properties || []), [properties]);
 
+  // Dynamic matching localities
+  const matchingAreas = useMemo(() => {
+    const q = searchInput.toLowerCase().trim();
+    if (!q) return inventory.areas.slice(0, 4);
+    return inventory.areas.filter((a) => a.name.toLowerCase().includes(q)).slice(0, 4);
+  }, [inventory.areas, searchInput]);
+
   // Sub-areas under active PIN code
   const activePinSubAreas = useMemo(() => {
     if (!filters.pincode) return [];
@@ -594,7 +601,7 @@ export default function SearchPage() {
         </h1>
 
         {/* Unified City + Search Bar */}
-        <div style={{ position: 'relative', maxWidth: 780, marginBottom: 16 }} ref={searchContainerRef}>
+        <div style={{ position: 'relative', maxWidth: 780, marginBottom: 16, zIndex: 60 }} ref={searchContainerRef}>
           <form onSubmit={handleSearchSubmit} className="search-bar-unified">
             {/* 1. City Dropdown Selector */}
             <div className="search-bar-city-btn" title="Select City">
@@ -706,19 +713,18 @@ export default function SearchPage() {
             </button>
           </form>
 
-          {/* Autocomplete Dropdown */}
+          {/* Autocomplete Dropdown - Positioned directly below the search bar */}
           {isDropdownOpen && (
             <div
               style={{
                 position: 'absolute',
-                top: '100%',
+                top: 'calc(100% + 6px)',
                 left: 0,
                 right: 0,
-                marginTop: 6,
                 background: '#ffffff',
                 borderRadius: 14,
-                boxShadow: '0 18px 40px -4px rgba(15, 23, 42, 0.2), 0 0 0 1px rgba(0, 0, 0, 0.08)',
-                zIndex: 50,
+                boxShadow: '0 20px 45px -4px rgba(15, 23, 42, 0.22), 0 0 0 1px rgba(0, 0, 0, 0.08)',
+                zIndex: 100,
                 maxHeight: 380,
                 overflowY: 'auto',
                 padding: '10px 0',
@@ -750,12 +756,12 @@ export default function SearchPage() {
               </div>
 
               {/* Dynamic Database Neighborhoods */}
-              {inventory.areas.length > 0 && (
+              {matchingAreas.length > 0 && (
                 <div style={{ padding: '6px 0', borderTop: '1px solid #f1f5f9' }}>
                   <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', color: '#0f766e', padding: '4px 16px 6px' }}>
-                    🏠 Popular Localities
+                    {searchInput ? '📍 Matching Localities' : '🏠 Popular Localities'}
                   </div>
-                  {inventory.areas.slice(0, 4).map((a) => (
+                  {matchingAreas.map((a) => (
                     <button
                       key={a.name}
                       type="button"
