@@ -194,67 +194,25 @@ export default function Home() {
 
   return (
     <>
-      {/* Hero Section */}
+      {/* Hero Section - Minimalist Background Image Layout */}
       <section className="hero">
         <div className="container">
-          <div className="hero-intro">
-            <div className="hero-copy">
-              <div className="hero-kicker">
-                <span className="hero-kicker-dot" /> LIVE DISCOVERY{' '}
-                <span className="hero-kicker-divider" /> आपके शहर में, आपके बजट में
-              </div>
-              <h1 className="hero-title">
-                <span className="hero-word word-1">अपना</span>{' '}
-                <span className="hero-word word-2">कमरा,</span>
-                <br />
-                <span
-                  className="hero-phrase-stack"
-                  aria-label="अपने बजट में, कॉलेज के पास, आपकी पसंद का"
-                >
-                  <span className="hero-phrase"><em>अपने बजट</em> में।</span>
-                  <span className="hero-phrase">कॉलेज के <em>पास</em>।</span>
-                  <span className="hero-phrase">आपकी <em>पसंद का</em>।</span>
-                </span>
-              </h1>
-              <p className="subtitle">
-                किसी भी कोचिंग, कॉलेज, स्टेशन, या कॉलोनी का नाम लिखें—सीधे रियल डिस्टेंस और कुल खर्च के साथ कमरे खोजें।
-              </p>
-              <div className="hero-social-proof">
-                <span className="hero-avatar-stack">
-                  <i>R</i><i>A</i><i>V</i>
-                </span>
-                <span>
-                  <b>कमरे ₹3,500/महीने से शुरू</b>
-                  <small>Zero Brokerage · Direct Verified Landlords</small>
-                </span>
-              </div>
+          <div className="hero-content">
+            <div className="hero-badge">
+              <Sparkles size={13} color="#6ee7b7" />
+              <span>Direct Landlords · Zero Brokerage · Live GPS</span>
             </div>
 
-            <div className="hero-visual" role="img" aria-label="Student accommodation preview">
-              <div className="hero-photo-frame" />
-              <div className="hero-float hero-float-top">
-                <span className="hero-float-icon">₹</span>
-                <span>
-                  <b>Rooms from ₹3,500</b>
-                  <small>Transparent monthly breakdown</small>
-                </span>
-              </div>
-              <div className="hero-float hero-float-bottom">
-                <MapPin size={15} />
-                <span>
-                  <b>Live GPS Commute</b>
-                  <small>Real-time distance to your spot</small>
-                </span>
-                <i />
-              </div>
-              <div className="hero-photo-caption">
-                <span className="hero-live-dot" /> Open Dynamic Search
-              </div>
-            </div>
-          </div>
+            <h1 className="hero-title-minimal">
+              अपना कमरा, <span className="title-accent-light">अपने बजट में</span>
+            </h1>
 
-          {/* Enhanced Unified Searchbox with City Dropdown */}
-          <div className="searchbox" style={{ position: 'relative', overflow: 'visible' }} ref={searchContainerRef}>
+            <p className="hero-subtitle-minimal">
+              कॉलेज, कोचिंग या स्टेशन के पास वेरिफाइड कमरे खोजें—सीधे मकान मालिक से
+            </p>
+
+            {/* Enhanced Unified Searchbox with City Dropdown */}
+            <div className="searchbox" style={{ position: 'relative', overflow: 'visible' }} ref={searchContainerRef}>
             {/* Search Bar + Autocomplete Wrapper: Positions dropdown directly below search input */}
             <div style={{ position: 'relative', width: '100%', zIndex: 60 }}>
               <div className="search-bar-unified">
@@ -607,38 +565,18 @@ export default function Home() {
             </div>
 
             {/* Dynamic Quick Discovery Pills Populated from Active Database Inventory */}
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 8,
-                marginTop: 14,
-                flexWrap: 'wrap',
-                fontSize: 12,
-                color: '#64748b',
-              }}
-            >
-              <span style={{ fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                <Sparkles size={13} color="#0f766e" /> Quick Stays:
+            <div className="hero-quick-row">
+              <span style={{ fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 4, color: '#d1fae5' }}>
+                <Sparkles size={12} color="#6ee7b7" /> Quick Stays:
               </span>
 
               {/* Near Me */}
               <button
                 type="button"
                 onClick={handleNearMeClick}
-                className="pill"
-                style={{
-                  background: '#ecfdf5',
-                  borderColor: '#a7f3d0',
-                  color: '#065f46',
-                  fontWeight: 600,
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 4,
-                  cursor: 'pointer',
-                }}
+                className="hero-pill"
               >
-                <Crosshair size={12} /> Near Me (GPS)
+                <Crosshair size={12} color="#6ee7b7" /> Near Me (GPS)
               </button>
 
               {/* Dynamic Top Active Areas */}
@@ -647,8 +585,7 @@ export default function Home() {
                   key={a.name}
                   type="button"
                   onClick={() => router.push(`/search?area=${encodeURIComponent(a.name)}`)}
-                  className="pill"
-                  style={{ cursor: 'pointer' }}
+                  className="hero-pill"
                 >
                   📍 {a.name} ({a.count})
                 </button>
@@ -660,27 +597,25 @@ export default function Home() {
                   key={p.name}
                   type="button"
                   onClick={() => router.push(`/search?pincode=${encodeURIComponent(p.name)}`)}
-                  className="pill"
-                  style={{ cursor: 'pointer' }}
+                  className="hero-pill"
                 >
                   📮 PIN {p.name}
                 </button>
               ))}
 
-
               {/* Zero Brokerage */}
               <button
                 type="button"
                 onClick={() => router.push('/search?brokerage=true')}
-                className="pill"
-                style={{ cursor: 'pointer' }}
+                className="hero-pill"
               >
                 ⚡ Zero Brokerage
               </button>
             </div>
           </div>
         </div>
-      </section>
+      </div>
+    </section>
 
       {/* Property Listings Sections */}
       {properties.length === 0 ? (
