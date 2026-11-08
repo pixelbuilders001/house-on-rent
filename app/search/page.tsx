@@ -13,6 +13,7 @@ import {
   RotateCcw,
   Crosshair,
   Compass,
+  ChevronDown,
 } from 'lucide-react';
 import { getProperties, type PropertyFilters } from '@/lib/services/propertyService';
 import type { Property } from '@/lib/mock-data/types';
@@ -29,6 +30,8 @@ import {
 import {
   extractLiveLocationFacets,
   getLiveSubAreasForPin,
+  getAvailableCities,
+  type CityConfig,
 } from '@/lib/services/dynamicLocationService';
 
 const defaultFilters: PropertyFilters = {
@@ -57,6 +60,7 @@ const defaultFilters: PropertyFilters = {
 export default function SearchPage() {
   const [amenityOptions, setAmenityOptions] = useState<string[]>(mockAmenities);
   const [filters, setFilters] = useState<PropertyFilters>(defaultFilters);
+  const [selectedCity, setSelectedCity] = useState<string>('Samastipur');
   const [searchInput, setSearchInput] = useState('');
   const [sort, setSort] = useState('best');
   const [properties, setProperties] = useState<Property[]>([]);
@@ -64,6 +68,13 @@ export default function SearchPage() {
   const [compare, setCompare] = useState<string[]>([]);
   const [mobileFilters, setMobileFilters] = useState(false);
   const [busy, setBusy] = useState(true);
+
+  // Available Cities
+  const availableCities = useMemo(() => getAvailableCities(properties), [properties]);
+  const activeCity = useMemo(
+    () => availableCities.find((c) => c.name.toLowerCase() === selectedCity.toLowerCase()) || availableCities[0],
+    [availableCities, selectedCity]
+  );
 
   // Live Geocoding State
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -78,6 +89,8 @@ export default function SearchPage() {
     getAmenities().then(setAmenityOptions);
 
     const p = new URLSearchParams(window.location.search);
+    const initialCity = p.get('city') || 'Samastipur';
+    setSelectedCity(initialCity);
     const initialQuery = p.get('q') || '';
     const initialArea = p.get('area') || '';
     const initialPin = p.get('pincode') || '';
@@ -167,7 +180,7 @@ export default function SearchPage() {
 
     let alive = true;
     const timer = setTimeout(() => {
-      searchPlacesLive(q).then((places) => {
+      searchPlacesLive(q, activeCity.lat, activeCity.lng).then((places) => {
         if (alive) setGeoSuggestions(places || []);
       }).catch(() => {
         if (alive) setGeoSuggestions([]);
@@ -178,7 +191,7 @@ export default function SearchPage() {
       alive = false;
       clearTimeout(timer);
     };
-  }, [searchInput]);
+  }, [searchInput, activeCity]);
 
   // Compute live facets from loaded properties
   const inventory = useMemo(() => extractLiveLocationFacets(properties || []), [properties]);
@@ -580,76 +593,117 @@ export default function SearchPage() {
           Find Rooms & PGs <em className="title-accent">Near You</em>
         </h1>
 
-        {/* Global Live Omni-Search Bar with OpenStreetMap Geocoding */}
-        <div style={{ position: 'relative', maxWidth: 740, marginBottom: 16 }} ref={searchContainerRef}>
-          <form onSubmit={handleSearchSubmit} style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-            <SearchIcon
-              size={20}
-              color="#176b58"
-              style={{ position: 'absolute', left: 16, pointerEvents: 'none' }}
-            />
-            <input
-              type="text"
-              className="input"
-              style={{
-                height: 52,
-                paddingLeft: 48,
-                paddingRight: searchInput ? 130 : 100,
-                fontSize: 15,
-                borderRadius: 16,
-                border: '1.5px solid #d5e2d9',
-                boxShadow: '0 6px 20px rgba(24, 51, 45, 0.05)',
-              }}
-              placeholder="Type any landmark, college, hospital, street, or PIN..."
-              value={searchInput}
-              onFocus={() => setIsDropdownOpen(true)}
-              onChange={(e) => {
-                setSearchInput(e.target.value);
-                setIsDropdownOpen(true);
-              }}
-            />
+        {/* Unified City + Search Bar */}
+        <div style={{ position: 'relative', maxWidth: 780, marginBottom: 16 }} ref={searchContainerRef}>
+          <form onSubmit={handleSearchSubmit} className="search-bar-unified">
+            {/* 1. City Dropdown Selector */}
+            <div className="search-bar-city-btn" title="Select City">
+              <MapPin size={17} color="#0f766e" style={{ flexShrink: 0 }} />
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                <span style={{ fontSize: 9.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#64748b', lineHeight: 1.1 }}>
+                  City
+                </span>
+                <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
+                  <select
+                    className="search-bar-city-select"
+                    value={selectedCity}
+                    onChange={(e) => {
+                      const newCity = e.target.value;
+                      setSelectedCity(newCity);
+                    }}
+                    aria-label="Select City"
+                  >
+                    {availableCities.map((c) => (
+                      <option key={c.name} value={c.name}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown
+                    size={12}
+                    color="#64748b"
+                    style={{ position: 'absolute', right: 0, pointerEvents: 'none' }}
+                  />
+                </div>
+              </div>
+            </div>
 
-            <div style={{ position: 'absolute', right: 10, display: 'flex', alignItems: 'center', gap: 4 }}>
-              {searchInput && (
+            {/* 2. Vertical Divider */}
+            <div className="search-bar-divider" />
+
+            {/* 3. Search Input Field */}
+            <div className="search-bar-input-wrap">
+              <SearchIcon
+                size={18}
+                color="#94a3b8"
+                style={{ position: 'absolute', left: 4, pointerEvents: 'none' }}
+              />
+              <input
+                type="text"
+                className="search-bar-input"
+                placeholder={`Search landmark, college, street, or PIN in ${selectedCity}...`}
+                value={searchInput}
+                onFocus={() => setIsDropdownOpen(true)}
+                onChange={(e) => {
+                  setSearchInput(e.target.value);
+                  setIsDropdownOpen(true);
+                }}
+              />
+
+              {/* Inside Input Actions: Clear & Near Me */}
+              <div style={{ position: 'absolute', right: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
+                {searchInput && (
+                  <button
+                    type="button"
+                    onClick={handleClearSearch}
+                    style={{
+                      background: '#f1f5f9',
+                      border: 'none',
+                      color: '#64748b',
+                      borderRadius: '50%',
+                      width: 24,
+                      height: 24,
+                      display: 'grid',
+                      placeItems: 'center',
+                      cursor: 'pointer',
+                      padding: 0,
+                    }}
+                    aria-label="Clear search"
+                  >
+                    <X size={13} />
+                  </button>
+                )}
                 <button
                   type="button"
-                  onClick={handleClearSearch}
+                  onClick={handleNearMeTrigger}
                   style={{
-                    border: 0,
-                    background: '#e9f1ec',
-                    borderRadius: '50%',
-                    width: 26,
-                    height: 26,
-                    display: 'grid',
-                    placeItems: 'center',
-                    color: '#465f54',
+                    background: filters.nearMe ? '#ecfdf5' : '#f1f5f9',
+                    border: `1px solid ${filters.nearMe ? '#a7f3d0' : '#cbd5e1'}`,
+                    borderRadius: 8,
+                    padding: '5px 9px',
+                    fontSize: 11.5,
+                    fontWeight: 600,
+                    color: filters.nearMe ? '#065f46' : '#334155',
                     cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 4,
+                    whiteSpace: 'nowrap',
                   }}
-                  aria-label="Clear search"
+                  title="Discover rooms near your location"
                 >
-                  <X size={14} />
+                  <Crosshair size={12} color="#059669" /> {locating ? '...' : 'Near Me'}
                 </button>
-              )}
-              <button
-                type="button"
-                onClick={handleNearMeTrigger}
-                style={{
-                  background: filters.nearMe ? '#ecfdf5' : '#f1f5f9',
-                  border: `1px solid ${filters.nearMe ? '#a7f3d0' : '#cbd5e1'}`,
-                  borderRadius: 10,
-                  padding: '6px 10px',
-                  fontSize: 12,
-                  fontWeight: 600,
-                  color: filters.nearMe ? '#065f46' : '#334155',
-                  cursor: 'pointer',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 4,
-                }}
-              >
-                <Crosshair size={13} color="#059669" /> {locating ? '...' : 'Near Me'}
-              </button>
+              </div>
             </div>
+
+            {/* 4. Search CTA Button */}
+            <button
+              type="submit"
+              className="search-bar-btn"
+            >
+              <SearchIcon size={16} /> Search
+            </button>
           </form>
 
           {/* Autocomplete Dropdown */}

@@ -14,6 +14,7 @@ import {
   Sparkles,
   X,
   Compass,
+  ChevronDown,
 } from 'lucide-react';
 import { mockProperties as propertiesSeed } from '@/lib/mock-data/properties';
 import type { Property } from '@/lib/mock-data/types';
@@ -25,14 +26,19 @@ import {
   getBrowserLocation,
   type GeocodedPlace,
 } from '@/lib/services/geocodingService';
-import { extractLiveLocationFacets } from '@/lib/services/dynamicLocationService';
+import {
+  extractLiveLocationFacets,
+  getAvailableCities,
+  type CityConfig,
+} from '@/lib/services/dynamicLocationService';
 
 export default function Home() {
   const router = useRouter();
   const [properties, setProperties] = useState<Property[]>(propertiesSeed);
   const [saved, setSaved] = useState<string[]>([]);
 
-  // Search State
+  // Search State with Extensible City Selection
+  const [selectedCity, setSelectedCity] = useState<string>('Samastipur');
   const [searchQuery, setSearchQuery] = useState('');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [locating, setLocating] = useState(false);
@@ -45,6 +51,13 @@ export default function Home() {
     getProperties().then(setProperties);
     setSaved(getStorageItem('roomsaathi_saved_properties', []));
   }, []);
+
+  // Compute available cities (starts with Samastipur + any new cities in listings)
+  const availableCities = useMemo(() => getAvailableCities(properties), [properties]);
+  const activeCity = useMemo(
+    () => availableCities.find((c) => c.name.toLowerCase() === selectedCity.toLowerCase()) || availableCities[0],
+    [availableCities, selectedCity]
+  );
 
   // Compute live facets purely from database inventory
   const inventory = useMemo(() => extractLiveLocationFacets(properties), [properties]);
@@ -74,7 +87,7 @@ export default function Home() {
     let alive = true;
     setIsSearchingPlaces(true);
     const timer = setTimeout(() => {
-      searchPlacesLive(q).then((places) => {
+      searchPlacesLive(q, activeCity.lat, activeCity.lng).then((places) => {
         if (alive) {
           setGeoSuggestions(places);
           setIsSearchingPlaces(false);
@@ -86,7 +99,7 @@ export default function Home() {
       alive = false;
       clearTimeout(timer);
     };
-  }, [searchQuery]);
+  }, [searchQuery, activeCity]);
 
   // 1-Tap "Near Me" GPS Discovery
   const handleNearMeClick = async () => {
@@ -96,9 +109,9 @@ export default function Home() {
       setLocating(false);
       setIsDropdownOpen(false);
       if (coords) {
-        router.push(`/search?nearMe=true&lat=${coords.latitude}&lng=${coords.longitude}&maxDist=5`);
+        router.push(`/search?nearMe=true&lat=${coords.latitude}&lng=${coords.longitude}&maxDist=5&city=${encodeURIComponent(selectedCity)}`);
       } else {
-        router.push(`/search?nearMe=true&lat=25.8631&lng=85.7812&maxDist=5`);
+        router.push(`/search?nearMe=true&lat=${activeCity.lat}&lng=${activeCity.lng}&maxDist=5&city=${encodeURIComponent(selectedCity)}`);
       }
     } catch {
       setLocating(false);
@@ -108,6 +121,7 @@ export default function Home() {
   // Submit Search
   const executeSearch = () => {
     const params = new URLSearchParams();
+    if (selectedCity) params.set('city', selectedCity);
     const q = searchQuery.trim();
 
     if (q) {
@@ -128,14 +142,14 @@ export default function Home() {
     router.push(
       `/search?searchLat=${place.latitude}&searchLng=${place.longitude}&searchPlace=${encodeURIComponent(
         place.name
-      )}&maxDist=5`
+      )}&maxDist=5${selectedCity ? `&city=${encodeURIComponent(selectedCity)}` : ''}`
     );
   };
 
   const handleSelectArea = (area: string) => {
     setSearchQuery(area);
     setIsDropdownOpen(false);
-    router.push(`/search?area=${encodeURIComponent(area)}`);
+    router.push(`/search?area=${encodeURIComponent(area)}${selectedCity ? `&city=${encodeURIComponent(selectedCity)}` : ''}`);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -225,333 +239,343 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Dynamic Open Searchbox */}
+          {/* Enhanced Unified Searchbox with City Dropdown */}
           <div className="searchbox" style={{ position: 'relative' }} ref={searchContainerRef}>
-            <div style={{ display: 'flex', gap: 10, alignItems: 'stretch', flexWrap: 'wrap' }}>
-              {/* Universal Live Input */}
-              <div style={{ position: 'relative', flex: '1 1 320px' }}>
-                <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                  <Search
-                    size={20}
-                    color="#176b58"
-                    style={{ position: 'absolute', left: 16, pointerEvents: 'none' }}
-                  />
-                  <input
-                    type="text"
-                    className="input"
-                    placeholder="Search any landmark, coaching, college, area, or PIN code..."
-                    value={searchQuery}
-                    onFocus={() => setIsDropdownOpen(true)}
-                    onChange={(e) => {
-                      setSearchQuery(e.target.value);
-                      setIsDropdownOpen(true);
-                    }}
-                    onKeyDown={handleKeyDown}
-                    style={{
-                      height: 52,
-                      paddingLeft: 48,
-                      paddingRight: searchQuery ? 130 : 100,
-                      fontSize: 15,
-                      fontWeight: 500,
-                      borderRadius: 14,
-                      border: '1.5px solid #d5e2d9',
-                    }}
-                  />
-
-                  {/* Inside-Input Actions: Clear & Near Me */}
-                  <div style={{ position: 'absolute', right: 8, display: 'flex', alignItems: 'center', gap: 4 }}>
-                    {searchQuery && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setSearchQuery('');
-                          setGeoSuggestions([]);
-                        }}
-                        style={{
-                          background: '#e9f1ec',
-                          border: 'none',
-                          color: '#465f54',
-                          borderRadius: '50%',
-                          width: 26,
-                          height: 26,
-                          display: 'grid',
-                          placeItems: 'center',
-                          cursor: 'pointer',
-                          padding: 0,
-                        }}
-                        aria-label="Clear query"
-                      >
-                        <X size={14} />
-                      </button>
-                    )}
-                    <button
-                      type="button"
-                      onClick={handleNearMeClick}
-                      style={{
-                        background: '#ecfdf5',
-                        border: '1px solid #a7f3d0',
-                        color: '#065f46',
-                        fontSize: 12,
-                        fontWeight: 600,
-                        borderRadius: 9,
-                        padding: '6px 10px',
-                        cursor: 'pointer',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: 4,
-                      }}
+            <div className="search-bar-unified">
+              {/* 1. City Dropdown Selector */}
+              <div className="search-bar-city-btn" title="Select City">
+                <MapPin size={17} color="#0f766e" style={{ flexShrink: 0 }} />
+                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                  <span style={{ fontSize: 9.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#64748b', lineHeight: 1.1 }}>
+                    City
+                  </span>
+                  <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
+                    <select
+                      className="search-bar-city-select"
+                      value={selectedCity}
+                      onChange={(e) => setSelectedCity(e.target.value)}
+                      aria-label="Select City"
                     >
-                      <Crosshair size={13} color="#059669" /> {locating ? '...' : 'Near Me'}
-                    </button>
+                      {availableCities.map((c) => (
+                        <option key={c.name} value={c.name}>
+                          {c.name}
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown
+                      size={12}
+                      color="#64748b"
+                      style={{ position: 'absolute', right: 0, pointerEvents: 'none' }}
+                    />
                   </div>
                 </div>
+              </div>
 
+              {/* 2. Vertical Divider */}
+              <div className="search-bar-divider" />
 
-                {/* Live Hybrid Autocomplete Dropdown */}
-                {isDropdownOpen && (
-                  <div
+              {/* 3. Search Input Field */}
+              <div className="search-bar-input-wrap">
+                <Search
+                  size={18}
+                  color="#94a3b8"
+                  style={{ position: 'absolute', left: 4, pointerEvents: 'none' }}
+                />
+                <input
+                  type="text"
+                  className="search-bar-input"
+                  placeholder={`Search locality, landmark, college, or PIN in ${selectedCity}...`}
+                  value={searchQuery}
+                  onFocus={() => setIsDropdownOpen(true)}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value);
+                    setIsDropdownOpen(true);
+                  }}
+                  onKeyDown={handleKeyDown}
+                />
+
+                {/* Inside-Input Actions: Clear & Near Me */}
+                <div style={{ position: 'absolute', right: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
+                  {searchQuery && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSearchQuery('');
+                        setGeoSuggestions([]);
+                      }}
+                      style={{
+                        background: '#f1f5f9',
+                        border: 'none',
+                        color: '#64748b',
+                        borderRadius: '50%',
+                        width: 24,
+                        height: 24,
+                        display: 'grid',
+                        placeItems: 'center',
+                        cursor: 'pointer',
+                        padding: 0,
+                      }}
+                      aria-label="Clear query"
+                    >
+                      <X size={13} />
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={handleNearMeClick}
                     style={{
-                      position: 'absolute',
-                      top: '100%',
-                      left: 0,
-                      right: 0,
-                      marginTop: 6,
-                      background: '#ffffff',
-                      borderRadius: 14,
-                      boxShadow: '0 18px 40px -4px rgba(15, 23, 42, 0.2), 0 0 0 1px rgba(0, 0, 0, 0.08)',
-                      zIndex: 50,
-                      maxHeight: 380,
-                      overflowY: 'auto',
-                      padding: '10px 0',
+                      background: '#ecfdf5',
+                      border: '1px solid #a7f3d0',
+                      color: '#065f46',
+                      fontSize: 11.5,
+                      fontWeight: 600,
+                      borderRadius: 8,
+                      padding: '5px 9px',
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 4,
+                      whiteSpace: 'nowrap',
+                    }}
+                    title="Find stays near your GPS position"
+                  >
+                    <Crosshair size={12} color="#059669" /> {locating ? '...' : 'Near Me'}
+                  </button>
+                </div>
+              </div>
+
+              {/* 4. Primary Search CTA Button */}
+              <button
+                type="button"
+                className="search-bar-btn"
+                onClick={executeSearch}
+              >
+                <Search size={16} /> Search Rooms
+              </button>
+            </div>
+
+            {/* Live Autocomplete Dropdown */}
+            {isDropdownOpen && (
+              <div
+                style={{
+                  position: 'absolute',
+                  top: '100%',
+                  left: 20,
+                  right: 20,
+                  marginTop: 8,
+                  background: '#ffffff',
+                  borderRadius: 14,
+                  boxShadow: '0 18px 40px -4px rgba(15, 23, 42, 0.2), 0 0 0 1px rgba(0, 0, 0, 0.08)',
+                  zIndex: 50,
+                  maxHeight: 380,
+                  overflowY: 'auto',
+                  padding: '10px 0',
+                }}
+              >
+                {/* Near Me Quick Action */}
+                <div style={{ padding: '0 10px 8px' }}>
+                  <button
+                    type="button"
+                    onClick={handleNearMeClick}
+                    style={{
+                      width: '100%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 10,
+                      padding: '9px 12px',
+                      background: '#ecfdf5',
+                      border: '1px solid #a7f3d0',
+                      borderRadius: 10,
+                      color: '#065f46',
+                      fontSize: 13,
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      textAlign: 'left',
                     }}
                   >
-                    {/* Near Me Quick Action */}
-                    <div style={{ padding: '0 10px 8px' }}>
+                    <div
+                      style={{
+                        width: 26,
+                        height: 26,
+                        borderRadius: '50%',
+                        background: '#10b981',
+                        color: '#ffffff',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      <Crosshair size={14} />
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: 600 }}>
+                        {locating ? 'Detecting your GPS position...' : 'Use My Current Location'}
+                      </div>
+                      <div style={{ fontSize: 11, color: '#059669', fontWeight: 400 }}>
+                        Find rooms closest to where you are standing right now
+                      </div>
+                    </div>
+                  </button>
+                </div>
+
+                {/* Section 1: Live Matches from Database Listings */}
+                {matchingPropertiesInDb.length > 0 && (
+                  <div style={{ padding: '6px 0', borderTop: '1px solid #f1f5f9' }}>
+                    <div
+                      style={{
+                        fontSize: 11,
+                        fontWeight: 700,
+                        letterSpacing: '0.04em',
+                        textTransform: 'uppercase',
+                        color: '#0f766e',
+                        padding: '4px 16px 6px',
+                      }}
+                    >
+                      🏠 Available Rooms & Hostels
+                    </div>
+                    {matchingPropertiesInDb.map((p) => (
                       <button
+                        key={p.id}
                         type="button"
-                        onClick={handleNearMeClick}
+                        onClick={() => router.push(`/rooms/${p.id}`)}
                         style={{
                           width: '100%',
                           display: 'flex',
                           alignItems: 'center',
-                          gap: 10,
-                          padding: '9px 12px',
-                          background: '#ecfdf5',
-                          border: '1px solid #a7f3d0',
-                          borderRadius: 10,
-                          color: '#065f46',
-                          fontSize: 13,
-                          fontWeight: 600,
+                          justifyContent: 'space-between',
+                          padding: '8px 16px',
+                          background: 'transparent',
+                          border: 'none',
                           cursor: 'pointer',
                           textAlign: 'left',
+                          fontSize: 13,
+                          color: '#1e293b',
                         }}
+                        onMouseEnter={(e) => (e.currentTarget.style.background = '#f8fafc')}
+                        onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
                       >
-                        <div
-                          style={{
-                            width: 26,
-                            height: 26,
-                            borderRadius: '50%',
-                            background: '#10b981',
-                            color: '#ffffff',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                          }}
-                        >
-                          <Crosshair size={14} />
-                        </div>
-                        <div style={{ flex: 1 }}>
-                          <div style={{ fontWeight: 600 }}>
-                            {locating ? 'Detecting your GPS position...' : 'Use My Current Location'}
-                          </div>
-                          <div style={{ fontSize: 11, color: '#059669', fontWeight: 400 }}>
-                            Find rooms closest to where you are standing right now
+                        <div>
+                          <div style={{ fontWeight: 600 }}>{p.name}</div>
+                          <div style={{ fontSize: 11, color: '#64748b' }}>
+                            {p.area}, {p.city} · {p.accommodation}
                           </div>
                         </div>
+                        <span style={{ fontWeight: 700, color: '#0f766e' }}>
+                          ₹{p.rent.toLocaleString('en-IN')}/mo
+                        </span>
                       </button>
+                    ))}
+                  </div>
+                )}
+
+                {/* Section 2: Active Localities */}
+                {inventory.areas.length > 0 && !searchQuery && (
+                  <div style={{ padding: '6px 0', borderTop: '1px solid #f1f5f9' }}>
+                    <div
+                      style={{
+                        fontSize: 11,
+                        fontWeight: 700,
+                        letterSpacing: '0.04em',
+                        textTransform: 'uppercase',
+                        color: '#64748b',
+                        padding: '4px 16px 6px',
+                      }}
+                    >
+                      📍 Popular Localities
                     </div>
-
-                    {/* Section 1: Live Matches from Database Listings */}
-                    {matchingPropertiesInDb.length > 0 && (
-                      <div style={{ padding: '6px 0', borderTop: '1px solid #f1f5f9' }}>
-                        <div
-                          style={{
-                            fontSize: 11,
-                            fontWeight: 700,
-                            letterSpacing: '0.04em',
-                            textTransform: 'uppercase',
-                            color: '#0f766e',
-                            padding: '4px 16px 6px',
-                          }}
-                        >
-                          🏠 Available Rooms & Hostels
+                    {inventory.areas.map((a) => (
+                      <button
+                        key={a.name}
+                        type="button"
+                        onClick={() => handleSelectArea(a.name)}
+                        style={{
+                          width: '100%',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          padding: '7px 16px',
+                          background: 'transparent',
+                          border: 'none',
+                          cursor: 'pointer',
+                          textAlign: 'left',
+                          fontSize: 13,
+                          color: '#1e293b',
+                        }}
+                        onMouseEnter={(e) => (e.currentTarget.style.background = '#f8fafc')}
+                        onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <MapPin size={14} color="#059669" />
+                          <span style={{ fontWeight: 500 }}>{a.name}</span>
                         </div>
-                        {matchingPropertiesInDb.map((p) => (
-                          <button
-                            key={p.id}
-                            type="button"
-                            onClick={() => router.push(`/rooms/${p.id}`)}
-                            style={{
-                              width: '100%',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'space-between',
-                              padding: '8px 16px',
-                              background: 'transparent',
-                              border: 'none',
-                              cursor: 'pointer',
-                              textAlign: 'left',
-                              fontSize: 13,
-                              color: '#1e293b',
-                            }}
-                            onMouseEnter={(e) => (e.currentTarget.style.background = '#f8fafc')}
-                            onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-                          >
-                            <div>
-                              <div style={{ fontWeight: 600 }}>{p.name}</div>
-                              <div style={{ fontSize: 11, color: '#64748b' }}>
-                                {p.area}, {p.city} · {p.accommodation}
-                              </div>
-                            </div>
-                            <span style={{ fontWeight: 700, color: '#0f766e' }}>
-                              ₹{p.rent.toLocaleString('en-IN')}/mo
-                            </span>
-                          </button>
-                        ))}
-                      </div>
-                    )}
+                        <span style={{ fontSize: 11, background: '#ecfdf5', color: '#065f46', padding: '1px 7px', borderRadius: 6, fontWeight: 600 }}>
+                          {a.count} {a.count === 1 ? 'room' : 'rooms'}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                )}
 
-                    {/* Section 2: Active Localities */}
-                    {inventory.areas.length > 0 && !searchQuery && (
-                      <div style={{ padding: '6px 0', borderTop: '1px solid #f1f5f9' }}>
-                        <div
-                          style={{
-                            fontSize: 11,
-                            fontWeight: 700,
-                            letterSpacing: '0.04em',
-                            textTransform: 'uppercase',
-                            color: '#64748b',
-                            padding: '4px 16px 6px',
-                          }}
-                        >
-                          📍 Popular Localities
+                {/* Section 3: Places, Colleges & Landmarks */}
+                {geoSuggestions.length > 0 && (
+                  <div style={{ padding: '6px 0', borderTop: '1px solid #f1f5f9' }}>
+                    <div
+                      style={{
+                        fontSize: 11,
+                        fontWeight: 700,
+                        letterSpacing: '0.04em',
+                        textTransform: 'uppercase',
+                        color: '#0369a1',
+                        padding: '4px 16px 6px',
+                      }}
+                    >
+                      <span>📍 Places, Colleges & Landmarks</span>
+                    </div>
+                    {geoSuggestions.map((place) => (
+                      <button
+                        key={place.id}
+                        type="button"
+                        onClick={() => handleSelectPlace(place)}
+                        style={{
+                          width: '100%',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          padding: '8px 16px',
+                          background: 'transparent',
+                          border: 'none',
+                          cursor: 'pointer',
+                          textAlign: 'left',
+                          fontSize: 13,
+                          color: '#1e293b',
+                        }}
+                        onMouseEnter={(e) => (e.currentTarget.style.background = '#f8fafc')}
+                        onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <Compass size={14} color="#0284c7" />
+                          <div>
+                            <div style={{ fontWeight: 600 }}>{place.name}</div>
+                            <div style={{ fontSize: 11, color: '#64748b' }}>
+                              {place.displayName}
+                            </div>
+                          </div>
                         </div>
-                        {inventory.areas.map((a) => (
-                          <button
-                            key={a.name}
-                            type="button"
-                            onClick={() => handleSelectArea(a.name)}
-                            style={{
-                              width: '100%',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'space-between',
-                              padding: '7px 16px',
-                              background: 'transparent',
-                              border: 'none',
-                              cursor: 'pointer',
-                              textAlign: 'left',
-                              fontSize: 13,
-                              color: '#1e293b',
-                            }}
-                            onMouseEnter={(e) => (e.currentTarget.style.background = '#f8fafc')}
-                            onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-                          >
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                              <MapPin size={14} color="#059669" />
-                              <span style={{ fontWeight: 500 }}>{a.name}</span>
-                            </div>
-                            <span style={{ fontSize: 11, background: '#ecfdf5', color: '#065f46', padding: '1px 7px', borderRadius: 6, fontWeight: 600 }}>
-                              {a.count} {a.count === 1 ? 'room' : 'rooms'}
-                            </span>
-                          </button>
-                        ))}
-                      </div>
-                    )}
+                        <span style={{ fontSize: 11, color: '#0284c7', fontWeight: 500 }}>
+                          Explore nearby →
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                )}
 
-                    {/* Section 3: Places, Colleges & Landmarks */}
-                    {geoSuggestions.length > 0 && (
-                      <div style={{ padding: '6px 0', borderTop: '1px solid #f1f5f9' }}>
-                        <div
-                          style={{
-                            fontSize: 11,
-                            fontWeight: 700,
-                            letterSpacing: '0.04em',
-                            textTransform: 'uppercase',
-                            color: '#0369a1',
-                            padding: '4px 16px 6px',
-                          }}
-                        >
-                          <span>📍 Places, Colleges & Landmarks</span>
-                        </div>
-                        {geoSuggestions.map((place) => (
-                          <button
-                            key={place.id}
-                            type="button"
-                            onClick={() => handleSelectPlace(place)}
-                            style={{
-                              width: '100%',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'space-between',
-                              padding: '8px 16px',
-                              background: 'transparent',
-                              border: 'none',
-                              cursor: 'pointer',
-                              textAlign: 'left',
-                              fontSize: 13,
-                              color: '#1e293b',
-                            }}
-                            onMouseEnter={(e) => (e.currentTarget.style.background = '#f8fafc')}
-                            onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-                          >
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                              <Compass size={14} color="#0284c7" />
-                              <div>
-                                <div style={{ fontWeight: 600 }}>{place.name}</div>
-                                <div style={{ fontSize: 11, color: '#64748b' }}>
-                                  {place.displayName}
-                                </div>
-                              </div>
-                            </div>
-                            <span style={{ fontSize: 11, color: '#0284c7', fontWeight: 500 }}>
-                              Explore nearby →
-                            </span>
-                          </button>
-                        ))}
-                      </div>
-                    )}
-
-                    {isSearchingPlaces && (
-                      <div style={{ padding: '8px 16px', fontSize: 12, color: '#64748b', fontStyle: 'italic' }}>
-                        Searching places...
-                      </div>
-                    )}
+                {isSearchingPlaces && (
+                  <div style={{ padding: '8px 16px', fontSize: 12, color: '#64748b', fontStyle: 'italic' }}>
+                    Searching places...
                   </div>
                 )}
               </div>
-
-              {/* Primary Search CTA Button */}
-              <button
-                type="button"
-                className="btn"
-                onClick={executeSearch}
-                style={{
-                  height: 52,
-                  padding: '0 24px',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 8,
-                  fontSize: 15,
-                  fontWeight: 700,
-                  borderRadius: 14,
-                  whiteSpace: 'nowrap',
-                  cursor: 'pointer',
-                }}
-              >
-                <Search size={17} /> Search Rooms
-              </button>
-            </div>
+            )}
 
             {/* Dynamic Quick Discovery Pills Populated from Active Database Inventory */}
             <div

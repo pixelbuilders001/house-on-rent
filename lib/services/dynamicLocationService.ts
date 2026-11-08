@@ -6,6 +6,41 @@ export interface LocationFacet {
   count: number;
 }
 
+export interface CityConfig {
+  name: string;
+  state: string;
+  lat: number;
+  lng: number;
+  isAvailable?: boolean;
+}
+
+export const SUPPORTED_CITIES: CityConfig[] = [
+  { name: 'Samastipur', state: 'Bihar', lat: 25.8631, lng: 85.7812, isAvailable: true },
+  { name: 'Patna', state: 'Bihar', lat: 25.5941, lng: 85.1376, isAvailable: true },
+  { name: 'Darbhanga', state: 'Bihar', lat: 26.1542, lng: 85.8918, isAvailable: true },
+  { name: 'Muzaffarpur', state: 'Bihar', lat: 26.1209, lng: 85.3647, isAvailable: true },
+];
+
+/**
+ * Gets list of selectable cities, dynamically including any city found in active listings
+ */
+export function getAvailableCities(properties: Property[] = []): CityConfig[] {
+  const map = new Map<string, CityConfig>();
+  SUPPORTED_CITIES.forEach((c) => map.set(c.name.toLowerCase(), c));
+
+  properties.forEach((p) => {
+    if (p.city && p.city.trim()) {
+      const c = p.city.trim();
+      const k = c.toLowerCase();
+      if (!map.has(k)) {
+        map.set(k, { name: c, state: 'Bihar', lat: 25.8631, lng: 85.7812, isAvailable: true });
+      }
+    }
+  });
+
+  return Array.from(map.values());
+}
+
 export interface InventoryStats {
   areas: LocationFacet[];
   pincodes: LocationFacet[];
