@@ -13,10 +13,12 @@ import {
   ChevronLeft,
   ChevronRight,
   Camera,
-  Check
+  Check,
+  Building2,
 } from 'lucide-react';
 import type { Property } from '@/lib/mock-data/types';
 import { calculateMonthlyCost, calculateMoveInCost } from '@/lib/pricing';
+export { PropertyCardSkeleton } from './PropertyCardSkeleton';
 
 export function PropertyCard({
   property,
@@ -28,31 +30,38 @@ export function PropertyCard({
   onSave?: () => void;
 }) {
   const rawImages = (property?.images && property.images.length > 0)
-    ? property.images
-    : (property?.image && property.image.trim() !== '' ? [property.image] : ['/mock/roomsaathi-hero-student-room.png']);
+    ? property.images.filter((img): img is string => typeof img === 'string' && img.trim() !== '')
+    : (property?.image && property.image.trim() !== '' ? [property.image] : []);
 
   const [activeSlide, setActiveSlide] = useState(0);
+  const [imgLoaded, setImgLoaded] = useState(false);
   const touchStartX = useRef<number | null>(null);
 
+  const hasPhotos = rawImages.length > 0;
   const hasMultiplePhotos = rawImages.length > 1;
-  const currentPhoto = rawImages[activeSlide] || rawImages[0] || '/mock/roomsaathi-hero-student-room.png';
+  const currentPhoto = hasPhotos ? (rawImages[activeSlide] || rawImages[0]) : null;
 
   const handlePrev = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    setImgLoaded(false);
     setActiveSlide((prev) => (prev === 0 ? rawImages.length - 1 : prev - 1));
   };
 
   const handleNext = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    setImgLoaded(false);
     setActiveSlide((prev) => (prev === rawImages.length - 1 ? 0 : prev + 1));
   };
 
   const handleDotClick = (e: React.MouseEvent, index: number) => {
     e.preventDefault();
     e.stopPropagation();
-    setActiveSlide(index);
+    if (index !== activeSlide) {
+      setImgLoaded(false);
+      setActiveSlide(index);
+    }
   };
 
   const handleTouchStart = (e: React.TouchEvent) => {
@@ -90,12 +99,33 @@ export function PropertyCard({
         onTouchEnd={handleTouchEnd}
       >
         <Link href={`/rooms/${property.id}`} className="photo-link-wrapper" tabIndex={-1}>
-          <img
-            src={currentPhoto}
-            alt={property.name}
-            className="card-photo-img"
-            loading="lazy"
-          />
+          {hasPhotos && currentPhoto ? (
+            <>
+              {!imgLoaded && (
+                <div
+                  className="skeleton-pulse"
+                  style={{ position: 'absolute', inset: 0, zIndex: 1 }}
+                />
+              )}
+              <img
+                src={currentPhoto}
+                alt={property.name}
+                className="card-photo-img"
+                loading="lazy"
+                onLoad={() => setImgLoaded(true)}
+                style={{
+                  opacity: imgLoaded ? 1 : 0,
+                  transition: 'opacity 0.25s ease',
+                }}
+              />
+            </>
+          ) : (
+            <div className="card-no-photo-placeholder">
+              <Building2 size={34} color="#94a3b8" strokeWidth={1.5} />
+              <span className="no-photo-text">Photos Coming Soon</span>
+              <span className="no-photo-sub">तस्वीरें जल्द उपलब्ध होंगी</span>
+            </div>
+          )}
         </Link>
 
         {/* Floating Badges (Top Left) */}

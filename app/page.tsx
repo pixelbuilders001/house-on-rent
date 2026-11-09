@@ -24,10 +24,10 @@ import {
   MessageCircle,
   FileText,
 } from 'lucide-react';
-import { mockProperties as propertiesSeed } from '@/lib/mock-data/properties';
 import type { Property } from '@/lib/mock-data/types';
 import { getProperties } from '@/lib/services/propertyService';
 import { PropertyCard } from '@/components/PropertyCard';
+import { PropertyCardSkeleton } from '@/components/PropertyCardSkeleton';
 import { CitySelector } from '@/components/CitySelector';
 import { getStorageItem, setStorageItem } from '@/lib/storage';
 import {
@@ -43,7 +43,8 @@ import {
 
 export default function Home() {
   const router = useRouter();
-  const [properties, setProperties] = useState<Property[]>(propertiesSeed);
+  const [properties, setProperties] = useState<Property[]>([]);
+  const [loading, setLoading] = useState(true);
   const [saved, setSaved] = useState<string[]>([]);
 
   // Search State with Extensible City Selection
@@ -65,8 +66,24 @@ export default function Home() {
   };
 
   useEffect(() => {
-    getProperties().then(setProperties);
+    let isMounted = true;
+    getProperties()
+      .then((data) => {
+        if (isMounted) {
+          setProperties(data || []);
+          setLoading(false);
+        }
+      })
+      .catch((err) => {
+        console.error('Failed to load properties:', err);
+        if (isMounted) {
+          setLoading(false);
+        }
+      });
     setSaved(getStorageItem('roomsaathi_saved_properties', []));
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   // Lock body scroll and auto-focus input when mobile search sheet opens
@@ -692,7 +709,7 @@ export default function Home() {
     </section>
 
       {/* Property Listings Sections */}
-      {properties.length === 0 ? (
+      {!loading && properties.length === 0 ? (
         <section className="section">
           <div
             className="container"
@@ -739,7 +756,7 @@ export default function Home() {
                 </div>
 
                 <Link href="/search" className="view-all-link desktop-only">
-                  <span>Explore all {properties.length} rooms</span>
+                  <span>{loading ? 'Explore all rooms' : `Explore all ${properties.length} rooms`}</span>
                   <ArrowRight size={15} />
                 </Link>
               </div>
@@ -752,7 +769,7 @@ export default function Home() {
                   onClick={() => setHomeCategory('all')}
                 >
                   <span>All Rooms</span>
-                  <span className="tab-count-badge">{categoryCounts.all}</span>
+                  <span className="tab-count-badge">{loading ? '—' : categoryCounts.all}</span>
                 </button>
                 <button
                   type="button"
@@ -760,7 +777,7 @@ export default function Home() {
                   onClick={() => setHomeCategory('single')}
                 >
                   <span>Single Room</span>
-                  <span className="tab-count-badge">{categoryCounts.single}</span>
+                  <span className="tab-count-badge">{loading ? '—' : categoryCounts.single}</span>
                 </button>
                 <button
                   type="button"
@@ -768,7 +785,7 @@ export default function Home() {
                   onClick={() => setHomeCategory('shared')}
                 >
                   <span>Shared Bed</span>
-                  <span className="tab-count-badge">{categoryCounts.shared}</span>
+                  <span className="tab-count-badge">{loading ? '—' : categoryCounts.shared}</span>
                 </button>
                 <button
                   type="button"
@@ -776,7 +793,7 @@ export default function Home() {
                   onClick={() => setHomeCategory('under5k')}
                 >
                   <span>Under ₹5,000</span>
-                  <span className="tab-count-badge">{categoryCounts.under5k}</span>
+                  <span className="tab-count-badge">{loading ? '—' : categoryCounts.under5k}</span>
                 </button>
                 <button
                   type="button"
@@ -784,7 +801,7 @@ export default function Home() {
                   onClick={() => setHomeCategory('food')}
                 >
                   <span>Food Included</span>
-                  <span className="tab-count-badge">{categoryCounts.food}</span>
+                  <span className="tab-count-badge">{loading ? '—' : categoryCounts.food}</span>
                 </button>
                 <button
                   type="button"
@@ -792,12 +809,18 @@ export default function Home() {
                   onClick={() => setHomeCategory('station')}
                 >
                   <span>Near Station (&lt;1.5 km)</span>
-                  <span className="tab-count-badge">{categoryCounts.station}</span>
+                  <span className="tab-count-badge">{loading ? '—' : categoryCounts.station}</span>
                 </button>
               </div>
 
               {/* Property Grid: 3 columns desktop, 2 tablet, 1 mobile */}
-              {filteredHomeProperties.length === 0 ? (
+              {loading ? (
+                <div className="property-grid">
+                  {Array.from({ length: 6 }).map((_, i) => (
+                    <PropertyCardSkeleton key={`skeleton-${i}`} />
+                  ))}
+                </div>
+              ) : filteredHomeProperties.length === 0 ? (
                 <div className="empty-category-notice">
                   <p>No rooms matching this filter right now in {selectedCity}.</p>
                   <button
@@ -824,7 +847,7 @@ export default function Home() {
               {/* Mobile "View All" Button */}
               <div className="listings-mobile-footer">
                 <Link href="/search" className="btn outline full-width-mobile">
-                  <span>View all {properties.length} rooms in {selectedCity}</span>
+                  <span>{loading ? `View all rooms in ${selectedCity}` : `View all ${properties.length} rooms in ${selectedCity}`}</span>
                   <ArrowRight size={15} />
                 </Link>
               </div>
@@ -832,7 +855,44 @@ export default function Home() {
           </section>
 
           {/* Secondary Curated Showcase: Budget Stays under ₹5,000 */}
-          {budgetProperties.length > 0 && (
+          {loading ? (
+            <section className="section budget-showcase-section">
+              <div className="container">
+                <div className="listings-section-header">
+                  <div>
+                    <div className="listings-eyebrow">
+                      <Sparkles size={13} color="#10b981" />
+                      <span>STUDENT &amp; BUDGET FAVORITES</span>
+                    </div>
+                    <h2 className="listings-heading">
+                      Budget Stays <em className="title-accent">Under ₹5,000</em>
+                    </h2>
+                    <p className="listings-subtitle">
+                      कम बजट में बेहतरीन कमरे, बिना किसी ब्रोकरेज या छिपे हुए खर्चे के
+                    </p>
+                  </div>
+
+                  <Link href="/search?maxPrice=5000" className="view-all-link desktop-only">
+                    <span>View all budget rooms</span>
+                    <ArrowRight size={15} />
+                  </Link>
+                </div>
+
+                <div className="property-grid">
+                  {Array.from({ length: 3 }).map((_, i) => (
+                    <PropertyCardSkeleton key={`budget-skeleton-${i}`} />
+                  ))}
+                </div>
+
+                <div className="listings-mobile-footer">
+                  <Link href="/search?maxPrice=5000" className="btn outline full-width-mobile">
+                    <span>Explore budget rooms under ₹5,000</span>
+                    <ArrowRight size={15} />
+                  </Link>
+                </div>
+              </div>
+            </section>
+          ) : budgetProperties.length > 0 ? (
             <section className="section budget-showcase-section">
               <div className="container">
                 <div className="listings-section-header">
@@ -874,7 +934,7 @@ export default function Home() {
                 </div>
               </div>
             </section>
-          )}
+          ) : null}
         </>
       )}
 

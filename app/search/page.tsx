@@ -19,7 +19,7 @@ import { getProperties, type PropertyFilters } from '@/lib/services/propertyServ
 import type { Property } from '@/lib/mock-data/types';
 import { mockAmenities } from '@/lib/mock-data/amenities';
 import { getAmenities } from '@/lib/services/catalogService';
-import { PropertyCard } from '@/components/PropertyCard';
+import { PropertyCard, PropertyCardSkeleton } from '@/components/PropertyCard';
 import { CitySelector } from '@/components/CitySelector';
 import { Modal } from '@/components/Modal';
 import { getStorageItem, setStorageItem } from '@/lib/storage';
@@ -1118,35 +1118,8 @@ export default function SearchPage() {
           {/* Cards Grid */}
           <div className="property-grid">
             {busy
-              ? [1, 2, 3, 4].map((n) => (
-                  <div
-                    className="property-card-modern"
-                    key={n}
-                    style={{ border: '1px solid #e2e8f0', borderRadius: 18, overflow: 'hidden' }}
-                  >
-                    <div className="skeleton-pulse" style={{ width: '100%', aspectRatio: '16 / 10' }} />
-                    <div style={{ padding: '16px 18px 18px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <div className="skeleton-pulse" style={{ width: 90, height: 22, borderRadius: 6 }} />
-                        <div className="skeleton-pulse" style={{ width: 70, height: 18, borderRadius: 6 }} />
-                      </div>
-                      <div className="skeleton-pulse" style={{ width: '80%', height: 20, borderRadius: 6 }} />
-                      <div className="skeleton-pulse" style={{ width: '55%', height: 16, borderRadius: 6 }} />
-                      <div
-                        style={{
-                          borderTop: '1px dashed #e2e8f0',
-                          paddingTop: 10,
-                          marginTop: 4,
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'center',
-                        }}
-                      >
-                        <div className="skeleton-pulse" style={{ width: 100, height: 16, borderRadius: 6 }} />
-                        <div className="skeleton-pulse" style={{ width: 80, height: 28, borderRadius: 8 }} />
-                      </div>
-                    </div>
-                  </div>
+              ? [1, 2, 3, 4, 5, 6].map((n) => (
+                  <PropertyCardSkeleton key={n} />
                 ))
               : (properties || []).map((p) => (
                   <div key={p.id}>
