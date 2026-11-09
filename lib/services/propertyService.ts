@@ -234,8 +234,8 @@ export async function getProperties(filters: PropertyFilters = {}, sort = 'best'
   if (supabase) {
     const { data, error } = await supabase.from('properties').select('*').eq('is_active', true);
     if (error) console.error('Supabase properties query failed; using prototype data.', error.message);
-    else {
-      const mapped = attachDistance((data ?? []).map(fromRow));
+    else if (data && data.length > 0) {
+      const mapped = attachDistance(data.map(fromRow));
       return sortProperties(mapped.filter((p) => matches(p, filters)), filters, sort);
     }
   }
@@ -249,7 +249,6 @@ export async function getPropertyById(id: string): Promise<Property | undefined>
     const { data, error } = await supabase.from('properties').select('*').eq('id', id).eq('is_active', true).maybeSingle();
     if (error) console.error('Supabase property query failed; using prototype data.', error.message);
     else if (data) return fromRow(data);
-    else return undefined;
   }
   return [...mockProperties, ...getStorageItem<Property[]>('roomsaathi_owner_created', [])].find((p) => p.id === id);
 }

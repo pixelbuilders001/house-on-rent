@@ -1,7 +1,20 @@
 'use client';
 import { useState, useRef } from 'react';
 import Link from 'next/link';
-import { Heart, MapPin, Clock, Star, Utensils, Wifi, ShieldCheck, ArrowUpRight, ChevronLeft, ChevronRight } from 'lucide-react';
+import {
+  Heart,
+  MapPin,
+  Star,
+  Utensils,
+  Wifi,
+  ShieldCheck,
+  Zap,
+  ArrowRight,
+  ChevronLeft,
+  ChevronRight,
+  Camera,
+  Check
+} from 'lucide-react';
 import type { Property } from '@/lib/mock-data/types';
 import { calculateMonthlyCost, calculateMoveInCost } from '@/lib/pricing';
 
@@ -14,36 +27,26 @@ export function PropertyCard({
   saved?: boolean;
   onSave?: () => void;
 }) {
-  const idStr = String(property?.id || '0');
-  const lastChar = idStr.slice(-1);
-  const parsedChar = parseInt(lastChar, 10);
-  const crop = isNaN(parsedChar) ? 0 : Math.abs(parsedChar) % 4;
-  const position = ['0% 0%', '100% 0%', '0% 100%', '100% 100%'][crop] || 'center';
-  
   const rawImages = (property?.images && property.images.length > 0)
     ? property.images
-    : (property?.image && property.image.trim() !== '' ? [property.image] : []);
+    : (property?.image && property.image.trim() !== '' ? [property.image] : ['/mock/roomsaathi-hero-student-room.png']);
 
   const [activeSlide, setActiveSlide] = useState(0);
   const touchStartX = useRef<number | null>(null);
 
   const hasMultiplePhotos = rawImages.length > 1;
-  const currentPhoto = rawImages[activeSlide] || rawImages[0] || '';
-  const hasCustomImage = Boolean(currentPhoto && !currentPhoto.includes('roomsaathi-property-gallery.png'));
-  const imageBg = hasCustomImage ? `url(${currentPhoto})` : 'url(/mock/roomsaathi-property-gallery.png)';
-  const bgSize = hasCustomImage ? 'cover' : undefined;
-  const bgPos = hasCustomImage ? 'center' : position;
+  const currentPhoto = rawImages[activeSlide] || rawImages[0] || '/mock/roomsaathi-hero-student-room.png';
 
   const handlePrev = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    setActiveSlide(prev => (prev === 0 ? rawImages.length - 1 : prev - 1));
+    setActiveSlide((prev) => (prev === 0 ? rawImages.length - 1 : prev - 1));
   };
 
   const handleNext = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    setActiveSlide(prev => (prev === rawImages.length - 1 ? 0 : prev + 1));
+    setActiveSlide((prev) => (prev === rawImages.length - 1 ? 0 : prev + 1));
   };
 
   const handleDotClick = (e: React.MouseEvent, index: number) => {
@@ -61,206 +64,205 @@ export function PropertyCard({
     const diff = touchStartX.current - e.changedTouches[0].clientX;
     if (Math.abs(diff) > 40) {
       if (diff > 0) {
-        setActiveSlide(prev => (prev === rawImages.length - 1 ? 0 : prev + 1));
+        setActiveSlide((prev) => (prev === rawImages.length - 1 ? 0 : prev + 1));
       } else {
-        setActiveSlide(prev => (prev === 0 ? rawImages.length - 1 : prev - 1));
+        setActiveSlide((prev) => (prev === 0 ? rawImages.length - 1 : prev - 1));
       }
     }
     touchStartX.current = null;
   };
 
+  const handleHeartClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (onSave) onSave();
+  };
+
+  const moveInCost = calculateMoveInCost(property);
+  const monthlyCost = calculateMonthlyCost(property);
+
   return (
-    <article className="property-card">
+    <article className="property-card-modern">
+      {/* 1. Photo Container with Carousel & Floating Badges */}
       <div
-        className="property-image has-photo"
-        style={{
-          backgroundImage: imageBg,
-          backgroundSize: bgSize,
-          backgroundPosition: bgPos,
-          position: 'relative'
-        }}
+        className="card-photo-container"
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
       >
-        <span className="image-label">
-          {property.verified ? (
-            <>
-              <ShieldCheck size={13} style={{ verticalAlign: 'middle' }} /> Demo verified
-            </>
-          ) : (
-            'Owner verified'
-          )}
-        </span>
+        <Link href={`/rooms/${property.id}`} className="photo-link-wrapper" tabIndex={-1}>
+          <img
+            src={currentPhoto}
+            alt={property.name}
+            className="card-photo-img"
+            loading="lazy"
+          />
+        </Link>
 
-        {/* Multi-Photo Carousel Slider Controls */}
+        {/* Floating Badges (Top Left) */}
+        <div className="card-floating-badges">
+          {property.verified && (
+            <span className="badge-verified">
+              <ShieldCheck size={13} strokeWidth={2.5} />
+              <span>Verified Landlord</span>
+            </span>
+          )}
+          {property.brokerage === 0 && (
+            <span className="badge-zero-brokerage">
+              <Zap size={11} fill="currentColor" />
+              <span>Zero Brokerage</span>
+            </span>
+          )}
+        </div>
+
+        {/* Frosted Wishlist Heart Button (Top Right) */}
+        <button
+          type="button"
+          className={`card-heart-btn ${saved ? 'is-saved' : ''}`}
+          aria-label={saved ? 'Unsave property' : 'Save property'}
+          onClick={handleHeartClick}
+        >
+          <Heart size={17} fill={saved ? '#ef4444' : 'none'} color={saved ? '#ef4444' : '#1e293b'} strokeWidth={2} />
+        </button>
+
+        {/* Photo Counter Pill (Bottom Right) */}
+        {hasMultiplePhotos && (
+          <div className="card-photo-counter">
+            <Camera size={11} />
+            <span>{activeSlide + 1}/{rawImages.length}</span>
+          </div>
+        )}
+
+        {/* Carousel Prev/Next Buttons (Visible on desktop hover) */}
         {hasMultiplePhotos && (
           <>
             <button
               type="button"
+              className="carousel-ctrl-btn prev"
               onClick={handlePrev}
-              aria-label="Previous image"
-              style={{
-                position: 'absolute',
-                left: 8,
-                top: '50%',
-                transform: 'translateY(-50%)',
-                width: 28,
-                height: 28,
-                borderRadius: '50%',
-                background: 'rgba(15, 23, 42, 0.7)',
-                color: 'white',
-                border: 'none',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer',
-                zIndex: 4,
-                boxShadow: '0 2px 6px rgba(0,0,0,0.3)'
-              }}
+              aria-label="Previous photo"
             >
               <ChevronLeft size={16} />
             </button>
-
             <button
               type="button"
+              className="carousel-ctrl-btn next"
               onClick={handleNext}
-              aria-label="Next image"
-              style={{
-                position: 'absolute',
-                right: 8,
-                top: '50%',
-                transform: 'translateY(-50%)',
-                width: 28,
-                height: 28,
-                borderRadius: '50%',
-                background: 'rgba(15, 23, 42, 0.7)',
-                color: 'white',
-                border: 'none',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer',
-                zIndex: 4,
-                boxShadow: '0 2px 6px rgba(0,0,0,0.3)'
-              }}
+              aria-label="Next photo"
             >
               <ChevronRight size={16} />
             </button>
 
-            {/* Slider Dots */}
-            <div
-              style={{
-                position: 'absolute',
-                bottom: 8,
-                left: 0,
-                right: 0,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 5,
-                zIndex: 4
-              }}
-            >
+            {/* Slider Dots Indicator (Bottom Center) */}
+            <div className="carousel-dots-wrap">
               {rawImages.map((_, idx) => (
                 <button
                   key={idx}
                   type="button"
                   onClick={(e) => handleDotClick(e, idx)}
-                  aria-label={`Go to photo ${idx + 1}`}
-                  style={{
-                    width: activeSlide === idx ? 16 : 6,
-                    height: 6,
-                    borderRadius: 3,
-                    background: activeSlide === idx ? '#10b981' : 'rgba(255, 255, 255, 0.75)',
-                    border: 'none',
-                    padding: 0,
-                    cursor: 'pointer',
-                    transition: 'all 0.2s'
-                  }}
+                  aria-label={`Go to slide ${idx + 1}`}
+                  className={`carousel-dot ${activeSlide === idx ? 'active' : ''}`}
                 />
               ))}
             </div>
           </>
         )}
-
-        <button
-          className={`heart ${saved ? 'is-saved' : ''}`}
-          aria-label={saved ? 'Unsave property' : 'Save property'}
-          onClick={onSave}
-        >
-          <Heart size={18} fill={saved ? 'currentColor' : 'none'} />
-        </button>
       </div>
 
-      <div className="property-body">
-        <div className="card-top">
-          <div>
-            <div className="card-title">{property.name}</div>
-            <div className="muted">{property.area}, Samastipur</div>
+      {/* 2. Card Content Body */}
+      <div className="card-content-body">
+        {/* Row 1: Accommodation Pill + Rent */}
+        <div className="card-price-row">
+          <div className="card-main-price">
+            <span className="currency-symbol">₹</span>
+            <span className="price-amount">{Number(property?.rent || 0).toLocaleString('en-IN')}</span>
+            <span className="price-period">/month</span>
           </div>
-          <span className="rating">
-            <Star size={13} fill="#e7b74d" color="#e7b74d" /> {property.rating || 4.5}{' '}
-            <span className="muted">({property.reviewCount || 0})</span>
+          <span className="accommodation-pill">
+            {property.accommodation || property.type || 'Room'}
           </span>
         </div>
 
-        <div className="price">
-          ₹{Number(property?.rent || 0).toLocaleString('en-IN')}
-          <small>/month rent</small>
+        {/* Row 2: Property Title & Rating */}
+        <div className="card-title-row">
+          <Link href={`/rooms/${property.id}`} className="card-title-link">
+            <h3 className="card-heading">{property.name}</h3>
+          </Link>
+          <div className="card-rating-pill">
+            <Star size={13} fill="#eab308" color="#eab308" />
+            <span className="rating-score">{property.rating || 4.7}</span>
+            <span className="rating-count">({property.reviewCount || 18})</span>
+          </div>
         </div>
 
-        <div className="card-meta">
-          <span>
-            {property.accommodation} · {property.availableBeds} {property.availableBeds === 1 ? 'bed' : 'beds'} left
+        {/* Row 3: Location, Station Proximity & PIN code */}
+        <div className="card-location-row">
+          <span className="location-area">
+            <MapPin size={13} className="loc-pin-icon" />
+            <span>{property.area}, {property.city || 'Samastipur'}</span>
           </span>
+          <span className="location-divider">•</span>
           {property.userDistanceKm != null ? (
-            <span style={{ color: '#059669', fontWeight: 600 }} title="Distance from your location">
+            <span className="proximity-tag near" title="Distance from searched spot">
               📍 {property.userDistanceKm} km away
             </span>
           ) : property.stationDistanceKm != null ? (
-            <span title="Distance from Samastipur Jn Railway Station">
+            <span className="proximity-tag station" title="Distance from Samastipur Jn Railway Station">
               🚉 {property.stationDistanceKm} km Stn
             </span>
           ) : (
-            <span>
-              <MapPin size={13} /> {property.distanceKm} km
+            <span className="proximity-tag general">
+              {property.distanceKm} km away
             </span>
           )}
           {property.pincode && (
-            <span style={{ background: '#f1f5f9', padding: '1px 6px', borderRadius: 4, fontSize: 11, color: '#475569', fontWeight: 500 }}>
+            <span className="pincode-pill">
               📮 {property.pincode}
             </span>
           )}
         </div>
 
-        <div className="amenity-row">
+        {/* Row 4: Amenity Highlights Micro-Chips */}
+        <div className="card-amenities-row">
           {property.foodAvailable && (
-            <span className="amenity">
-              <Utensils size={12} /> {property.foodIncluded ? 'Food included' : 'Food available'}
+            <span className="amenity-chip">
+              <Utensils size={12} className="amenity-chip-icon" />
+              <span>{property.foodIncluded ? 'Food included' : 'Mess available'}</span>
             </span>
           )}
           {property.wifi && (
-            <span className="amenity">
-              <Wifi size={12} /> Wi-Fi
+            <span className="amenity-chip">
+              <Wifi size={12} className="amenity-chip-icon" />
+              <span>Free Wi-Fi</span>
             </span>
           )}
           {property.electricityIncluded && (
-            <span className="amenity">⚡ Electricity included</span>
+            <span className="amenity-chip">
+              <Zap size={11} className="amenity-chip-icon" />
+              <span>Electricity incl.</span>
+            </span>
+          )}
+          {property.availableBeds != null && property.availableBeds > 0 && (
+            <span className="amenity-chip beds">
+              <span>{property.availableBeds} {property.availableBeds === 1 ? 'bed left' : 'beds left'}</span>
+            </span>
           )}
         </div>
 
-        <div className="cost-row">
-          <span>
-            Est. monthly <strong>₹{calculateMonthlyCost(property).toLocaleString('en-IN')}</strong>
-          </span>
-          <span>
-            Move-in <strong>₹{calculateMoveInCost(property).toLocaleString('en-IN')}</strong>
-          </span>
-        </div>
+        {/* Row 5: Transparent Move-In Strip & View CTA */}
+        <div className="card-footer-strip">
+          <div className="move-in-box">
+            <div className="move-in-label">Move-in cost (Rent + Dep.)</div>
+            <div className="move-in-value">
+              ₹{moveInCost.toLocaleString('en-IN')}
+              <span className="deposit-note"> (Dep: ₹{Number(property.deposit || 0).toLocaleString('en-IN')})</span>
+            </div>
+          </div>
 
-        <Link className="btn outline small card-action" href={`/rooms/${property.id}`}>
-          View details <ArrowUpRight size={15} />
-        </Link>
+          <Link href={`/rooms/${property.id}`} className="card-action-btn">
+            <span>View Room</span>
+            <ArrowRight size={14} className="action-arrow" />
+          </Link>
+        </div>
       </div>
     </article>
   );

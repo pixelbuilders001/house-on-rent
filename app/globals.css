@@ -1430,3 +1430,712 @@ html,body{max-width:100%;overflow-x:clip}
 .mobile-search-submit-btn:active {
   background: #125545;
 }
+
+/* ============================================================
+   Production-Grade Property Card & Curated Listings Section
+   ============================================================ */
+
+.listings-section {
+  padding: 48px 0 36px;
+  background: #ffffff;
+}
+
+.budget-showcase-section {
+  padding: 42px 0 48px;
+  background: #fbfdfc;
+  border-top: 1px solid #f1f5f3;
+}
+
+.listings-section-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  margin-bottom: 22px;
+  gap: 16px;
+}
+
+.listings-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: #176b58;
+  margin-bottom: 6px;
+}
+
+.eyebrow-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #10b981;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+}
+
+.listings-heading {
+  font-size: clamp(26px, 3.4vw, 34px);
+  font-weight: 800;
+  letter-spacing: -1.2px;
+  margin: 0 0 6px;
+  color: #0f172a;
+}
+
+.listings-subtitle {
+  font-size: 14.5px;
+  color: #64748b;
+  margin: 0;
+  font-weight: 500;
+}
+
+.view-all-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #176b58;
+  padding: 9px 16px;
+  border-radius: 12px;
+  background: #eaf5ef;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  white-space: nowrap;
+}
+
+.view-all-link:hover {
+  background: #176b58;
+  color: #ffffff;
+  transform: translateX(3px);
+  box-shadow: 0 4px 12px rgba(23, 107, 88, 0.2);
+}
+
+/* 1-Tap Category Tabs */
+.category-tabs-container {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  padding: 4px 0 20px;
+  margin-bottom: 4px;
+}
+
+.category-tabs-container::-webkit-scrollbar {
+  display: none;
+}
+
+.category-tab-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 16px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 650;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  color: #475569;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  flex-shrink: 0;
+}
+
+.category-tab-btn:hover {
+  border-color: #cbd5e1;
+  background: #f8fafc;
+  color: #0f172a;
+}
+
+.category-tab-btn.is-active {
+  background: #176b58;
+  border-color: #176b58;
+  color: #ffffff;
+  box-shadow: 0 4px 14px rgba(23, 107, 88, 0.25);
+}
+
+.tab-count-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  background: #f1f5f9;
+  color: #64748b;
+  transition: all 0.2s;
+}
+
+.category-tab-btn.is-active .tab-count-badge {
+  background: rgba(255, 255, 255, 0.24);
+  color: #ffffff;
+}
+
+.empty-category-notice {
+  text-align: center;
+  padding: 42px 20px;
+  background: #fafbf9;
+  border: 1px dashed #cbd5e1;
+  border-radius: 16px;
+  color: #64748b;
+}
+
+.listings-mobile-footer {
+  display: none;
+}
+
+/* ============================================================
+   Modern Property Card Component (Airbnb & NoBroker standard)
+   ============================================================ */
+
+.property-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 22px;
+}
+
+.property-card-modern {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 18px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: all 0.26s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+  min-width: 0;
+}
+
+.property-card-modern:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 18px 36px -8px rgba(15, 23, 42, 0.12), 0 0 0 1px rgba(23, 107, 88, 0.18);
+  border-color: #cbd5e1;
+}
+
+/* Photo Gallery Container */
+.card-photo-container {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  overflow: hidden;
+  background: #f1f5f9;
+}
+
+.photo-link-wrapper {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.card-photo-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.property-card-modern:hover .card-photo-img {
+  transform: scale(1.04);
+}
+
+/* Floating Badges (Top Left) */
+.card-floating-badges {
+  position: absolute;
+  top: 11px;
+  left: 11px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 5px;
+  z-index: 4;
+  pointer-events: none;
+}
+
+.badge-verified {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  background: rgba(16, 185, 129, 0.92);
+  color: #ffffff;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  letter-spacing: 0.2px;
+}
+
+.badge-zero-brokerage {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3.5px 8px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 750;
+  background: rgba(15, 23, 42, 0.82);
+  color: #fde047;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* Frosted Heart Wishlist Button (Top Right) */
+.card-heart-btn {
+  position: absolute;
+  top: 11px;
+  right: 11px;
+  z-index: 5;
+  width: 35px;
+  height: 35px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.card-heart-btn:hover {
+  background: #ffffff;
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.card-heart-btn.is-saved {
+  background: #ffffff;
+}
+
+/* Photo Counter (Bottom Right) */
+.card-photo-counter {
+  position: absolute;
+  bottom: 10px;
+  right: 11px;
+  z-index: 4;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 650;
+  color: #ffffff;
+  background: rgba(15, 23, 42, 0.72);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+}
+
+/* Carousel Prev/Next Buttons */
+.carousel-ctrl-btn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 5;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.92);
+  color: #0f172a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.2s ease, transform 0.2s ease, background 0.15s;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+}
+
+.property-card-modern:hover .carousel-ctrl-btn {
+  opacity: 0.92;
+}
+
+.carousel-ctrl-btn:hover {
+  opacity: 1 !important;
+  transform: translateY(-50%) scale(1.1);
+  background: #ffffff;
+}
+
+.carousel-ctrl-btn.prev {
+  left: 9px;
+}
+
+.carousel-ctrl-btn.next {
+  right: 9px;
+}
+
+/* Slider Dots */
+.carousel-dots-wrap {
+  position: absolute;
+  bottom: 10px;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  z-index: 4;
+}
+
+.carousel-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.65);
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.carousel-dot.active {
+  width: 16px;
+  background: #10b981;
+}
+
+/* Card Body Content */
+.card-content-body {
+  padding: 16px 18px 18px;
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  gap: 9px;
+}
+
+.card-price-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.card-main-price {
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+}
+
+.currency-symbol {
+  font-size: 15px;
+  font-weight: 700;
+  color: #176b58;
+}
+
+.price-amount {
+  font-size: 21px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  color: #0f172a;
+}
+
+.price-period {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #64748b;
+  margin-left: 2px;
+}
+
+.accommodation-pill {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: #eaf5ef;
+  color: #176b58;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.card-title-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.card-title-link {
+  flex-grow: 1;
+  min-width: 0;
+  text-decoration: none;
+}
+
+.card-heading {
+  font-size: 16px;
+  font-weight: 750;
+  color: #0f172a;
+  margin: 0;
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  transition: color 0.15s;
+}
+
+.card-title-link:hover .card-heading {
+  color: #176b58;
+}
+
+.card-rating-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 3.5px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #1e293b;
+  white-space: nowrap;
+  flex-shrink: 0;
+  background: #fefce8;
+  padding: 2px 6px;
+  border-radius: 6px;
+  border: 1px solid #fef08a;
+}
+
+.rating-score {
+  font-weight: 750;
+  color: #854d0e;
+}
+
+.rating-count {
+  font-size: 10.5px;
+  font-weight: 500;
+  color: #a16207;
+}
+
+.card-location-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px 7px;
+  font-size: 12px;
+  color: #64748b;
+}
+
+.location-area {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.loc-pin-icon {
+  color: #176b58;
+  flex-shrink: 0;
+}
+
+.location-divider {
+  color: #cbd5e1;
+}
+
+.proximity-tag {
+  font-weight: 600;
+  font-size: 11.5px;
+}
+
+.proximity-tag.near {
+  color: #059669;
+  background: #ecfdf5;
+  padding: 1.5px 6px;
+  border-radius: 4px;
+}
+
+.proximity-tag.station {
+  color: #0369a1;
+  background: #f0f9ff;
+  padding: 1.5px 6px;
+  border-radius: 4px;
+}
+
+.proximity-tag.general {
+  color: #475569;
+}
+
+.pincode-pill {
+  font-size: 11px;
+  font-weight: 500;
+  color: #475569;
+  background: #f1f5f9;
+  padding: 1.5px 6px;
+  border-radius: 4px;
+}
+
+.card-amenities-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin: 2px 0 4px;
+}
+
+.amenity-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 550;
+  color: #475569;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  padding: 2.5px 7px;
+  border-radius: 6px;
+}
+
+.amenity-chip-icon {
+  color: #176b58;
+  flex-shrink: 0;
+}
+
+.amenity-chip.beds {
+  background: #fefce8;
+  border-color: #fef08a;
+  color: #854d0e;
+  font-weight: 650;
+}
+
+/* Move-In Total Footer Strip */
+.card-footer-strip {
+  margin-top: auto;
+  padding-top: 11px;
+  border-top: 1px dashed #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.move-in-box {
+  display: flex;
+  flex-direction: column;
+}
+
+.move-in-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #64748b;
+  font-weight: 600;
+}
+
+.move-in-value {
+  font-size: 13.5px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.deposit-note {
+  font-size: 11px;
+  font-weight: 500;
+  color: #64748b;
+}
+
+.card-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 8px 13px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 700;
+  background: #f0fdf4;
+  color: #166534;
+  border: 1px solid #bbf7d0;
+  text-decoration: none;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  white-space: nowrap;
+}
+
+.card-action-btn:hover {
+  background: #176b58;
+  color: #ffffff;
+  border-color: #176b58;
+  transform: translateX(2px);
+  box-shadow: 0 2px 8px rgba(23, 107, 88, 0.2);
+}
+
+.action-arrow {
+  transition: transform 0.2s ease;
+}
+
+.card-action-btn:hover .action-arrow {
+  transform: translateX(2px);
+}
+
+/* ============================================================
+   Responsive Breakpoints for Property Cards & Listings Section
+   ============================================================ */
+
+@media (max-width: 960px) {
+  .property-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px;
+  }
+}
+
+@media (max-width: 640px) {
+  .listings-section {
+    padding: 32px 0 24px;
+  }
+
+  .listings-section-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+
+  .desktop-only {
+    display: none !important;
+  }
+
+  .listings-mobile-footer {
+    display: block;
+    margin-top: 20px;
+  }
+
+  .full-width-mobile {
+    width: 100%;
+    justify-content: center;
+    padding: 13px;
+    font-size: 14px;
+    border-radius: 12px;
+  }
+
+  .property-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  /* Make carousel controls visible by default on mobile touch */
+  .carousel-ctrl-btn {
+    opacity: 0.88;
+    width: 26px;
+    height: 26px;
+  }
+
+  .card-content-body {
+    padding: 14px 15px 16px;
+  }
+
+  .card-action-btn {
+    padding: 8px 12px;
+    font-size: 12px;
+  }
+}
+

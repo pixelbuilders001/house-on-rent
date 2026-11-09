@@ -48,6 +48,7 @@ export default function Home() {
   const [locating, setLocating] = useState(false);
   const [geoSuggestions, setGeoSuggestions] = useState<GeocodedPlace[]>([]);
   const [isSearchingPlaces, setIsSearchingPlaces] = useState(false);
+  const [homeCategory, setHomeCategory] = useState<'all' | 'single' | 'shared' | 'under5k' | 'food' | 'station'>('all');
 
   const searchContainerRef = useRef<HTMLDivElement>(null);
   const mobileInputRef = useRef<HTMLInputElement>(null);
@@ -228,6 +229,60 @@ export default function Home() {
     if (!q) return inventory.areas.slice(0, 4);
     return inventory.areas.filter((a) => a.name.toLowerCase().includes(q)).slice(0, 4);
   }, [inventory.areas, searchQuery]);
+
+  // Dynamic category counts for 1-tap tabs
+  const categoryCounts = useMemo(() => {
+    return {
+      all: properties.length,
+      single: properties.filter(
+        (p) => (p.accommodation || '').toLowerCase().includes('single') || p.type === 'Room'
+      ).length,
+      shared: properties.filter(
+        (p) =>
+          (p.accommodation || '').toLowerCase().includes('shared') ||
+          (p.accommodation || '').toLowerCase().includes('sharing') ||
+          (p.accommodation || '').toLowerCase().includes('bed') ||
+          p.type === 'Hostel'
+      ).length,
+      under5k: properties.filter((p) => p.rent <= 5000).length,
+      food: properties.filter((p) => p.foodIncluded || p.foodAvailable).length,
+      station: properties.filter(
+        (p) => (p.stationDistanceKm != null && p.stationDistanceKm <= 1.5) || p.distanceKm <= 1.5
+      ).length,
+    };
+  }, [properties]);
+
+  // Instant filtered listings for homepage showcase
+  const filteredHomeProperties = useMemo(() => {
+    switch (homeCategory) {
+      case 'single':
+        return properties.filter(
+          (p) => (p.accommodation || '').toLowerCase().includes('single') || p.type === 'Room'
+        );
+      case 'shared':
+        return properties.filter(
+          (p) =>
+            (p.accommodation || '').toLowerCase().includes('shared') ||
+            (p.accommodation || '').toLowerCase().includes('sharing') ||
+            (p.accommodation || '').toLowerCase().includes('bed') ||
+            p.type === 'Hostel'
+        );
+      case 'under5k':
+        return properties.filter((p) => p.rent <= 5000);
+      case 'food':
+        return properties.filter((p) => p.foodIncluded || p.foodAvailable);
+      case 'station':
+        return properties.filter(
+          (p) => (p.stationDistanceKm != null && p.stationDistanceKm <= 1.5) || p.distanceKm <= 1.5
+        );
+      default:
+        return properties;
+    }
+  }, [properties, homeCategory]);
+
+  const budgetProperties = useMemo(() => {
+    return properties.filter((p) => p.rent <= 5000);
+  }, [properties]);
 
   return (
     <>
@@ -678,54 +733,163 @@ export default function Home() {
           </div>
         </section>
       ) : (
-        [
-          ['Available near you', properties.slice(0, 6)],
-          ['Under ₹6,000', properties.filter((p) => p.rent <= 6000).slice(0, 6)],
-          [
-            'Lower move-in cost',
-            [...properties].sort((a, b) => a.rent + a.deposit - b.rent - b.deposit).slice(0, 6),
-          ],
-          ['Verified stays', properties.filter((p) => p.verified).slice(0, 6)],
-        ].map(([title, items]) => (
-          <section
-            className="section"
-            style={{ background: title === 'Under ₹6,000' ? '#fafbf9' : 'white' }}
-            key={title as string}
-          >
+        <>
+          {/* Main Section: Available Near You */}
+          <section className="section listings-section">
             <div className="container">
-              <div className="section-head">
+              {/* Production-Grade Section Header */}
+              <div className="listings-section-header">
                 <div>
-                  <h2>
-                    {(title as string).split(' ').slice(0, -1).join(' ')}{' '}
-                    <em className="title-accent">{(title as string).split(' ').slice(-1)}</em>
+                  <div className="listings-eyebrow">
+                    <span className="eyebrow-dot" />
+                    <span>CURATED LISTINGS IN {selectedCity.toUpperCase()}</span>
+                  </div>
+                  <h2 className="listings-heading">
+                    Available <em className="title-accent">Near You</em>
                   </h2>
-                  <p>
-                    {title === 'Under ₹6,000'
-                      ? 'कम बजट में कमरे, और महीने का पूरा खर्च साफ़-साफ़।'
-                      : title === 'Lower move-in cost'
-                      ? 'शिफ्ट होने से पहले शुरुआती खर्च जानें।'
-                      : title === 'Verified stays'
-                      ? 'Verified stays, ताकि आप बेफ़िक्र रहें।'
-                      : 'आपके पास rooms, और महीने का पूरा खर्च साफ़-साफ़।'}
+                  <p className="listings-subtitle">
+                    Direct Landlords · Zero Brokerage · Transparent Move-in Cost
                   </p>
                 </div>
-                <Link href="/search" className="muted">
-                  View all <ArrowRight size={14} />
+
+                <Link href="/search" className="view-all-link desktop-only">
+                  <span>Explore all {properties.length} rooms</span>
+                  <ArrowRight size={15} />
                 </Link>
               </div>
-              <div className="property-grid">
-                {(items as typeof properties).slice(0, 3).map((p) => (
-                  <PropertyCard
-                    key={p.id}
-                    property={p}
-                    saved={saved.includes(p.id)}
-                    onSave={() => toggleSave(p.id)}
-                  />
-                ))}
+
+              {/* Interactive 1-Tap Category Filter Pills */}
+              <div className="category-tabs-container">
+                <button
+                  type="button"
+                  className={`category-tab-btn ${homeCategory === 'all' ? 'is-active' : ''}`}
+                  onClick={() => setHomeCategory('all')}
+                >
+                  <span>All Rooms</span>
+                  <span className="tab-count-badge">{categoryCounts.all}</span>
+                </button>
+                <button
+                  type="button"
+                  className={`category-tab-btn ${homeCategory === 'single' ? 'is-active' : ''}`}
+                  onClick={() => setHomeCategory('single')}
+                >
+                  <span>Single Room</span>
+                  <span className="tab-count-badge">{categoryCounts.single}</span>
+                </button>
+                <button
+                  type="button"
+                  className={`category-tab-btn ${homeCategory === 'shared' ? 'is-active' : ''}`}
+                  onClick={() => setHomeCategory('shared')}
+                >
+                  <span>Shared Bed</span>
+                  <span className="tab-count-badge">{categoryCounts.shared}</span>
+                </button>
+                <button
+                  type="button"
+                  className={`category-tab-btn ${homeCategory === 'under5k' ? 'is-active' : ''}`}
+                  onClick={() => setHomeCategory('under5k')}
+                >
+                  <span>Under ₹5,000</span>
+                  <span className="tab-count-badge">{categoryCounts.under5k}</span>
+                </button>
+                <button
+                  type="button"
+                  className={`category-tab-btn ${homeCategory === 'food' ? 'is-active' : ''}`}
+                  onClick={() => setHomeCategory('food')}
+                >
+                  <span>Food Included</span>
+                  <span className="tab-count-badge">{categoryCounts.food}</span>
+                </button>
+                <button
+                  type="button"
+                  className={`category-tab-btn ${homeCategory === 'station' ? 'is-active' : ''}`}
+                  onClick={() => setHomeCategory('station')}
+                >
+                  <span>Near Station (&lt;1.5 km)</span>
+                  <span className="tab-count-badge">{categoryCounts.station}</span>
+                </button>
+              </div>
+
+              {/* Property Grid: 3 columns desktop, 2 tablet, 1 mobile */}
+              {filteredHomeProperties.length === 0 ? (
+                <div className="empty-category-notice">
+                  <p>No rooms matching this filter right now in {selectedCity}.</p>
+                  <button
+                    type="button"
+                    className="btn outline small"
+                    onClick={() => setHomeCategory('all')}
+                  >
+                    Show All Rooms
+                  </button>
+                </div>
+              ) : (
+                <div className="property-grid">
+                  {filteredHomeProperties.slice(0, 6).map((p) => (
+                    <PropertyCard
+                      key={p.id}
+                      property={p}
+                      saved={saved.includes(p.id)}
+                      onSave={() => toggleSave(p.id)}
+                    />
+                  ))}
+                </div>
+              )}
+
+              {/* Mobile "View All" Button */}
+              <div className="listings-mobile-footer">
+                <Link href="/search" className="btn outline full-width-mobile">
+                  <span>View all {properties.length} rooms in {selectedCity}</span>
+                  <ArrowRight size={15} />
+                </Link>
               </div>
             </div>
           </section>
-        ))
+
+          {/* Secondary Curated Showcase: Budget Stays under ₹5,000 */}
+          {budgetProperties.length > 0 && (
+            <section className="section budget-showcase-section">
+              <div className="container">
+                <div className="listings-section-header">
+                  <div>
+                    <div className="listings-eyebrow">
+                      <Sparkles size={13} color="#10b981" />
+                      <span>STUDENT &amp; BUDGET FAVORITES</span>
+                    </div>
+                    <h2 className="listings-heading">
+                      Budget Stays <em className="title-accent">Under ₹5,000</em>
+                    </h2>
+                    <p className="listings-subtitle">
+                      कम बजट में बेहतरीन कमरे, बिना किसी ब्रोकरेज या छिपे हुए खर्चे के
+                    </p>
+                  </div>
+
+                  <Link href="/search?maxPrice=5000" className="view-all-link desktop-only">
+                    <span>View all budget rooms</span>
+                    <ArrowRight size={15} />
+                  </Link>
+                </div>
+
+                <div className="property-grid">
+                  {budgetProperties.slice(0, 3).map((p) => (
+                    <PropertyCard
+                      key={`budget-${p.id}`}
+                      property={p}
+                      saved={saved.includes(p.id)}
+                      onSave={() => toggleSave(p.id)}
+                    />
+                  ))}
+                </div>
+
+                <div className="listings-mobile-footer">
+                  <Link href="/search?maxPrice=5000" className="btn outline full-width-mobile">
+                    <span>Explore budget rooms under ₹5,000</span>
+                    <ArrowRight size={15} />
+                  </Link>
+                </div>
+              </div>
+            </section>
+          )}
+        </>
       )}
 
       {/* Trust & Guarantee Banner */}
