@@ -2938,3 +2938,42 @@ html,body{max-width:100%;overflow-x:clip}
 .property-card-skeleton .card-photo-container {
   background: #f1f5f9;
 }
+
+/* ============================================================
+   Mobile Navigation Button Styles
+   ============================================================ */
+.mobile-nav button.mobile-nav-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-direction: column;
+  color: #798780;
+  font-size: 10px;
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  min-height: 44px;
+  justify-content: center;
+  font-weight: 600;
+  font-family: inherit;
+  width: 100%;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.mobile-nav button.mobile-nav-btn.active-link {
+  color: #176b58;
+  position: relative;
+}
+
+.mobile-nav button.mobile-nav-btn.active-link::before {
+  content: "";
+  position: absolute;
+  top: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 24px;
+  height: 3px;
+  border-radius: 9px;
+  background: #176b58;
+}

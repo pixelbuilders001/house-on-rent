@@ -4,11 +4,14 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Heart, House, Search, Bell, UserRound, Building2, Menu, X } from 'lucide-react';
+import { useSearchSheet } from '@/context/SearchSheetContext';
+import { MobileSearchSheet } from '@/components/MobileSearchSheet';
 
 const OWNER_PORTAL_URL = 'https://hosue-on-rent-owner-tenant.vercel.app?role=owner';
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const path = usePathname();
+  const { isSearchSheetOpen, openSearchSheet } = useSearchSheet();
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -103,14 +106,33 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 <House size={18} />
                 <span>Home</span>
               </Link>
-              <Link
-                href="/search"
-                className={`mobile-menu-item ${path.startsWith('/search') ? 'active' : ''}`}
-                onClick={() => setIsMobileMenuOpen(false)}
+              <button
+                type="button"
+                className={`mobile-menu-item ${path.startsWith('/search') || isSearchSheetOpen ? 'active' : ''}`}
+                onClick={() => {
+                  setIsMobileMenuOpen(false);
+                  openSearchSheet();
+                }}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  width: '100%',
+                  textAlign: 'left',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 12,
+                  padding: '12px 14px',
+                  borderRadius: 10,
+                  fontSize: 14,
+                  fontWeight: 600,
+                  color: 'inherit',
+                  fontFamily: 'inherit',
+                }}
               >
                 <Search size={18} />
                 <span>Find a Room</span>
-              </Link>
+              </button>
               <a
                 href={OWNER_PORTAL_URL}
                 target="_blank"
@@ -166,13 +188,36 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </footer>
 
       <nav className="mobile-nav">
-        {links.map(([label, href, Icon]) => (
-          <Link key={href} href={href} className={active(href) ? 'active-link' : ''}>
-            <Icon size={19} />
-            {label}
-          </Link>
-        ))}
+        {links.map(([label, href, Icon]) => {
+          if (label === 'Search') {
+            const isSearchActive = isSearchSheetOpen || (path.startsWith('/search') && !isSearchSheetOpen);
+            return (
+              <button
+                key={label}
+                type="button"
+                className={`mobile-nav-btn ${isSearchActive ? 'active-link' : ''}`}
+                onClick={(e) => {
+                  e.preventDefault();
+                  openSearchSheet();
+                }}
+                aria-label="Open Search Sheet"
+              >
+                <Icon size={19} />
+                <span>{label}</span>
+              </button>
+            );
+          }
+          return (
+            <Link key={href} href={href} className={active(href) ? 'active-link' : ''}>
+              <Icon size={19} />
+              <span>{label}</span>
+            </Link>
+          );
+        })}
       </nav>
+
+      {/* Global App-Grade Mobile Search Sheet */}
+      <MobileSearchSheet />
     </>
   );
 }

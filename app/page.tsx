@@ -29,6 +29,7 @@ import { getProperties } from '@/lib/services/propertyService';
 import { PropertyCard } from '@/components/PropertyCard';
 import { PropertyCardSkeleton } from '@/components/PropertyCardSkeleton';
 import { CitySelector } from '@/components/CitySelector';
+import { useSearchSheet } from '@/context/SearchSheetContext';
 import { getStorageItem, setStorageItem } from '@/lib/storage';
 import {
   searchPlacesLive,
@@ -43,6 +44,7 @@ import {
 
 export default function Home() {
   const router = useRouter();
+  const { isSearchSheetOpen, openSearchSheet } = useSearchSheet();
   const [properties, setProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
   const [saved, setSaved] = useState<string[]>([]);
@@ -51,17 +53,15 @@ export default function Home() {
   const [selectedCity, setSelectedCity] = useState<string>('Samastipur');
   const [searchQuery, setSearchQuery] = useState('');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
   const [locating, setLocating] = useState(false);
   const [geoSuggestions, setGeoSuggestions] = useState<GeocodedPlace[]>([]);
   const [isSearchingPlaces, setIsSearchingPlaces] = useState(false);
   const [homeCategory, setHomeCategory] = useState<'all' | 'single' | 'shared' | 'under5k' | 'food' | 'station'>('all');
 
   const searchContainerRef = useRef<HTMLDivElement>(null);
-  const mobileInputRef = useRef<HTMLInputElement>(null);
 
   const openMobileSearch = () => {
-    setIsMobileSearchOpen(true);
+    openSearchSheet();
     setIsDropdownOpen(false);
   };
 
@@ -86,26 +86,10 @@ export default function Home() {
     };
   }, []);
 
-  // Lock body scroll and auto-focus input when mobile search sheet opens
-  useEffect(() => {
-    if (isMobileSearchOpen) {
-      const prevOverflow = document.body.style.overflow;
-      document.body.style.overflow = 'hidden';
-      const timer = setTimeout(() => {
-        mobileInputRef.current?.focus();
-      }, 100);
-      return () => {
-        document.body.style.overflow = prevOverflow;
-        clearTimeout(timer);
-      };
-    }
-  }, [isMobileSearchOpen]);
-
-  // Handle global Escape key to close search overlays
+  // Handle global Escape key to close search dropdown
   useEffect(() => {
     function handleGlobalKeyDown(e: KeyboardEvent) {
       if (e.key === 'Escape') {
-        setIsMobileSearchOpen(false);
         setIsDropdownOpen(false);
       }
     }
@@ -445,7 +429,7 @@ export default function Home() {
               </div>
 
               {/* Live Autocomplete Dropdown - Placed directly below the search bar (Desktop Only) */}
-              {isDropdownOpen && !isMobileSearchOpen && (
+              {isDropdownOpen && !isSearchSheetOpen && (
                 <div
                   className="search-dropdown-desktop"
                   style={{
@@ -1133,311 +1117,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Native App-Style Mobile Search Sheet Modal (Mobile Only) */}
-      {isMobileSearchOpen && (
-        <div className="mobile-search-sheet" role="dialog" aria-modal="true" aria-label="Search Rooms">
-          {/* Top Bar with Back Arrow, City Selector & Close/Cancel */}
-          <div className="mobile-search-topbar">
-            <button
-              type="button"
-              className="mobile-search-back-btn"
-              onClick={() => setIsMobileSearchOpen(false)}
-              aria-label="Back"
-            >
-              <ArrowLeft size={22} color="#0f172a" />
-            </button>
-
-            {/* City Selector Pill */}
-            <CitySelector
-              selectedCity={selectedCity}
-              onSelectCity={setSelectedCity}
-              availableCities={availableCities}
-              variant="mobile-pill"
-            />
-
-            <button
-              type="button"
-              className="mobile-search-close-icon-btn"
-              onClick={() => setIsMobileSearchOpen(false)}
-              aria-label="Close search"
-            >
-              <X size={20} color="#475569" />
-            </button>
-          </div>
-
-          {/* Dedicated Search Input Bar */}
-          <div className="mobile-search-input-section">
-            <div className="mobile-search-input-box">
-              <Search size={18} color="#059669" style={{ flexShrink: 0 }} />
-              <input
-                ref={mobileInputRef}
-                type="text"
-                className="mobile-search-input-field"
-                placeholder={`Search locality, area, or PIN...`}
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    setIsMobileSearchOpen(false);
-                    executeSearch();
-                  }
-                }}
-                autoFocus
-              />
-              {searchQuery ? (
-                <button
-                  type="button"
-                  className="mobile-search-clear-btn"
-                  onClick={() => {
-                    setSearchQuery('');
-                    setGeoSuggestions([]);
-                    mobileInputRef.current?.focus();
-                  }}
-                  aria-label="Clear query"
-                >
-                  <X size={15} />
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  className="mobile-search-input-nearme-btn"
-                  onClick={() => {
-                    setIsMobileSearchOpen(false);
-                    handleNearMeClick();
-                  }}
-                  title="Use My Current Location"
-                >
-                  <Crosshair size={12} color="#059669" />
-                  <span>{locating ? '...' : 'Near Me'}</span>
-                </button>
-              )}
-            </div>
-          </div>
-
-          {/* Scrollable Results & Suggestions Area */}
-          <div className="mobile-search-content-scroll">
-
-            {/* When query is empty: Show curated popular localities, landmarks, and PINs */}
-            {!searchQuery.trim() && (
-              <div className="mobile-search-discovery-sections">
-                {/* Popular Localities */}
-                {inventory.areas.length > 0 && (
-                  <div className="mobile-search-group">
-                    <div className="mobile-search-group-title">
-                      📍 Popular Localities in {selectedCity}
-                    </div>
-                    <div className="mobile-search-chips-wrap">
-                      {inventory.areas.slice(0, 8).map((a) => (
-                        <button
-                          key={a.name}
-                          type="button"
-                          className="mobile-search-chip"
-                          onClick={() => {
-                            setIsMobileSearchOpen(false);
-                            router.push(`/search?area=${encodeURIComponent(a.name)}`);
-                          }}
-                        >
-                          <span style={{ fontWeight: 600 }}>{a.name}</span>
-                          <span className="mobile-search-chip-badge">{a.count}</span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Popular Searches */}
-                <div className="mobile-search-group">
-                  <div className="mobile-search-group-title">
-                    📍 Popular in {selectedCity}
-                  </div>
-                  <div className="mobile-search-landmarks-list">
-                    {[
-                      { name: 'Samastipur Junction (Station)', subtitle: 'Train Station & Commuter Hub' },
-                      { name: "Women's College Samastipur", subtitle: 'Kashipur / College Area' },
-                      { name: 'Samastipur College', subtitle: 'Magadh University / College Road' },
-                      { name: 'Tajpur Road', subtitle: 'Commercial & Student Market' },
-                      { name: 'Musrigharari', subtitle: 'Highway Intersection & Hub' },
-                      { name: 'Mohanpur', subtitle: 'Peaceful Residential Locality' },
-                    ].map((item) => (
-                      <button
-                        key={item.name}
-                        type="button"
-                        className="mobile-search-landmark-item"
-                        onClick={() => {
-                          setIsMobileSearchOpen(false);
-                          router.push(`/search?q=${encodeURIComponent(item.name)}`);
-                        }}
-                      >
-                        <div className="mobile-search-landmark-icon">
-                          <Compass size={15} color="#0284c7" />
-                        </div>
-                        <div style={{ flex: 1, textAlign: 'left' }}>
-                          <div style={{ fontWeight: 600, fontSize: 13, color: '#1e293b' }}>
-                            {item.name}
-                          </div>
-                          <div style={{ fontSize: 11, color: '#64748b' }}>
-                            {item.subtitle}
-                          </div>
-                        </div>
-                        <span style={{ fontSize: 11.5, color: '#0284c7', fontWeight: 600 }}>
-                          Search →
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Active PIN Codes */}
-                {inventory.pincodes.length > 0 && (
-                  <div className="mobile-search-group">
-                    <div className="mobile-search-group-title">
-                      📮 PIN Codes in {selectedCity}
-                    </div>
-                    <div className="mobile-search-chips-wrap">
-                      {inventory.pincodes.slice(0, 4).map((p) => (
-                        <button
-                          key={p.name}
-                          type="button"
-                          className="mobile-search-chip"
-                          onClick={() => {
-                            setIsMobileSearchOpen(false);
-                            router.push(`/search?pincode=${encodeURIComponent(p.name)}`);
-                          }}
-                        >
-                          📮 PIN {p.name}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* When query is typed: Live results */}
-            {searchQuery.trim() && (
-              <div className="mobile-search-live-results">
-                {/* 1. Database Room Listings */}
-                {matchingPropertiesInDb.length > 0 && (
-                  <div className="mobile-search-group">
-                    <div className="mobile-search-group-title">
-                      🏠 Available Rooms & Hostels ({matchingPropertiesInDb.length})
-                    </div>
-                    <div className="mobile-search-results-list">
-                      {matchingPropertiesInDb.map((p) => (
-                        <button
-                          key={p.id}
-                          type="button"
-                          className="mobile-search-property-card"
-                          onClick={() => {
-                            setIsMobileSearchOpen(false);
-                            router.push(`/rooms/${p.id}`);
-                          }}
-                        >
-                          <div style={{ flex: 1, textAlign: 'left' }}>
-                            <div style={{ fontWeight: 700, fontSize: 13.5, color: '#0f172a' }}>
-                              {p.name}
-                            </div>
-                            <div style={{ fontSize: 11.5, color: '#64748b', marginTop: 2 }}>
-                              {p.area}, {p.city} · {p.accommodation}
-                            </div>
-                          </div>
-                          <div style={{ textAlign: 'right' }}>
-                            <div style={{ fontWeight: 800, fontSize: 14, color: '#0f766e' }}>
-                              ₹{p.rent.toLocaleString('en-IN')}<span style={{ fontSize: 10, fontWeight: 500 }}>/mo</span>
-                            </div>
-                            <span style={{ fontSize: 10.5, color: '#059669', fontWeight: 600 }}>
-                              Zero Brokerage
-                            </span>
-                          </div>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* 2. Matching Localities */}
-                {matchingAreas.length > 0 && (
-                  <div className="mobile-search-group">
-                    <div className="mobile-search-group-title">
-                      📍 Matching Localities
-                    </div>
-                    <div className="mobile-search-chips-wrap">
-                      {matchingAreas.map((a) => (
-                        <button
-                          key={a.name}
-                          type="button"
-                          className="mobile-search-chip"
-                          onClick={() => {
-                            setIsMobileSearchOpen(false);
-                            router.push(`/search?area=${encodeURIComponent(a.name)}`);
-                          }}
-                        >
-                          📍 {a.name} ({a.count} rooms)
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* 3. Live Geocoded Places */}
-                {geoSuggestions.length > 0 && (
-                  <div className="mobile-search-group">
-                    <div className="mobile-search-landmarks-list">
-                      {geoSuggestions.map((place) => (
-                        <button
-                          key={place.id}
-                          type="button"
-                          className="mobile-search-landmark-item"
-                          onClick={() => {
-                            setIsMobileSearchOpen(false);
-                            handleSelectPlace(place);
-                          }}
-                        >
-                          <div className="mobile-search-landmark-icon">
-                            <Compass size={15} color="#0284c7" />
-                          </div>
-                          <div style={{ flex: 1, textAlign: 'left' }}>
-                            <div style={{ fontWeight: 600, fontSize: 13, color: '#1e293b' }}>
-                              {place.name}
-                            </div>
-                            <div style={{ fontSize: 11, color: '#64748b' }}>
-                              {place.displayName}
-                            </div>
-                          </div>
-                          <span style={{ fontSize: 11, color: '#0284c7', fontWeight: 600 }}>
-                            Explore →
-                          </span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {isSearchingPlaces && (
-                  <div style={{ padding: '12px 16px', fontSize: 12.5, color: '#64748b', fontStyle: 'italic', textAlign: 'center' }}>
-                    Searching nearby...
-                  </div>
-                )}
-
-                {/* Bottom Full Search CTA Button */}
-                <div style={{ marginTop: 16 }}>
-                  <button
-                    type="button"
-                    className="mobile-search-submit-btn"
-                    onClick={() => {
-                      setIsMobileSearchOpen(false);
-                      executeSearch();
-                    }}
-                  >
-                    <Search size={16} />
-                    <span>Search all rooms for "{searchQuery}"</span>
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
     </>
   );
 }

@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 import { AppShell } from '@/components/AppShell';
 import { RouteLoader } from '@/components/RouteLoader';
+import { SearchSheetProvider } from '@/context/SearchSheetContext';
 
 export const metadata: Metadata = {
   title: 'Find Affordable Rooms & PGs Near Your College or Workplace | RoomSaathi',
@@ -18,7 +19,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en">
       <body>
         <RouteLoader>
-          <AppShell>{children}</AppShell>
+          <SearchSheetProvider>
+            <AppShell>{children}</AppShell>
+          </SearchSheetProvider>
         </RouteLoader>
       </body>
     </html>
