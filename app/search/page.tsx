@@ -1140,13 +1140,33 @@ export default function SearchPage() {
           {/* Cards Grid */}
           <div className="property-grid">
             {busy
-              ? [1, 2, 3].map((n) => (
-                  <div className="property-card" key={n} style={{ borderRadius: 16, overflow: 'hidden' }}>
-                    <div style={{ height: 200, background: '#eef2ee' }} />
-                    <div className="property-body" style={{ padding: 18 }}>
-                      <div style={{ height: 18, width: '60%', background: '#eef2ee', borderRadius: 6 }} />
-                      <div style={{ height: 14, width: '40%', marginTop: 12, background: '#f4f6f4', borderRadius: 6 }} />
-                      <div style={{ height: 24, width: '30%', marginTop: 20, background: '#eef2ee', borderRadius: 6 }} />
+              ? [1, 2, 3, 4].map((n) => (
+                  <div
+                    className="property-card-modern"
+                    key={n}
+                    style={{ border: '1px solid #e2e8f0', borderRadius: 18, overflow: 'hidden' }}
+                  >
+                    <div className="skeleton-pulse" style={{ width: '100%', aspectRatio: '16 / 10' }} />
+                    <div style={{ padding: '16px 18px 18px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div className="skeleton-pulse" style={{ width: 90, height: 22, borderRadius: 6 }} />
+                        <div className="skeleton-pulse" style={{ width: 70, height: 18, borderRadius: 6 }} />
+                      </div>
+                      <div className="skeleton-pulse" style={{ width: '80%', height: 20, borderRadius: 6 }} />
+                      <div className="skeleton-pulse" style={{ width: '55%', height: 16, borderRadius: 6 }} />
+                      <div
+                        style={{
+                          borderTop: '1px dashed #e2e8f0',
+                          paddingTop: 10,
+                          marginTop: 4,
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                        }}
+                      >
+                        <div className="skeleton-pulse" style={{ width: 100, height: 16, borderRadius: 6 }} />
+                        <div className="skeleton-pulse" style={{ width: 80, height: 28, borderRadius: 8 }} />
+                      </div>
                     </div>
                   </div>
                 ))
