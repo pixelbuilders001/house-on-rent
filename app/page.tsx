@@ -20,6 +20,9 @@ import {
   Zap,
   Building2,
   CheckCircle2,
+  UserX,
+  MessageCircle,
+  FileText,
 } from 'lucide-react';
 import { mockProperties as propertiesSeed } from '@/lib/mock-data/properties';
 import type { Property } from '@/lib/mock-data/types';
@@ -970,6 +973,89 @@ export default function Home() {
               <div className="landlord-guarantee-note">
                 <ShieldCheck size={13} />
                 <span>100% Free Forever · हमेशा के लिए फ्री</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Why Choose Us Section */}
+      <section className="section why-choose-section">
+        <div className="container">
+          <div className="why-choose-header">
+            <div className="listings-eyebrow">
+              <span className="eyebrow-dot" />
+              <span>WHY CHOOSE ROOMSAATHI · भरोसे का साथी</span>
+            </div>
+            <h2 className="listings-heading">
+              Why Choose <em className="title-accent">Us?</em> हमें क्यों चुनें
+            </h2>
+            <p className="listings-subtitle">
+              समस्तीपुर में कमरा ढूंढना अब आसान, सुरक्षित और 100% पारदर्शी—सीधे मकान मालिक से
+            </p>
+          </div>
+
+          <div className="why-choose-grid">
+            {/* Card 1: Avoid Brokers */}
+            <div className="why-card">
+              <div className="why-card-top">
+                <div className="why-card-icon-wrap" style={{ background: '#ecfdf5', color: '#059669' }}>
+                  <UserX size={24} />
+                </div>
+                <span className="why-card-badge" style={{ background: '#fef08a', color: '#854d0e' }}>
+                  ⚡ 0% ब्रोकरेज
+                </span>
+              </div>
+              <h3 className="why-card-title">Avoid Brokers</h3>
+              <p className="why-card-hindi-sub">दलालों से छुटकारा, सीधे मालिक से संपर्क</p>
+              <p className="why-card-desc">
+                We directly connect you to verified owners to save brokerage. नो मिडिलमैन, सीधे मकान मालिक से बातचीत करें और ₹2,000 से ₹5,000 की ब्रोकरेज फीस बचाएं।
+              </p>
+              <div className="why-card-footer">
+                <span className="why-feature-tag">✓ Direct Owner Contact</span>
+                <span className="why-feature-tag">✓ Zero Hidden Commission</span>
+              </div>
+            </div>
+
+            {/* Card 2: Free Listing */}
+            <div className="why-card">
+              <div className="why-card-top">
+                <div className="why-card-icon-wrap" style={{ background: '#eff6ff', color: '#2563eb' }}>
+                  <MessageCircle size={24} />
+                </div>
+                <span className="why-card-badge" style={{ background: '#dbeafe', color: '#1e40af' }}>
+                  📲 WhatsApp Support
+                </span>
+              </div>
+              <h3 className="why-card-title">Free Listing</h3>
+              <p className="why-card-hindi-sub">आसान और 100% फ्री लिस्टिंग प्रोसेस</p>
+              <p className="why-card-desc">
+                Easy listing process. Also using WhatsApp. मकान मालिक सिर्फ 2 मिनट में वेबसाइट पर या हमारे WhatsApp नंबर पर सीधे कमरे की फोटो भेजकर फ्री में लिस्ट कर सकते हैं।
+              </p>
+              <div className="why-card-footer">
+                <span className="why-feature-tag">✓ 2-Minute Easy Setup</span>
+                <span className="why-feature-tag">✓ List via WhatsApp</span>
+              </div>
+            </div>
+
+            {/* Card 3: Rental Agreement */}
+            <div className="why-card">
+              <div className="why-card-top">
+                <div className="why-card-icon-wrap" style={{ background: '#f5f3ff', color: '#7c3aed' }}>
+                  <FileText size={24} />
+                </div>
+                <span className="why-card-badge" style={{ background: '#ede9fe', color: '#5b21b6' }}>
+                  🛡️ Legal Security
+                </span>
+              </div>
+              <h3 className="why-card-title">Rental Agreement</h3>
+              <p className="why-card-hindi-sub">एग्रीमेंट और पेपरवर्क में पूरी सहायता</p>
+              <p className="why-card-desc">
+                Assistance in creating Rental agreement &amp; Paper work. मकान मालिक और किरायेदार दोनों की सुरक्षा के लिए कानूनी रूप से मान्य रेंटल एग्रीमेंट बनाने में सहायता।
+              </p>
+              <div className="why-card-footer">
+                <span className="why-feature-tag">✓ Verified Legal Format</span>
+                <span className="why-feature-tag">✓ Safe &amp; Verified Stay</span>
               </div>
             </div>
           </div>
