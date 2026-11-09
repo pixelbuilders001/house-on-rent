@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { MapPin, ChevronDown, Check, Sparkles } from 'lucide-react';
+import { MapPin, ChevronDown, Check } from 'lucide-react';
 import type { CityConfig } from '@/lib/services/dynamicLocationService';
 
 interface CitySelectorProps {
@@ -80,10 +80,6 @@ export function CitySelector({
         {/* Dropdown Menu */}
         {isOpen && (
           <div className="city-dropdown-menu mobile-dropdown" role="listbox">
-            <div className="city-dropdown-header">
-              <span>SELECT CITY · शहर चुनें</span>
-            </div>
-
             <div className="city-dropdown-list">
               {availableCities.map((city) => {
                 const isSelected = city.name.toLowerCase() === selectedCity.toLowerCase();
@@ -100,10 +96,7 @@ export function CitySelector({
                     }`}
                     onClick={() => handleCityClick(city)}
                   >
-                    <div className="city-item-left">
-                      <span className="city-item-name">{city.name}</span>
-                      <span className="city-item-state">{city.state || 'Bihar'}</span>
-                    </div>
+                    <span className="city-item-name">{city.name}</span>
 
                     <div className="city-item-right">
                       {isAvailable ? (
@@ -131,7 +124,7 @@ export function CitySelector({
         onClick={() => setIsOpen(!isOpen)}
         aria-expanded={isOpen}
         aria-haspopup="listbox"
-        title="Select Operational City"
+        title="Select City"
       >
         <div className="search-bar-city-icon-badge">
           <MapPin size={14} color="#ffffff" />
@@ -154,10 +147,6 @@ export function CitySelector({
       {/* Floating Dropdown Panel */}
       {isOpen && (
         <div className="city-dropdown-menu desktop-dropdown" role="listbox">
-          <div className="city-dropdown-header">
-            <span>SELECT OPERATIONAL CITY · शहर चुनें</span>
-          </div>
-
           <div className="city-dropdown-list">
             {availableCities.map((city) => {
               const isSelected = city.name.toLowerCase() === selectedCity.toLowerCase();
@@ -174,10 +163,7 @@ export function CitySelector({
                   }`}
                   onClick={() => handleCityClick(city)}
                 >
-                  <div className="city-item-left">
-                    <span className="city-item-name">{city.name}</span>
-                    <span className="city-item-state">{city.state || 'Bihar'}</span>
-                  </div>
+                  <span className="city-item-name">{city.name}</span>
 
                   <div className="city-item-right">
                     {isAvailable ? (
@@ -189,11 +175,6 @@ export function CitySelector({
                 </div>
               );
             })}
-          </div>
-
-          <div className="city-dropdown-footer">
-            <Sparkles size={12} color="#10b981" />
-            <span>Currently live in Samastipur. Expanding across Bihar soon!</span>
           </div>
         </div>
       )}
