@@ -281,17 +281,6 @@ export default function Home() {
                       ))}
                     </select>
                   </div>
-
-                  {/* Mobile-Only Near Me Button */}
-                  <button
-                    type="button"
-                    className="search-bar-nearme-mobile"
-                    onClick={handleNearMeClick}
-                    title="Find stays near your GPS position"
-                  >
-                    <Crosshair size={13} color="#059669" />
-                    <span>{locating ? '...' : 'Near Me'}</span>
-                  </button>
                 </div>
 
                 {/* 2. Vertical Divider */}
