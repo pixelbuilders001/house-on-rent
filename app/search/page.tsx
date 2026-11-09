@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useMemo, useRef } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
@@ -11,7 +11,6 @@ import {
   X,
   Sparkles,
   RotateCcw,
-  Crosshair,
   Compass,
   ChevronDown,
 } from 'lucide-react';
@@ -20,19 +19,11 @@ import type { Property } from '@/lib/mock-data/types';
 import { mockAmenities } from '@/lib/mock-data/amenities';
 import { getAmenities } from '@/lib/services/catalogService';
 import { PropertyCard, PropertyCardSkeleton } from '@/components/PropertyCard';
-import { CitySelector } from '@/components/CitySelector';
 import { Modal } from '@/components/Modal';
 import { getStorageItem, setStorageItem } from '@/lib/storage';
 import {
-  searchPlacesLive,
-  getBrowserLocation,
-  type GeocodedPlace,
-} from '@/lib/services/geocodingService';
-import {
   extractLiveLocationFacets,
   getLiveSubAreasForPin,
-  getAvailableCities,
-  type CityConfig,
 } from '@/lib/services/dynamicLocationService';
 
 const defaultFilters: PropertyFilters = {
@@ -62,26 +53,12 @@ export default function SearchPage() {
   const [amenityOptions, setAmenityOptions] = useState<string[]>(mockAmenities);
   const [filters, setFilters] = useState<PropertyFilters>(defaultFilters);
   const [selectedCity, setSelectedCity] = useState<string>('Samastipur');
-  const [searchInput, setSearchInput] = useState('');
   const [sort, setSort] = useState('best');
   const [properties, setProperties] = useState<Property[]>([]);
   const [saved, setSaved] = useState<string[]>([]);
   const [compare, setCompare] = useState<string[]>([]);
   const [mobileFilters, setMobileFilters] = useState(false);
   const [busy, setBusy] = useState(true);
-
-  // Available Cities
-  const availableCities = useMemo(() => getAvailableCities(properties), [properties]);
-  const activeCity = useMemo(
-    () => availableCities.find((c) => c.name.toLowerCase() === selectedCity.toLowerCase()) || availableCities[0],
-    [availableCities, selectedCity]
-  );
-
-  // Live Geocoding State
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [geoSuggestions, setGeoSuggestions] = useState<GeocodedPlace[]>([]);
-  const [locating, setLocating] = useState(false);
-  const searchContainerRef = useRef<HTMLDivElement>(null);
 
   const router = useRouter();
 
@@ -100,8 +77,6 @@ export default function SearchPage() {
     const searchLng = p.get('searchLng') ? Number(p.get('searchLng')) : undefined;
     const maxRadius = p.get('maxDist') ? Number(p.get('maxDist')) : undefined;
     const isNearMe = p.get('nearMe') === 'true';
-
-    setSearchInput(searchPlace || initialArea || initialPin || initialQuery);
 
     setFilters({
       ...defaultFilters,
@@ -128,20 +103,6 @@ export default function SearchPage() {
 
     setSaved(getStorageItem('roomsaathi_saved_properties', []));
     setCompare(getStorageItem('roomsaathi_compare', []));
-  }, []);
-
-  // Close dropdown on click outside
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (
-        searchContainerRef.current &&
-        !searchContainerRef.current.contains(event.target as Node)
-      ) {
-        setIsDropdownOpen(false);
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
   // Fetch properties with debounce
@@ -171,38 +132,8 @@ export default function SearchPage() {
     };
   }, [filters, sort]);
 
-  // Live Geocoding Suggestions
-  useEffect(() => {
-    const q = searchInput.trim();
-    if (q.length < 2) {
-      setGeoSuggestions([]);
-      return;
-    }
-
-    let alive = true;
-    const timer = setTimeout(() => {
-      searchPlacesLive(q, activeCity.lat, activeCity.lng).then((places) => {
-        if (alive) setGeoSuggestions(places || []);
-      }).catch(() => {
-        if (alive) setGeoSuggestions([]);
-      });
-    }, 220);
-
-    return () => {
-      alive = false;
-      clearTimeout(timer);
-    };
-  }, [searchInput, activeCity]);
-
   // Compute live facets from loaded properties
   const inventory = useMemo(() => extractLiveLocationFacets(properties || []), [properties]);
-
-  // Dynamic matching localities
-  const matchingAreas = useMemo(() => {
-    const q = searchInput.toLowerCase().trim();
-    if (!q) return inventory.areas.slice(0, 4);
-    return inventory.areas.filter((a) => a.name.toLowerCase().includes(q)).slice(0, 4);
-  }, [inventory.areas, searchInput]);
 
   // Sub-areas under active PIN code
   const activePinSubAreas = useMemo(() => {
@@ -247,81 +178,7 @@ export default function SearchPage() {
     syncToUrl(next);
   };
 
-  // Near Me Trigger
-  const handleNearMeTrigger = async () => {
-    setLocating(true);
-    try {
-      const coords = await getBrowserLocation();
-      setLocating(false);
-      setIsDropdownOpen(false);
-      if (coords) {
-        updateMultipleFilters({
-          nearMe: true,
-          userLat: coords.latitude,
-          userLng: coords.longitude,
-          searchLat: undefined,
-          searchLng: undefined,
-          searchPlaceName: undefined,
-          maxRadiusKm: 5,
-        });
-      } else {
-        updateMultipleFilters({
-          nearMe: true,
-          userLat: 25.8631,
-          userLng: 85.7812,
-          maxRadiusKm: 5,
-        });
-      }
-    } catch {
-      setLocating(false);
-    }
-  };
-
-  // Select Geocoded Place
-  const handleSelectPlace = (place: GeocodedPlace) => {
-    setSearchInput(place.name);
-    setIsDropdownOpen(false);
-    updateMultipleFilters({
-      searchPlaceName: place.name,
-      searchLat: place.latitude,
-      searchLng: place.longitude,
-      maxRadiusKm: 5,
-      area: '',
-      pincode: '',
-      q: '',
-      nearMe: false,
-    });
-  };
-
-  // Form submit
-  const handleSearchSubmit = (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    setIsDropdownOpen(false);
-    const q = searchInput.trim();
-
-    if (/^\d{6}$/.test(q)) {
-      updateMultipleFilters({ pincode: q, area: '', searchLat: undefined, searchLng: undefined, q: '' });
-    } else {
-      updateFilter('q', q);
-    }
-  };
-
-  const handleClearSearch = () => {
-    setSearchInput('');
-    updateMultipleFilters({
-      q: '',
-      area: '',
-      pincode: '',
-      searchLat: undefined,
-      searchLng: undefined,
-      searchPlaceName: undefined,
-      nearMe: false,
-      maxRadiusKm: undefined,
-    });
-  };
-
   const resetAllFilters = () => {
-    setSearchInput('');
     setFilters(defaultFilters);
     router.replace('/search');
   };
@@ -594,240 +451,12 @@ export default function SearchPage() {
       <div style={{ padding: '28px 0 20px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#687b73', marginBottom: 8 }}>
           <MapPin size={15} color="#176b58" />
-          <span>Verified Rooms & PGs Across Town</span>
+          <span>Verified Rooms & PGs Across {selectedCity || 'Town'}</span>
         </div>
 
         <h1 style={{ fontSize: 'clamp(28px, 4vw, 40px)', fontWeight: 800, margin: '0 0 16px', letterSpacing: '-1.5px', color: 'var(--ink)' }}>
           Find Rooms & PGs <em className="title-accent">Near You</em>
         </h1>
-
-        {/* Unified City + Search Bar */}
-        <div style={{ position: 'relative', maxWidth: 780, marginBottom: 16, zIndex: 60 }} ref={searchContainerRef}>
-          <form onSubmit={handleSearchSubmit} className="search-bar-unified">
-            {/* 1. City Dropdown Selector + Mobile Near Me Top Row */}
-            <div className="search-bar-top-row">
-              <CitySelector
-                selectedCity={selectedCity}
-                onSelectCity={setSelectedCity}
-                availableCities={availableCities}
-                variant="desktop"
-              />
-
-              {/* Mobile-Only Near Me Button */}
-              <button
-                type="button"
-                className="search-bar-nearme-mobile"
-                onClick={handleNearMeTrigger}
-                title="Discover rooms near your location"
-              >
-                <Crosshair size={13} color="#059669" />
-                <span>{locating ? '...' : 'Near Me'}</span>
-              </button>
-            </div>
-
-            {/* 2. Vertical Divider */}
-            <div className="search-bar-divider" />
-
-            {/* 3. Search Input Field */}
-            <div className="search-bar-input-wrap">
-              <SearchIcon
-                size={18}
-                color="#94a3b8"
-                style={{ position: 'absolute', left: 4, pointerEvents: 'none' }}
-              />
-              <input
-                type="text"
-                className="search-bar-input"
-                placeholder={`Search landmark, college, street, or PIN in ${selectedCity}...`}
-                value={searchInput}
-                onFocus={() => setIsDropdownOpen(true)}
-                onChange={(e) => {
-                  setSearchInput(e.target.value);
-                  setIsDropdownOpen(true);
-                }}
-              />
-
-              {/* Inside Input Actions: Clear & Desktop Near Me */}
-              <div style={{ position: 'absolute', right: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
-                {searchInput && (
-                  <button
-                    type="button"
-                    onClick={handleClearSearch}
-                    style={{
-                      background: '#f1f5f9',
-                      border: 'none',
-                      color: '#64748b',
-                      borderRadius: '50%',
-                      width: 24,
-                      height: 24,
-                      display: 'grid',
-                      placeItems: 'center',
-                      cursor: 'pointer',
-                      padding: 0,
-                    }}
-                    aria-label="Clear search"
-                  >
-                    <X size={13} />
-                  </button>
-                )}
-                <button
-                  type="button"
-                  className="search-bar-nearme-desktop"
-                  onClick={handleNearMeTrigger}
-                  style={{
-                    background: filters.nearMe ? '#ecfdf5' : '#f1f5f9',
-                    border: `1px solid ${filters.nearMe ? '#a7f3d0' : '#cbd5e1'}`,
-                    borderRadius: 8,
-                    padding: '5px 9px',
-                    fontSize: 11.5,
-                    fontWeight: 600,
-                    color: filters.nearMe ? '#065f46' : '#334155',
-                    cursor: 'pointer',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 4,
-                    whiteSpace: 'nowrap',
-                  }}
-                  title="Discover rooms near your location"
-                >
-                  <Crosshair size={12} color="#059669" /> {locating ? '...' : 'Near Me'}
-                </button>
-              </div>
-            </div>
-
-            {/* 4. Search CTA Button */}
-            <button
-              type="submit"
-              className="search-bar-btn"
-            >
-              <SearchIcon size={16} /> Search
-            </button>
-          </form>
-
-          {/* Autocomplete Dropdown - Positioned directly below the search bar */}
-          {isDropdownOpen && (
-            <div
-              style={{
-                position: 'absolute',
-                top: 'calc(100% + 6px)',
-                left: 0,
-                right: 0,
-                background: '#ffffff',
-                borderRadius: 14,
-                boxShadow: '0 20px 45px -4px rgba(15, 23, 42, 0.22), 0 0 0 1px rgba(0, 0, 0, 0.08)',
-                zIndex: 100,
-                maxHeight: 380,
-                overflowY: 'auto',
-                padding: '10px 0',
-              }}
-            >
-              <div style={{ padding: '0 10px 8px' }}>
-                <button
-                  type="button"
-                  onClick={handleNearMeTrigger}
-                  style={{
-                    width: '100%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 10,
-                    padding: '8px 12px',
-                    background: '#ecfdf5',
-                    border: '1px solid #a7f3d0',
-                    borderRadius: 10,
-                    color: '#065f46',
-                    fontSize: 13,
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    textAlign: 'left',
-                  }}
-                >
-                  <Crosshair size={16} />
-                  <span>{locating ? 'Detecting your GPS position...' : 'Use My Current Location (Near Me)'}</span>
-                </button>
-              </div>
-
-              {/* Dynamic Database Neighborhoods */}
-              {matchingAreas.length > 0 && (
-                <div style={{ padding: '6px 0', borderTop: '1px solid #f1f5f9' }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', color: '#0f766e', padding: '4px 16px 6px' }}>
-                    {searchInput ? '📍 Matching Localities' : '🏠 Popular Localities'}
-                  </div>
-                  {matchingAreas.map((a) => (
-                    <button
-                      key={a.name}
-                      type="button"
-                      onClick={() => {
-                        updateMultipleFilters({ area: a.name, searchLat: undefined, searchLng: undefined, searchPlaceName: undefined, q: '' });
-                        setSearchInput(a.name);
-                        setIsDropdownOpen(false);
-                      }}
-                      style={{
-                        width: '100%',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        padding: '8px 16px',
-                        background: 'transparent',
-                        border: 'none',
-                        cursor: 'pointer',
-                        textAlign: 'left',
-                        fontSize: 13,
-                        color: '#1e293b',
-                      }}
-                      onMouseEnter={(e) => (e.currentTarget.style.background = '#f8fafc')}
-                      onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <MapPin size={14} color="#059669" />
-                        <span style={{ fontWeight: 600 }}>{a.name}</span>
-                      </div>
-                      <span style={{ fontSize: 11, color: '#065f46', fontWeight: 600 }}>
-                        {a.count} rooms
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              )}
-
-              {/* Geocoded Places */}
-              {geoSuggestions.length > 0 && (
-                <div style={{ padding: '4px 0', borderTop: '1px solid #f1f5f9' }}>
-                  {geoSuggestions.map((place) => (
-                    <button
-                      key={place.id}
-                      type="button"
-                      onClick={() => handleSelectPlace(place)}
-                      style={{
-                        width: '100%',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        padding: '8px 16px',
-                        background: 'transparent',
-                        border: 'none',
-                        cursor: 'pointer',
-                        textAlign: 'left',
-                        fontSize: 13,
-                        color: '#1e293b',
-                      }}
-                      onMouseEnter={(e) => (e.currentTarget.style.background = '#f8fafc')}
-                      onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <Compass size={14} color="#0284c7" />
-                        <div>
-                          <div style={{ fontWeight: 600 }}>{place.name}</div>
-                          <div style={{ fontSize: 11, color: '#64748b' }}>{place.displayName}</div>
-                        </div>
-                      </div>
-                      <span style={{ fontSize: 11, color: '#0284c7' }}>Explore nearby →</span>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-        </div>
 
         {/* Live Active Spot / GPS Mode Alert */}
         {(filters.searchPlaceName || filters.nearMe) && (
