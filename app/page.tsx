@@ -18,6 +18,8 @@ import {
   ChevronDown,
   ShieldCheck,
   Zap,
+  Building2,
+  CheckCircle2,
 } from 'lucide-react';
 import { mockProperties as propertiesSeed } from '@/lib/mock-data/properties';
 import type { Property } from '@/lib/mock-data/types';
@@ -891,6 +893,88 @@ export default function Home() {
           )}
         </>
       )}
+
+      {/* Landlord & Property Owner CTA Section */}
+      <section className="section landlord-cta-section">
+        <div className="container">
+          <div className="landlord-card">
+            {/* Ambient Background Glow Effect */}
+            <div className="landlord-glow-aura" />
+
+            <div className="landlord-content">
+              <div className="landlord-eyebrow">
+                <Building2 size={13} className="landlord-eyebrow-icon" />
+                <span>FOR LANDLORDS &amp; PG OWNERS</span>
+              </div>
+
+              <h2 className="landlord-heading">
+                Own a property? <br />
+                <span className="landlord-heading-highlight">
+                  List it for free and reach thousands of verified renters
+                </span>
+              </h2>
+
+              <p className="landlord-desc">
+                Connect your room, PG, student hostel, or flat directly with verified students and bachelors in {selectedCity}. Zero brokerage, zero hidden fees, and instant direct inquiries.
+              </p>
+
+              <div className="landlord-perks-grid">
+                <div className="landlord-perk-item">
+                  <div className="landlord-perk-icon-wrap">
+                    <Zap size={14} fill="#fde047" color="#fde047" />
+                  </div>
+                  <div>
+                    <strong>100% Free Listing</strong>
+                    <span>No registration fee or brokerage</span>
+                  </div>
+                </div>
+
+                <div className="landlord-perk-item">
+                  <div className="landlord-perk-icon-wrap">
+                    <ShieldCheck size={14} color="#6ee7b7" />
+                  </div>
+                  <div>
+                    <strong>Verified Renters</strong>
+                    <span>College students &amp; professionals</span>
+                  </div>
+                </div>
+
+                <div className="landlord-perk-item">
+                  <div className="landlord-perk-icon-wrap">
+                    <CheckCircle2 size={14} color="#93c5fd" />
+                  </div>
+                  <div>
+                    <strong>Direct Tenant Calls</strong>
+                    <span>No middlemen or commissions</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="landlord-action-card">
+              <div className="landlord-badge-pill">
+                <Sparkles size={13} color="#10b981" />
+                <span>Zero Commission · Instant Inquiries</span>
+              </div>
+
+              <h3 className="landlord-card-title">List your room in 2 minutes</h3>
+              <p className="landlord-card-sub">
+                Fill quick details, set your rent &amp; deposit terms, and start getting direct tenant calls today.
+              </p>
+
+              <Link href="/list-property" className="landlord-cta-button">
+                <span>Post Your Property — Free</span>
+                <ArrowRight size={17} />
+              </Link>
+
+              <div className="landlord-guarantee-note">
+                <ShieldCheck size={13} />
+                <span>100% Free Forever · No Brokerage Required</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
 
       {/* Trust & Guarantee Banner */}
       <section className="section">

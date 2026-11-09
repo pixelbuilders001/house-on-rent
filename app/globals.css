@@ -2402,4 +2402,246 @@ html,body{max-width:100%;overflow-x:clip}
   }
 }
 
+/* ============================================================
+   Landlord / Property Owner CTA Section (Own a Property?)
+   ============================================================ */
+
+.landlord-cta-section {
+  padding: 48px 0;
+  background: #ffffff;
+}
+
+.landlord-card {
+  position: relative;
+  background: linear-gradient(135deg, #0a2d25 0%, #114b3d 42%, #176b58 100%);
+  border-radius: 26px;
+  padding: 46px 50px;
+  color: #ffffff;
+  overflow: hidden;
+  display: grid;
+  grid-template-columns: 1.45fr 1fr;
+  gap: 44px;
+  align-items: center;
+  box-shadow: 0 24px 54px -12px rgba(10, 45, 37, 0.38);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.landlord-glow-aura {
+  position: absolute;
+  right: -90px;
+  bottom: -90px;
+  width: 380px;
+  height: 380px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(16, 185, 129, 0.32) 0%, rgba(16, 185, 129, 0) 70%);
+  pointer-events: none;
+}
+
+.landlord-content {
+  position: relative;
+  z-index: 2;
+}
+
+.landlord-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 1.3px;
+  color: #a7f3d0;
+  margin-bottom: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.landlord-eyebrow-icon {
+  color: #6ee7b7;
+}
+
+.landlord-heading {
+  font-size: clamp(26px, 3.2vw, 36px);
+  font-weight: 800;
+  line-height: 1.2;
+  letter-spacing: -1.2px;
+  color: #ffffff;
+  margin: 0 0 14px;
+}
+
+.landlord-heading-highlight {
+  color: #a7f3d0;
+  font-weight: 750;
+  font-size: 0.9em;
+  display: inline-block;
+  margin-top: 4px;
+}
+
+.landlord-desc {
+  font-size: 15px;
+  line-height: 1.6;
+  color: #d1fae5;
+  margin: 0 0 26px;
+  max-width: 520px;
+  opacity: 0.92;
+}
+
+.landlord-perks-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+
+.landlord-perk-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+}
+
+.landlord-perk-item strong {
+  display: block;
+  font-size: 13px;
+  font-weight: 750;
+  color: #ffffff;
+  margin-bottom: 2px;
+}
+
+.landlord-perk-item span {
+  display: block;
+  font-size: 11px;
+  color: #a7f3d0;
+  line-height: 1.35;
+}
+
+.landlord-perk-icon-wrap {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+/* Action Card on Right Side */
+.landlord-action-card {
+  position: relative;
+  z-index: 2;
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-radius: 22px;
+  padding: 34px 32px;
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.2);
+  color: #0f172a;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.6);
+}
+
+.landlord-badge-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11.5px;
+  font-weight: 750;
+  color: #047857;
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
+  padding: 4px 11px;
+  border-radius: 999px;
+  width: fit-content;
+}
+
+.landlord-card-title {
+  font-size: 18.5px;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 3px 0 0;
+  letter-spacing: -0.4px;
+}
+
+.landlord-card-sub {
+  font-size: 13.5px;
+  color: #64748b;
+  margin: 0 0 8px;
+  line-height: 1.45;
+}
+
+.landlord-cta-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  padding: 15px 22px;
+  border-radius: 12px;
+  background: #176b58;
+  color: #ffffff !important;
+  font-size: 15.5px;
+  font-weight: 750;
+  text-decoration: none;
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 6px 18px rgba(23, 107, 88, 0.35);
+}
+
+.landlord-cta-button:hover {
+  background: #115343;
+  transform: translateY(-2px);
+  box-shadow: 0 10px 24px rgba(23, 107, 88, 0.45);
+}
+
+.landlord-guarantee-note {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  font-size: 11px;
+  color: #64748b;
+  font-weight: 600;
+  margin-top: 4px;
+}
+
+/* Responsiveness for Landlord Section */
+@media (max-width: 960px) {
+  .landlord-card {
+    grid-template-columns: 1fr;
+    padding: 36px 30px;
+    gap: 28px;
+  }
+
+  .landlord-perks-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+}
+
+@media (max-width: 600px) {
+  .landlord-cta-section {
+    padding: 28px 0;
+  }
+
+  .landlord-card {
+    padding: 28px 20px;
+    border-radius: 20px;
+  }
+
+  .landlord-action-card {
+    padding: 24px 18px;
+    border-radius: 18px;
+  }
+
+  .landlord-cta-button {
+    font-size: 14.5px;
+    padding: 13px 18px;
+  }
+}
+
+
 
