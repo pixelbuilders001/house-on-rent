@@ -28,6 +28,7 @@ import { mockProperties as propertiesSeed } from '@/lib/mock-data/properties';
 import type { Property } from '@/lib/mock-data/types';
 import { getProperties } from '@/lib/services/propertyService';
 import { PropertyCard } from '@/components/PropertyCard';
+import { CitySelector } from '@/components/CitySelector';
 import { getStorageItem, setStorageItem } from '@/lib/storage';
 import {
   searchPlacesLive,
@@ -313,34 +314,14 @@ export default function Home() {
             {/* Search Bar + Autocomplete Wrapper: Positions dropdown directly below search input */}
             <div style={{ position: 'relative', width: '100%', zIndex: 60 }}>
               <div className="search-bar-unified">
-                {/* 1. City Dropdown Selector + Mobile Near Me Top Row */}
+                {/* 1. City Dropdown Selector */}
                 <div className="search-bar-top-row">
-                  <div className="search-bar-city-btn" title="Select City">
-                    <div className="search-bar-city-icon-badge">
-                      <MapPin size={14} color="#ffffff" />
-                    </div>
-                    <div className="search-bar-city-info">
-                      <span className="search-bar-city-label">City</span>
-                      <span className="search-bar-city-name">{selectedCity}</span>
-                    </div>
-                    <ChevronDown
-                      size={13}
-                      color="#176b58"
-                      className="search-bar-city-chevron"
-                    />
-                    <select
-                      className="search-bar-city-native-select"
-                      value={selectedCity}
-                      onChange={(e) => setSelectedCity(e.target.value)}
-                      aria-label="Select City"
-                    >
-                      {availableCities.map((c) => (
-                        <option key={c.name} value={c.name}>
-                          {c.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+                  <CitySelector
+                    selectedCity={selectedCity}
+                    onSelectCity={setSelectedCity}
+                    availableCities={availableCities}
+                    variant="desktop"
+                  />
                 </div>
 
                 {/* 2. Vertical Divider */}
@@ -1107,23 +1088,12 @@ export default function Home() {
             </button>
 
             {/* City Selector Pill */}
-            <div className="mobile-search-city-pill" title="Switch City">
-              <MapPin size={13} color="#059669" />
-              <span className="mobile-search-city-text">{selectedCity}</span>
-              <ChevronDown size={13} color="#059669" />
-              <select
-                className="mobile-search-city-native-select"
-                value={selectedCity}
-                onChange={(e) => setSelectedCity(e.target.value)}
-                aria-label="Select City"
-              >
-                {availableCities.map((c) => (
-                  <option key={c.name} value={c.name}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <CitySelector
+              selectedCity={selectedCity}
+              onSelectCity={setSelectedCity}
+              availableCities={availableCities}
+              variant="mobile-pill"
+            />
 
             <button
               type="button"

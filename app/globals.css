@@ -2768,6 +2768,172 @@ html,body{max-width:100%;overflow-x:clip}
   }
 }
 
+/* ============================================================
+   City Selector Dropdown with Coming Soon Badges
+   ============================================================ */
+
+.city-selector-wrapper {
+  position: relative;
+  display: inline-flex;
+}
+
+.search-bar-city-btn.custom-trigger {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+  user-select: none;
+}
+
+.mobile-search-city-pill.custom-pill {
+  border: none;
+  cursor: pointer;
+  user-select: none;
+}
+
+/* Floating Dropdown Menu Panel */
+.city-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 10px);
+  left: 0;
+  min-width: 260px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 18px;
+  box-shadow: 0 16px 38px -8px rgba(15, 23, 42, 0.16), 0 0 0 1px rgba(23, 107, 88, 0.08);
+  padding: 10px;
+  z-index: 120;
+  animation: city-dropdown-appear 0.2s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes city-dropdown-appear {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.city-dropdown-header {
+  padding: 6px 10px 8px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  color: #64748b;
+  text-transform: uppercase;
+  border-bottom: 1px solid #f1f5f9;
+  margin-bottom: 6px;
+}
+
+.city-dropdown-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.city-dropdown-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 9px 12px;
+  border-radius: 12px;
+  transition: all 0.18s ease;
+  user-select: none;
+}
+
+.city-dropdown-item.is-active {
+  cursor: pointer;
+}
+
+.city-dropdown-item.is-active:hover {
+  background: #f0fdf4;
+}
+
+.city-dropdown-item.is-selected {
+  background: #eaf5ef;
+}
+
+.city-dropdown-item.is-selected .city-item-name {
+  color: #176b58;
+  font-weight: 800;
+}
+
+.city-item-left {
+  display: flex;
+  flex-direction: column;
+}
+
+.city-item-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: #0f172a;
+  line-height: 1.3;
+}
+
+.city-item-state {
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+.city-check-icon {
+  color: #176b58;
+}
+
+/* Coming Soon City Styling (Disabled / Non-clickable) */
+.city-dropdown-item.is-coming-soon {
+  cursor: not-allowed !important;
+  opacity: 0.65;
+  background: #f8fafc;
+  pointer-events: none; /* Prevents click & selection */
+}
+
+.city-dropdown-item.is-coming-soon .city-item-name {
+  color: #64748b;
+}
+
+.city-coming-soon-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.3px;
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fde68a;
+  box-shadow: 0 1px 3px rgba(146, 64, 14, 0.08);
+}
+
+.city-dropdown-footer {
+  margin-top: 8px;
+  padding: 8px 10px 4px;
+  border-top: 1px dashed #e2e8f0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: #64748b;
+  line-height: 1.35;
+}
+
+/* Mobile dropdown positioning */
+.mobile-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  min-width: 250px;
+  max-width: calc(100vw - 40px);
+}
+
+
 
 
 

@@ -20,6 +20,7 @@ import type { Property } from '@/lib/mock-data/types';
 import { mockAmenities } from '@/lib/mock-data/amenities';
 import { getAmenities } from '@/lib/services/catalogService';
 import { PropertyCard } from '@/components/PropertyCard';
+import { CitySelector } from '@/components/CitySelector';
 import { Modal } from '@/components/Modal';
 import { getStorageItem, setStorageItem } from '@/lib/storage';
 import {
@@ -605,35 +606,12 @@ export default function SearchPage() {
           <form onSubmit={handleSearchSubmit} className="search-bar-unified">
             {/* 1. City Dropdown Selector + Mobile Near Me Top Row */}
             <div className="search-bar-top-row">
-              <div className="search-bar-city-btn" title="Select City">
-                <div className="search-bar-city-icon-badge">
-                  <MapPin size={14} color="#ffffff" />
-                </div>
-                <div className="search-bar-city-info">
-                  <span className="search-bar-city-label">City</span>
-                  <span className="search-bar-city-name">{selectedCity}</span>
-                </div>
-                <ChevronDown
-                  size={13}
-                  color="#176b58"
-                  className="search-bar-city-chevron"
-                />
-                <select
-                  className="search-bar-city-native-select"
-                  value={selectedCity}
-                  onChange={(e) => {
-                    const newCity = e.target.value;
-                    setSelectedCity(newCity);
-                  }}
-                  aria-label="Select City"
-                >
-                  {availableCities.map((c) => (
-                    <option key={c.name} value={c.name}>
-                      {c.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              <CitySelector
+                selectedCity={selectedCity}
+                onSelectCity={setSelectedCity}
+                availableCities={availableCities}
+                variant="desktop"
+              />
 
               {/* Mobile-Only Near Me Button */}
               <button

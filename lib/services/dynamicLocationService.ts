@@ -16,9 +16,9 @@ export interface CityConfig {
 
 export const SUPPORTED_CITIES: CityConfig[] = [
   { name: 'Samastipur', state: 'Bihar', lat: 25.8631, lng: 85.7812, isAvailable: true },
-  { name: 'Patna', state: 'Bihar', lat: 25.5941, lng: 85.1376, isAvailable: true },
-  { name: 'Darbhanga', state: 'Bihar', lat: 26.1542, lng: 85.8918, isAvailable: true },
-  { name: 'Muzaffarpur', state: 'Bihar', lat: 26.1209, lng: 85.3647, isAvailable: true },
+  { name: 'Patna', state: 'Bihar', lat: 25.5941, lng: 85.1376, isAvailable: false },
+  { name: 'Darbhanga', state: 'Bihar', lat: 26.1542, lng: 85.8918, isAvailable: false },
+  { name: 'Muzaffarpur', state: 'Bihar', lat: 26.1209, lng: 85.3647, isAvailable: false },
 ];
 
 /**
