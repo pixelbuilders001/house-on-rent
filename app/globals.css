@@ -1061,25 +1061,24 @@ html,body{max-width:100%;overflow-x:clip}
   }
 
   .search-bar-city-btn {
-    width: 100%;
-    display: flex;
+    width: auto;
+    display: inline-flex;
     align-items: center;
-    justify-content: space-between;
-    padding: 9px 13px 9px 9px;
+    gap: 8px;
+    padding: 6px 12px 6px 7px;
     background: #f0faf4;
     border: 1px solid #cce5d7;
-    border-radius: 13px;
+    border-radius: 12px;
     box-shadow: 0 1px 3px rgba(23, 107, 88, 0.05);
-    box-sizing: border-box;
   }
 
   .search-bar-city-icon-badge {
-    width: 30px;
-    height: 30px;
+    width: 28px;
+    height: 28px;
   }
 
   .search-bar-city-name {
-    font-size: 14.5px;
+    font-size: 14px;
     font-weight: 700;
   }
 
