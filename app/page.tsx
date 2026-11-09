@@ -904,18 +904,18 @@ export default function Home() {
             <div className="landlord-content">
               <div className="landlord-eyebrow">
                 <Building2 size={13} className="landlord-eyebrow-icon" />
-                <span>FOR LANDLORDS &amp; PG OWNERS</span>
+                <span>FOR LANDLORDS · मकान मालिकों के लिए</span>
               </div>
 
               <h2 className="landlord-heading">
-                Own a property? <br />
+                Own a property? कमरा या PG खाली है? <br />
                 <span className="landlord-heading-highlight">
                   List it for free and reach thousands of verified renters
                 </span>
               </h2>
 
               <p className="landlord-desc">
-                Connect your room, PG, student hostel, or flat directly with verified students and bachelors in {selectedCity}. Zero brokerage, zero hidden fees, and instant direct inquiries.
+                {selectedCity} में अपने कमरे, PG या हॉस्टल को सीधे छात्रों और कामकाजी किरायेदारों तक पहुंचाएं—0% ब्रोकरेज, सीधे कॉल और बिना किसी दलाल के।
               </p>
 
               <div className="landlord-perks-grid">
@@ -925,7 +925,7 @@ export default function Home() {
                   </div>
                   <div>
                     <strong>100% Free Listing</strong>
-                    <span>No registration fee or brokerage</span>
+                    <span>बिना किसी फीस या ब्रोकरेज के</span>
                   </div>
                 </div>
 
@@ -935,7 +935,7 @@ export default function Home() {
                   </div>
                   <div>
                     <strong>Verified Renters</strong>
-                    <span>College students &amp; professionals</span>
+                    <span>कॉलेज छात्र और जॉब प्रोफेशनल्स</span>
                   </div>
                 </div>
 
@@ -945,7 +945,7 @@ export default function Home() {
                   </div>
                   <div>
                     <strong>Direct Tenant Calls</strong>
-                    <span>No middlemen or commissions</span>
+                    <span>सीधे आपसे संपर्क, कोई दलाल नहीं</span>
                   </div>
                 </div>
               </div>
@@ -954,12 +954,12 @@ export default function Home() {
             <div className="landlord-action-card">
               <div className="landlord-badge-pill">
                 <Sparkles size={13} color="#10b981" />
-                <span>Zero Commission · Instant Inquiries</span>
+                <span>0% ब्रोकरेज · तुरंत एक्टिवेशन</span>
               </div>
 
-              <h3 className="landlord-card-title">List your room in 2 minutes</h3>
+              <h3 className="landlord-card-title">2 मिनट में लिस्ट करें (Free)</h3>
               <p className="landlord-card-sub">
-                Fill quick details, set your rent &amp; deposit terms, and start getting direct tenant calls today.
+                कमरे की फोटो और किराया जोड़ें, और आज ही सीधे किरायेदार पाएं।
               </p>
 
               <Link href="/list-property" className="landlord-cta-button">
@@ -969,7 +969,7 @@ export default function Home() {
 
               <div className="landlord-guarantee-note">
                 <ShieldCheck size={13} />
-                <span>100% Free Forever · No Brokerage Required</span>
+                <span>100% Free Forever · हमेशा के लिए फ्री</span>
               </div>
             </div>
           </div>
