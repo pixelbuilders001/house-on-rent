@@ -48,6 +48,9 @@ const defaultFilters: PropertyFilters = {
   brokerage: false,
   verifiedOnly: false,
   amenities: [],
+  category: undefined,
+  bhkType: undefined,
+  furnishingStatus: undefined,
 };
 
 export default function SearchPage() {
@@ -95,6 +98,9 @@ export default function SearchPage() {
       max: p.get('max') ? Number(p.get('max')) : 12000,
       accommodation: p.get('accommodation') || '',
       type: p.get('type') || '',
+      category: (p.get('category') as any) || undefined,
+      bhkType: p.get('bhkType') || undefined,
+      furnishingStatus: p.get('furnishingStatus') || undefined,
       food: p.get('food') || 'any',
       deposit: p.get('deposit') || 'any',
       brokerage: p.get('brokerage') === 'true',
@@ -222,7 +228,21 @@ export default function SearchPage() {
     if (filters.accommodation) list.push({ key: 'accommodation', label: filters.accommodation, clearVal: '' });
     if (filters.type) list.push({ key: 'type', label: filters.type, clearVal: '' });
     if (filters.brokerage) list.push({ key: 'brokerage', label: 'Zero Brokerage', clearVal: false });
-    if (filters.verifiedOnly) list.push({ key: 'verifiedOnly', label: 'Verified Only', clearVal: false });
+    if (filters.category) {
+      list.push({
+        key: 'category',
+        label: filters.category === 'entire_house' ? '🏠 Entire House' : filters.category === 'private_room' ? '🚪 Private Room' : '👥 PG / Hostel',
+        clearVal: undefined,
+      });
+    }
+    if (filters.bhkType) list.push({ key: 'bhkType', label: `🛏️ ${filters.bhkType}`, clearVal: undefined });
+    if (filters.furnishingStatus) {
+      list.push({
+        key: 'furnishingStatus',
+        label: `🛋️ ${filters.furnishingStatus.replace('_', ' ')}`,
+        clearVal: undefined,
+      });
+    }
     if (filters.food && filters.food !== 'any') {
       list.push({ key: 'food', label: filters.food === 'included' ? 'Food Included' : 'Food Available', clearVal: 'any' });
     }
@@ -348,19 +368,71 @@ export default function SearchPage() {
         </div>
       </div>
 
-      {/* 5. Property Category */}
+      {/* 5. Rental Category (3-Tier) */}
       <div className="filter-group">
-        <div className="filter-title">Property Category</div>
+        <div className="filter-title">Rental Category</div>
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-          {['PG', 'Hostel', 'Room', 'Flat'].map((t) => (
+          {[
+            { id: undefined, label: 'All Stays' },
+            { id: 'entire_house', label: '🏠 Entire House' },
+            { id: 'private_room', label: '🚪 Private Room' },
+            { id: 'shared_pg', label: '👥 PG / Hostel' },
+          ].map((cat) => (
             <button
-              key={t}
+              key={cat.label}
               type="button"
-              className={`pill ${filters.type === t ? 'selected' : ''}`}
-              style={{ fontSize: 12, padding: '5px 12px' }}
-              onClick={() => updateFilter('type', filters.type === t ? '' : t)}
+              className={`pill small ${filters.category === cat.id ? 'selected' : ''}`}
+              style={{ fontSize: 12, padding: '5px 10px' }}
+              onClick={() =>
+                updateMultipleFilters({
+                  category: filters.category === cat.id ? undefined : (cat.id as any),
+                  ...(filters.category === cat.id ? { bhkType: undefined } : {}),
+                })
+              }
             >
-              {t}
+              {cat.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* BHK Type (if Entire House selected or looking for full house) */}
+      {(filters.category === 'entire_house' || !filters.category) && (
+        <div className="filter-group">
+          <div className="filter-title">House / Flat Configuration (BHK)</div>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            {['1 RK', '1 BHK', '2 BHK', '3 BHK', '4+ BHK'].map((bhk) => (
+              <button
+                key={bhk}
+                type="button"
+                className={`pill small ${filters.bhkType === bhk ? 'selected' : ''}`}
+                style={{ padding: '4px 9px', fontSize: 11.5 }}
+                onClick={() => updateFilter('bhkType', filters.bhkType === bhk ? undefined : bhk)}
+              >
+                {bhk}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Furnishing Status */}
+      <div className="filter-group">
+        <div className="filter-title">Furnishing</div>
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+          {[
+            { id: 'furnished', label: 'Furnished' },
+            { id: 'semi_furnished', label: 'Semi-Furnished' },
+            { id: 'unfurnished', label: 'Unfurnished' },
+          ].map((f) => (
+            <button
+              key={f.id}
+              type="button"
+              className={`pill small ${filters.furnishingStatus === f.id ? 'selected' : ''}`}
+              style={{ padding: '4px 9px', fontSize: 11.5 }}
+              onClick={() => updateFilter('furnishingStatus', filters.furnishingStatus === f.id ? undefined : f.id)}
+            >
+              {f.label}
             </button>
           ))}
         </div>
@@ -580,11 +652,51 @@ export default function SearchPage() {
         {/* Quick Filter Pill Buttons */}
         <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 6, flexWrap: 'wrap' }}>
           <button
-            className={`pill ${!filters.q && !filters.area && !filters.pincode && !filters.searchLat && !filters.nearMe && !filters.accommodation && !filters.brokerage && filters.max === 12000 ? 'selected' : ''}`}
+            className={`pill ${!filters.category && !filters.q && !filters.area && !filters.pincode && !filters.searchLat && !filters.nearMe && !filters.accommodation && !filters.brokerage && filters.max === 12000 ? 'selected' : ''}`}
             onClick={resetAllFilters}
           >
             All Stays
           </button>
+          <button
+            className={`pill ${filters.category === 'entire_house' ? 'selected' : ''}`}
+            onClick={() => updateMultipleFilters({
+              category: filters.category === 'entire_house' ? undefined : 'entire_house',
+              ...(filters.category === 'entire_house' ? { bhkType: undefined } : {})
+            })}
+          >
+            🏠 Entire House
+          </button>
+          <button
+            className={`pill ${filters.category === 'private_room' ? 'selected' : ''}`}
+            onClick={() => updateMultipleFilters({
+              category: filters.category === 'private_room' ? undefined : 'private_room',
+              bhkType: undefined,
+            })}
+          >
+            🚪 Private Room
+          </button>
+          <button
+            className={`pill ${filters.category === 'shared_pg' ? 'selected' : ''}`}
+            onClick={() => updateMultipleFilters({
+              category: filters.category === 'shared_pg' ? undefined : 'shared_pg',
+              bhkType: undefined,
+            })}
+          >
+            👥 PG / Hostel
+          </button>
+          {filters.category === 'entire_house' && (
+            <>
+              {['1 BHK', '2 BHK', '3 BHK'].map((bhk) => (
+                <button
+                  key={bhk}
+                  className={`pill ${filters.bhkType === bhk ? 'selected' : ''}`}
+                  onClick={() => updateFilter('bhkType', filters.bhkType === bhk ? undefined : bhk)}
+                >
+                  {bhk}
+                </button>
+              ))}
+            </>
+          )}
           <button
             className={`pill ${filters.brokerage ? 'selected' : ''}`}
             onClick={() => updateFilter('brokerage', !filters.brokerage)}
@@ -602,18 +714,6 @@ export default function SearchPage() {
             onClick={() => updateFilter('max', filters.max === 6000 ? 12000 : 6000)}
           >
             Under ₹6,000
-          </button>
-          <button
-            className={`pill ${filters.accommodation === '2 Sharing' ? 'selected' : ''}`}
-            onClick={() => updateFilter('accommodation', filters.accommodation === '2 Sharing' ? '' : '2 Sharing')}
-          >
-            👥 2 Sharing
-          </button>
-          <button
-            className={`pill ${filters.accommodation === 'Private room' ? 'selected' : ''}`}
-            onClick={() => updateFilter('accommodation', filters.accommodation === 'Private room' ? '' : 'Private room')}
-          >
-            🛏️ Private Room
           </button>
         </div>
 

@@ -1688,6 +1688,33 @@ html,body{max-width:100%;overflow-x:clip}
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
+.badge-category {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3.5px 8.5px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 750;
+  color: #ffffff;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  letter-spacing: 0.2px;
+}
+
+.badge-category.house {
+  background: rgba(79, 70, 229, 0.92);
+}
+
+.badge-category.private {
+  background: rgba(14, 116, 144, 0.92);
+}
+
+.badge-category.pg {
+  background: rgba(180, 83, 9, 0.92);
+}
+
 /* Frosted Heart Wishlist Button (Top Right) */
 .card-heart-btn {
   position: absolute;

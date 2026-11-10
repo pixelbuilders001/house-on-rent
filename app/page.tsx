@@ -57,7 +57,7 @@ export default function Home() {
   const [locating, setLocating] = useState(false);
   const [geoSuggestions, setGeoSuggestions] = useState<GeocodedPlace[]>([]);
   const [isSearchingPlaces, setIsSearchingPlaces] = useState(false);
-  const [homeCategory, setHomeCategory] = useState<'all' | 'single' | 'shared' | 'under5k' | 'food' | 'station'>('all');
+  const [homeCategory, setHomeCategory] = useState<'all' | 'entire_house' | 'private_room' | 'shared_pg' | 'under5k' | 'food' | 'station'>('all');
 
   const searchContainerRef = useRef<HTMLDivElement>(null);
 
@@ -235,15 +235,23 @@ export default function Home() {
   const categoryCounts = useMemo(() => {
     return {
       all: properties.length,
-      single: properties.filter(
-        (p) => (p.accommodation || '').toLowerCase().includes('single') || p.type === 'Room'
+      entire_house: properties.filter(
+        (p) => p.category === 'entire_house' || p.type === 'Flat'
       ).length,
-      shared: properties.filter(
+      private_room: properties.filter(
         (p) =>
+          p.category === 'private_room' ||
+          (p.accommodation || '').toLowerCase().includes('single') ||
+          p.type === 'Room'
+      ).length,
+      shared_pg: properties.filter(
+        (p) =>
+          p.category === 'shared_pg' ||
           (p.accommodation || '').toLowerCase().includes('shared') ||
           (p.accommodation || '').toLowerCase().includes('sharing') ||
           (p.accommodation || '').toLowerCase().includes('bed') ||
-          p.type === 'Hostel'
+          p.type === 'Hostel' ||
+          p.type === 'PG'
       ).length,
       under5k: properties.filter((p) => p.rent <= 5000).length,
       food: properties.filter((p) => p.foodIncluded || p.foodAvailable).length,
@@ -256,17 +264,26 @@ export default function Home() {
   // Instant filtered listings for homepage showcase
   const filteredHomeProperties = useMemo(() => {
     switch (homeCategory) {
-      case 'single':
+      case 'entire_house':
         return properties.filter(
-          (p) => (p.accommodation || '').toLowerCase().includes('single') || p.type === 'Room'
+          (p) => p.category === 'entire_house' || p.type === 'Flat'
         );
-      case 'shared':
+      case 'private_room':
         return properties.filter(
           (p) =>
+            p.category === 'private_room' ||
+            (p.accommodation || '').toLowerCase().includes('single') ||
+            p.type === 'Room'
+        );
+      case 'shared_pg':
+        return properties.filter(
+          (p) =>
+            p.category === 'shared_pg' ||
             (p.accommodation || '').toLowerCase().includes('shared') ||
             (p.accommodation || '').toLowerCase().includes('sharing') ||
             (p.accommodation || '').toLowerCase().includes('bed') ||
-            p.type === 'Hostel'
+            p.type === 'Hostel' ||
+            p.type === 'PG'
         );
       case 'under5k':
         return properties.filter((p) => p.rent <= 5000);
@@ -825,24 +842,32 @@ export default function Home() {
                   className={`category-tab-btn ${homeCategory === 'all' ? 'is-active' : ''}`}
                   onClick={() => setHomeCategory('all')}
                 >
-                  <span>All Rooms</span>
+                  <span>All Stays</span>
                   <span className="tab-count-badge">{loading ? '—' : categoryCounts.all}</span>
                 </button>
                 <button
                   type="button"
-                  className={`category-tab-btn ${homeCategory === 'single' ? 'is-active' : ''}`}
-                  onClick={() => setHomeCategory('single')}
+                  className={`category-tab-btn ${homeCategory === 'entire_house' ? 'is-active' : ''}`}
+                  onClick={() => setHomeCategory('entire_house')}
                 >
-                  <span>Single Room</span>
-                  <span className="tab-count-badge">{loading ? '—' : categoryCounts.single}</span>
+                  <span>🏠 Entire House / Flat</span>
+                  <span className="tab-count-badge">{loading ? '—' : categoryCounts.entire_house}</span>
                 </button>
                 <button
                   type="button"
-                  className={`category-tab-btn ${homeCategory === 'shared' ? 'is-active' : ''}`}
-                  onClick={() => setHomeCategory('shared')}
+                  className={`category-tab-btn ${homeCategory === 'private_room' ? 'is-active' : ''}`}
+                  onClick={() => setHomeCategory('private_room')}
                 >
-                  <span>Shared Bed</span>
-                  <span className="tab-count-badge">{loading ? '—' : categoryCounts.shared}</span>
+                  <span>🚪 Private Room</span>
+                  <span className="tab-count-badge">{loading ? '—' : categoryCounts.private_room}</span>
+                </button>
+                <button
+                  type="button"
+                  className={`category-tab-btn ${homeCategory === 'shared_pg' ? 'is-active' : ''}`}
+                  onClick={() => setHomeCategory('shared_pg')}
+                >
+                  <span>👥 PG / Hostel</span>
+                  <span className="tab-count-badge">{loading ? '—' : categoryCounts.shared_pg}</span>
                 </button>
                 <button
                   type="button"

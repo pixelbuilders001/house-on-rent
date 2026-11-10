@@ -8,6 +8,9 @@ import { getDistanceToSpot } from './dynamicLocationService';
 
 export type PropertyFilters = SearchPreferences & {
   q?: string;
+  category?: 'entire_house' | 'private_room' | 'shared_pg' | 'any';
+  bhkType?: string;
+  furnishingStatus?: string;
   type?: string;
   deposit?: string;
   brokerage?: boolean;
@@ -35,6 +38,20 @@ function fromRow(row: PropertyRow): Property {
     id: row.id,
     name: row.name,
     type: row.type,
+    category: row.category || (row.type === 'Flat' ? 'entire_house' : row.type === 'Room' ? 'private_room' : 'shared_pg'),
+    bhkType: row.bhk_type,
+    furnishingStatus: row.furnishing_status,
+    preferredTenant: row.preferred_tenant,
+    builtupSqft: row.builtup_sqft != null ? Number(row.builtup_sqft) : undefined,
+    bathroomsCount: row.bathrooms_count != null ? Number(row.bathrooms_count) : undefined,
+    balconiesCount: row.balconies_count != null ? Number(row.balconies_count) : undefined,
+    floorNumber: row.floor_number != null ? Number(row.floor_number) : undefined,
+    totalFloors: row.total_floors != null ? Number(row.total_floors) : undefined,
+    parkingType: row.parking_type,
+    ownerResidesHere: Boolean(row.owner_resides_here),
+    kitchenType: row.kitchen_type,
+    privateEntrance: Boolean(row.private_entrance),
+    foodPreference: row.food_preference,
     city: row.city,
     area: row.area,
     distanceKm: Number(row.distance_km || 0),
@@ -189,6 +206,23 @@ function matches(p: Property, f: PropertyFilters) {
     const dist = getDistanceToSpot(targetLat, targetLng, p);
     if (dist > maxRadius) return false;
   }
+  // 14. Rental Categorization (entire_house, private_room, shared_pg)
+  if (f.category && f.category !== 'any') {
+    const propCat = p.category || (p.type === 'Flat' ? 'entire_house' : p.type === 'Room' ? 'private_room' : 'shared_pg');
+    if (propCat !== f.category) return false;
+  }
+
+  // 15. BHK Type (1 RK, 1 BHK, 2 BHK, 3 BHK, 4+ BHK)
+  if (f.bhkType && f.bhkType !== 'any' && f.bhkType !== '') {
+    if (p.bhkType && p.bhkType.toLowerCase() !== f.bhkType.toLowerCase()) return false;
+  }
+
+  // 16. Furnishing Status
+  if (f.furnishingStatus && f.furnishingStatus !== 'any' && f.furnishingStatus !== '') {
+    const normFilter = f.furnishingStatus.toLowerCase().replace(/[-_ ]/g, '');
+    const normProp = (p.furnishingStatus || (p.furnished ? 'furnished' : 'unfurnished')).toLowerCase().replace(/[-_ ]/g, '');
+    if (!normProp.includes(normFilter) && !normFilter.includes(normProp)) return false;
+  }
 
   return true;
 }
@@ -258,7 +292,18 @@ export async function getAvailableBeds(id: string) {
   if (supabase) {
     const { data, error } = await supabase.from('beds').select('id, bed_label, status, rooms!inner(property_id, room_number)').eq('rooms.property_id', id);
     if (error) console.error('Supabase beds query failed; using prototype data.', error.message);
-    else return (data ?? []).map((bed: any) => ({ id: bed.id, room: `Room ${bed.rooms.room_number}`, bed: bed.bed_label, status: bed.status === 'available' ? 'Available' : 'Occupied' }));
+    else return (data ?? []).map((bed: any) => {
+      const roomNum = String(bed.rooms?.room_number || '').trim();
+      const roomLabel = roomNum.toLowerCase().startsWith('room') || roomNum.toLowerCase().includes('bhk') || roomNum.toLowerCase().includes('unit')
+        ? roomNum
+        : `Room ${roomNum}`;
+      return {
+        id: bed.id,
+        room: roomLabel,
+        bed: bed.bed_label,
+        status: bed.status === 'available' ? 'Available' : 'Occupied',
+      };
+    });
   }
   const p = [...mockProperties, ...getStorageItem<Property[]>('roomsaathi_owner_created', [])].find((x) => x.id === id);
   if (!p || p.availableBeds === 0) return [];

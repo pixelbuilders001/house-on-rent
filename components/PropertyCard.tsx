@@ -15,6 +15,8 @@ import {
   Camera,
   Check,
   Building2,
+  Home,
+  Users,
 } from 'lucide-react';
 import type { Property } from '@/lib/mock-data/types';
 import { calculateMonthlyCost, calculateMoveInCost } from '@/lib/pricing';
@@ -130,6 +132,21 @@ export function PropertyCard({
 
         {/* Floating Badges (Top Left) */}
         <div className="card-floating-badges">
+          {property.category === 'entire_house' ? (
+            <span className="badge-category house">
+              <Home size={11} strokeWidth={2.5} />
+              <span>{property.bhkType ? `${property.bhkType} House` : 'Entire House'}</span>
+            </span>
+          ) : property.category === 'private_room' ? (
+            <span className="badge-category private">
+              <span>🚪 Private Room</span>
+            </span>
+          ) : (
+            <span className="badge-category pg">
+              <Users size={11} strokeWidth={2.5} />
+              <span>PG / Hostel</span>
+            </span>
+          )}
           {property.verified && (
             <span className="badge-verified">
               <ShieldCheck size={13} strokeWidth={2.5} />
@@ -208,7 +225,11 @@ export function PropertyCard({
             <span className="price-period">/month</span>
           </div>
           <span className="accommodation-pill">
-            {property.accommodation || property.type || 'Room'}
+            {property.category === 'entire_house'
+              ? `${property.bhkType || 'House'} • ${property.furnishingStatus || (property.furnished ? 'Furnished' : 'Unfurnished')}`
+              : property.category === 'private_room'
+              ? `Private Room • ${property.furnishingStatus || (property.furnished ? 'Furnished' : 'Unfurnished')}`
+              : (property.accommodation || property.type || 'Shared Room')}
           </span>
         </div>
 
@@ -253,28 +274,92 @@ export function PropertyCard({
 
         {/* Row 4: Amenity Highlights Micro-Chips */}
         <div className="card-amenities-row">
-          {property.foodAvailable && (
-            <span className="amenity-chip">
-              <Utensils size={12} className="amenity-chip-icon" />
-              <span>{property.foodIncluded ? 'Food included' : 'Mess available'}</span>
-            </span>
-          )}
-          {property.wifi && (
-            <span className="amenity-chip">
-              <Wifi size={12} className="amenity-chip-icon" />
-              <span>Free Wi-Fi</span>
-            </span>
-          )}
-          {property.electricityIncluded && (
-            <span className="amenity-chip">
-              <Zap size={11} className="amenity-chip-icon" />
-              <span>Electricity incl.</span>
-            </span>
-          )}
-          {property.availableBeds != null && property.availableBeds > 0 && (
-            <span className="amenity-chip beds">
-              <span>{property.availableBeds} {property.availableBeds === 1 ? 'bed left' : 'beds left'}</span>
-            </span>
+          {property.category === 'entire_house' ? (
+            <>
+              {property.builtupSqft && (
+                <span className="amenity-chip">
+                  <span>📐 {property.builtupSqft} sq.ft</span>
+                </span>
+              )}
+              {property.bathroomsCount && (
+                <span className="amenity-chip">
+                  <span>🚿 {property.bathroomsCount} {property.bathroomsCount === 1 ? 'Bath' : 'Baths'}</span>
+                </span>
+              )}
+              {property.preferredTenant && (
+                <span className="amenity-chip">
+                  <span>
+                    {property.preferredTenant === 'family_preferred'
+                      ? '👨‍👩‍👧 Family Preferred'
+                      : property.preferredTenant === 'family_only'
+                      ? '👨‍👩‍👧 Family Only'
+                      : property.preferredTenant === 'bachelors_allowed'
+                      ? '🎒 Bachelors Welcome'
+                      : property.preferredTenant === 'girls_only'
+                      ? '👩 Girls Only'
+                      : property.preferredTenant === 'boys_only'
+                      ? '👨 Boys Only'
+                      : 'All Tenants'}
+                  </span>
+                </span>
+              )}
+              <span className="amenity-chip beds" style={{ background: '#ecfdf5', color: '#065f46', borderColor: '#a7f3d0' }}>
+                <span>Full Unit Available</span>
+              </span>
+            </>
+          ) : property.category === 'private_room' ? (
+            <>
+              {property.preferredTenant && (
+                <span className="amenity-chip">
+                  <span>
+                    {property.preferredTenant === 'girls_only'
+                      ? '👩 Girls Only'
+                      : property.preferredTenant === 'boys_only'
+                      ? '👨 Boys Only'
+                      : 'Single Occupant'}
+                  </span>
+                </span>
+              )}
+              {property.kitchenType && property.kitchenType !== 'no_kitchen' && (
+                <span className="amenity-chip">
+                  <span>🍳 {property.kitchenType === 'private' ? 'Private Kitchen' : 'Kitchen Access'}</span>
+                </span>
+              )}
+              {property.privateEntrance && (
+                <span className="amenity-chip">
+                  <span>🔑 Private Entry</span>
+                </span>
+              )}
+              <span className="amenity-chip beds" style={{ background: '#ecfdf5', color: '#065f46', borderColor: '#a7f3d0' }}>
+                <span>Private Room Available</span>
+              </span>
+            </>
+          ) : (
+            <>
+              {property.foodAvailable && (
+                <span className="amenity-chip">
+                  <Utensils size={12} className="amenity-chip-icon" />
+                  <span>{property.foodIncluded ? 'Food included' : 'Mess available'}</span>
+                </span>
+              )}
+              {property.wifi && (
+                <span className="amenity-chip">
+                  <Wifi size={12} className="amenity-chip-icon" />
+                  <span>Free Wi-Fi</span>
+                </span>
+              )}
+              {property.electricityIncluded && (
+                <span className="amenity-chip">
+                  <Zap size={11} className="amenity-chip-icon" />
+                  <span>Electricity incl.</span>
+                </span>
+              )}
+              {property.availableBeds != null && property.availableBeds > 0 && (
+                <span className="amenity-chip beds">
+                  <span>{property.availableBeds} {property.availableBeds === 1 ? 'bed left' : 'beds left'}</span>
+                </span>
+              )}
+            </>
           )}
         </div>
 
@@ -289,7 +374,13 @@ export function PropertyCard({
           </div>
 
           <Link href={`/rooms/${property.id}`} className="card-action-btn">
-            <span>View Room</span>
+            <span>
+              {property.category === 'entire_house'
+                ? 'View House'
+                : property.category === 'private_room'
+                ? 'View Room'
+                : 'View PG'}
+            </span>
             <ArrowRight size={14} className="action-arrow" />
           </Link>
         </div>

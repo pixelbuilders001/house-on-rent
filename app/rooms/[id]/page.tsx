@@ -294,7 +294,11 @@ export default function Detail({ params }: { params: { id: string } }) {
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 6 }}>
             <span className="tag" style={{ background: '#eaf5ef', color: '#176b58', fontWeight: 700, padding: '4px 10px' }}>
-              {p.type || 'Verified Room'}
+              {p.category === 'entire_house'
+                ? `🏠 Entire House / Flat (${p.bhkType || 'Independent'})`
+                : p.category === 'private_room'
+                ? '🚪 Private Room / Single Occupancy'
+                : `👥 PG / Hostel (${p.type || 'Shared'})`}
             </span>
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: '#f0fdf4', color: '#166534', border: '1px solid #bbf7d0', padding: '3px 9px', borderRadius: 999, fontSize: 12, fontWeight: 700 }}>
               <ShieldCheck size={14} color="#16a34a" /> Verified Listing
@@ -321,7 +325,13 @@ export default function Detail({ params }: { params: { id: string } }) {
             </span>
             <span>·</span>
             <span style={{ color: '#047857', fontWeight: 600 }}>
-              {p.availableBeds > 0 ? `🟢 ${p.availableBeds} beds available` : '🟡 Few beds left'}
+              {p.category === 'entire_house'
+                ? '🟢 Full House Available for Rent'
+                : p.category === 'private_room'
+                ? '🟢 Private Room Vacant'
+                : p.availableBeds > 0
+                ? `🟢 ${p.availableBeds} beds available`
+                : '🟡 Few beds left'}
             </span>
           </div>
         </div>
@@ -476,100 +486,270 @@ export default function Detail({ params }: { params: { id: string } }) {
         <div className="detail-main-flow">
           {/* 1. At-a-Glance Spec Ribbon */}
           <div className="detail-spec-ribbon">
-            <div className="spec-ribbon-item">
-              <div className="spec-icon-box">🛏️</div>
-              <div>
-                <div className="spec-text-label">Room Type</div>
-                <div className="spec-text-val">{p.type || 'Single/Shared'}</div>
-              </div>
-            </div>
-            <div className="spec-ribbon-item">
-              <div className="spec-icon-box">👥</div>
-              <div>
-                <div className="spec-text-label">Sharing</div>
-                <div className="spec-text-val">{p.accommodation || 'Double Sharing'}</div>
-              </div>
-            </div>
-            <div className="spec-ribbon-item">
-              <div className="spec-icon-box">🛋️</div>
-              <div>
-                <div className="spec-text-label">Furnishing</div>
-                <div className="spec-text-val">Fully Furnished</div>
-              </div>
-            </div>
-            <div className="spec-ribbon-item">
-              <div className="spec-icon-box">🛡️</div>
-              <div>
-                <div className="spec-text-label">Security</div>
-                <div className="spec-text-val">1 Mo. Deposit</div>
-              </div>
-            </div>
-          </div>
-
-          {/* 2. Interactive Bed Selection */}
-          <section className="detail-section-card">
-            <div className="detail-section-title">
-              <span>Available Beds & Layouts</span>
-              <span className="tag" style={{ marginLeft: 'auto', fontSize: 12 }}>
-                {beds.length} Total Options
-              </span>
-            </div>
-            <p className="muted" style={{ margin: '0 0 16px', fontSize: 14 }}>
-              Choose your preferred room and bed. You can inspect it during your scheduled visit.
-            </p>
-            <div className="room-grid">
-              {(beds.length
-                ? beds
-                : [
-                    { id: 'b1', room: 'Room 101', bed: 'Bed A (Window Side)', status: 'Available' },
-                    { id: 'b2', room: 'Room 101', bed: 'Bed B (Balcony View)', status: 'Available' },
-                    { id: 'b3', room: 'Room 102', bed: 'Bed A', status: 'Occupied' },
-                  ]
-              ).map((b) => (
-                <div
-                  key={b.id}
-                  className="room"
-                  style={{
-                    borderRadius: 14,
-                    borderColor: chosen?.id === b.id ? 'var(--green)' : 'var(--line)',
-                    background: chosen?.id === b.id ? '#f3faf6' : 'white',
-                    transition: 'all 0.2s ease',
-                  }}
-                >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-                    <b style={{ fontSize: 15 }}>{b.room}</b>
-                    <span
-                      className={`tag ${b.status === 'Available' ? '' : 'pending'}`}
-                      style={{ fontSize: 11 }}
-                    >
-                      {b.status}
-                    </span>
-                  </div>
-                  <div className="muted" style={{ margin: '6px 0 12px', fontSize: 13 }}>
-                    {b.bed}
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontSize: 16, fontWeight: 800, color: 'var(--ink)' }}>
-                      ₹{p.rent.toLocaleString()}
-                      <small className="muted" style={{ fontWeight: 500, fontSize: 12 }}>
-                        /mo
-                      </small>
-                    </span>
-                    <button
-                      className={`btn small ${chosen?.id === b.id ? '' : 'outline'}`}
-                      disabled={b.status === 'Occupied'}
-                      onClick={() => {
-                        setChosen(b);
-                        setModal('visit');
-                      }}
-                    >
-                      {b.status === 'Occupied' ? 'Occupied' : chosen?.id === b.id ? 'Selected' : 'Request Bed'}
-                    </button>
+            {p.category === 'entire_house' ? (
+              <>
+                <div className="spec-ribbon-item">
+                  <div className="spec-icon-box">🏠</div>
+                  <div>
+                    <div className="spec-text-label">Configuration</div>
+                    <div className="spec-text-val">{p.bhkType || 'Full Flat'}</div>
                   </div>
                 </div>
-              ))}
-            </div>
-          </section>
+                <div className="spec-ribbon-item">
+                  <div className="spec-icon-box">📐</div>
+                  <div>
+                    <div className="spec-text-label">Super Area</div>
+                    <div className="spec-text-val">{p.builtupSqft ? `${p.builtupSqft} sq.ft` : 'Independent Unit'}</div>
+                  </div>
+                </div>
+                <div className="spec-ribbon-item">
+                  <div className="spec-icon-box">🛋️</div>
+                  <div>
+                    <div className="spec-text-label">Furnishing</div>
+                    <div className="spec-text-val">{p.furnishingStatus || (p.furnished ? 'Furnished' : 'Unfurnished')}</div>
+                  </div>
+                </div>
+                <div className="spec-ribbon-item">
+                  <div className="spec-icon-box">🚿</div>
+                  <div>
+                    <div className="spec-text-label">Baths & Balcony</div>
+                    <div className="spec-text-val">
+                      {p.bathroomsCount || 1} Bath{p.balconiesCount ? `, ${p.balconiesCount} Balc` : ''}
+                    </div>
+                  </div>
+                </div>
+              </>
+            ) : p.category === 'private_room' ? (
+              <>
+                <div className="spec-ribbon-item">
+                  <div className="spec-icon-box">🚪</div>
+                  <div>
+                    <div className="spec-text-label">Room Type</div>
+                    <div className="spec-text-val">Private Room (1 Person)</div>
+                  </div>
+                </div>
+                <div className="spec-ribbon-item">
+                  <div className="spec-icon-box">🛋️</div>
+                  <div>
+                    <div className="spec-text-label">Furnishing</div>
+                    <div className="spec-text-val">{p.furnishingStatus || (p.furnished ? 'Furnished' : 'Unfurnished')}</div>
+                  </div>
+                </div>
+                <div className="spec-ribbon-item">
+                  <div className="spec-icon-box">🍳</div>
+                  <div>
+                    <div className="spec-text-label">Kitchen</div>
+                    <div className="spec-text-val">
+                      {p.kitchenType && p.kitchenType.includes('private') ? 'Private Kitchen' : p.kitchenType && p.kitchenType.includes('shared') ? 'Shared Kitchen' : 'No Kitchen'}
+                    </div>
+                  </div>
+                </div>
+                <div className="spec-ribbon-item">
+                  <div className="spec-icon-box">🛡️</div>
+                  <div>
+                    <div className="spec-text-label">Deposit</div>
+                    <div className="spec-text-val">₹{Number(p.deposit || 0).toLocaleString()}</div>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="spec-ribbon-item">
+                  <div className="spec-icon-box">🛏️</div>
+                  <div>
+                    <div className="spec-text-label">Room Type</div>
+                    <div className="spec-text-val">{p.type || 'Single/Shared'}</div>
+                  </div>
+                </div>
+                <div className="spec-ribbon-item">
+                  <div className="spec-icon-box">👥</div>
+                  <div>
+                    <div className="spec-text-label">Sharing</div>
+                    <div className="spec-text-val">{p.accommodation || 'Double Sharing'}</div>
+                  </div>
+                </div>
+                <div className="spec-ribbon-item">
+                  <div className="spec-icon-box">🛋️</div>
+                  <div>
+                    <div className="spec-text-label">Furnishing</div>
+                    <div className="spec-text-val">{p.furnishingStatus || (p.furnished ? 'Furnished' : 'Unfurnished')}</div>
+                  </div>
+                </div>
+                <div className="spec-ribbon-item">
+                  <div className="spec-icon-box">🛡️</div>
+                  <div>
+                    <div className="spec-text-label">Security</div>
+                    <div className="spec-text-val">₹{Number(p.deposit || 0).toLocaleString()}</div>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* 2. Interactive Selection / Layout */}
+          {p.category === 'entire_house' ? (
+            <section className="detail-section-card">
+              <div className="detail-section-title">
+                <span>Entire House Lease & Layout</span>
+                <span className="tag" style={{ marginLeft: 'auto', fontSize: 12, background: '#dcfce7', color: '#166534' }}>
+                  Full Unit Vacant
+                </span>
+              </div>
+              <p className="muted" style={{ margin: '0 0 16px', fontSize: 14 }}>
+                Rent the complete independent residence. Schedule a free visit to inspect all bedrooms, kitchen, hall, and facilities.
+              </p>
+              <div
+                style={{
+                  borderRadius: 14,
+                  border: '1.5px solid var(--green)',
+                  background: '#f3faf6',
+                  padding: '20px 22px',
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 10 }}>
+                  <div>
+                    <b style={{ fontSize: 18, color: 'var(--ink)' }}>{p.bhkType ? `${p.bhkType} Residential Property` : 'Full Residential Property'}</b>
+                    <div className="muted" style={{ marginTop: 6, fontSize: 13.5, lineHeight: 1.6 }}>
+                      {p.builtupSqft ? `• ${p.builtupSqft} sq.ft Super Built-up` : ''}
+                      {p.floorNumber != null ? ` • Floor ${p.floorNumber === 0 ? 'Ground' : p.floorNumber}${p.totalFloors ? ` of ${p.totalFloors}` : ''}` : ''}
+                      {p.parkingType ? ` • ${p.parkingType === 'both' ? 'Car & Bike Parking' : p.parkingType === 'car_only' ? 'Car Parking' : p.parkingType === 'bike_only' ? 'Bike Parking' : 'Street Parking'}` : ''}
+                      {p.preferredTenant ? ` • Suitable for: ${p.preferredTenant === 'family_preferred' ? 'Family Preferred' : p.preferredTenant === 'family_only' ? 'Family Only' : p.preferredTenant === 'bachelors_allowed' ? 'Bachelors Welcome' : p.preferredTenant === 'girls_only' ? 'Girls Only' : p.preferredTenant === 'boys_only' ? 'Boys Only' : 'All'}` : ''}
+                    </div>
+                  </div>
+                  <span className="tag" style={{ fontSize: 12, background: '#166534', color: '#ffffff' }}>
+                    Available Immediately
+                  </span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 18, paddingTop: 14, borderTop: '1px solid rgba(22, 101, 52, 0.15)', flexWrap: 'wrap', gap: 10 }}>
+                  <span style={{ fontSize: 20, fontWeight: 850, color: 'var(--ink)' }}>
+                    ₹{p.rent.toLocaleString()}
+                    <small className="muted" style={{ fontWeight: 500, fontSize: 13 }}>
+                      /month
+                    </small>
+                  </span>
+                  <button
+                    className="btn"
+                    onClick={() => setModal('visit')}
+                  >
+                    <CalendarDays size={16} /> Schedule House Visit
+                  </button>
+                </div>
+              </div>
+            </section>
+          ) : p.category === 'private_room' ? (
+            <section className="detail-section-card">
+              <div className="detail-section-title">
+                <span>Private Room Layout</span>
+                <span className="tag" style={{ marginLeft: 'auto', fontSize: 12, background: '#dcfce7', color: '#166534' }}>
+                  Single Occupancy Available
+                </span>
+              </div>
+              <p className="muted" style={{ margin: '0 0 16px', fontSize: 14 }}>
+                Private bedroom in this residence for single occupancy with privacy and comfort.
+              </p>
+              <div
+                style={{
+                  borderRadius: 14,
+                  border: '1.5px solid var(--green)',
+                  background: '#f3faf6',
+                  padding: '20px 22px',
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 10 }}>
+                  <div>
+                    <b style={{ fontSize: 18, color: 'var(--ink)' }}>Private Bedroom Unit</b>
+                    <div className="muted" style={{ marginTop: 6, fontSize: 13.5, lineHeight: 1.6 }}>
+                      • {p.furnishingStatus || (p.furnished ? 'Furnished' : 'Unfurnished')}
+                      {p.privateEntrance ? ' • Private Entrance' : ' • Main House Entrance'}
+                      {p.ownerResidesHere ? ' • Landlord family on premises' : ' • Landlord off-premises'}
+                      {p.kitchenType ? ` • ${p.kitchenType.includes('private') ? 'Attached Private Kitchen' : p.kitchenType.includes('shared') ? 'Shared Kitchen Access' : 'No Kitchen Available'}` : ''}
+                    </div>
+                  </div>
+                  <span className="tag" style={{ fontSize: 12, background: '#166534', color: '#ffffff' }}>
+                    Available
+                  </span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 18, paddingTop: 14, borderTop: '1px solid rgba(22, 101, 52, 0.15)', flexWrap: 'wrap', gap: 10 }}>
+                  <span style={{ fontSize: 20, fontWeight: 850, color: 'var(--ink)' }}>
+                    ₹{p.rent.toLocaleString()}
+                    <small className="muted" style={{ fontWeight: 500, fontSize: 13 }}>
+                      /month
+                    </small>
+                  </span>
+                  <button
+                    className="btn"
+                    onClick={() => setModal('visit')}
+                  >
+                    <CalendarDays size={16} /> Schedule Room Visit
+                  </button>
+                </div>
+              </div>
+            </section>
+          ) : (
+            <section className="detail-section-card">
+              <div className="detail-section-title">
+                <span>Available Beds & Layouts</span>
+                <span className="tag" style={{ marginLeft: 'auto', fontSize: 12 }}>
+                  {beds.length} Total Options
+                </span>
+              </div>
+              <p className="muted" style={{ margin: '0 0 16px', fontSize: 14 }}>
+                Choose your preferred room and bed. You can inspect it during your scheduled visit.
+              </p>
+              <div className="room-grid">
+                {(beds.length
+                  ? beds
+                  : [
+                      { id: 'b1', room: 'Room 101', bed: 'Bed A (Window Side)', status: 'Available' },
+                      { id: 'b2', room: 'Room 101', bed: 'Bed B (Balcony View)', status: 'Available' },
+                      { id: 'b3', room: 'Room 102', bed: 'Bed A', status: 'Occupied' },
+                    ]
+                ).map((b) => (
+                  <div
+                    key={b.id}
+                    className="room"
+                    style={{
+                      borderRadius: 14,
+                      borderColor: chosen?.id === b.id ? 'var(--green)' : 'var(--line)',
+                      background: chosen?.id === b.id ? '#f3faf6' : 'white',
+                      transition: 'all 0.2s ease',
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                      <b style={{ fontSize: 15 }}>{b.room}</b>
+                      <span
+                        className={`tag ${b.status === 'Available' ? '' : 'pending'}`}
+                        style={{ fontSize: 11 }}
+                      >
+                        {b.status}
+                      </span>
+                    </div>
+                    <div className="muted" style={{ margin: '6px 0 12px', fontSize: 13 }}>
+                      {b.bed}
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: 16, fontWeight: 800, color: 'var(--ink)' }}>
+                        ₹{p.rent.toLocaleString()}
+                        <small className="muted" style={{ fontWeight: 500, fontSize: 12 }}>
+                          /mo
+                        </small>
+                      </span>
+                      <button
+                        className={`btn small ${chosen?.id === b.id ? '' : 'outline'}`}
+                        disabled={b.status === 'Occupied'}
+                        onClick={() => {
+                          setChosen(b);
+                          setModal('visit');
+                        }}
+                      >
+                        {b.status === 'Occupied' ? 'Occupied' : chosen?.id === b.id ? 'Selected' : 'Request Bed'}
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
 
           {/* 3. Transparent Cost Breakdown */}
           <section className="detail-section-card">
@@ -888,7 +1068,7 @@ export default function Detail({ params }: { params: { id: string } }) {
               style={{ width: '100%', height: 48, fontSize: 15 }}
               onClick={() => setModal('visit')}
             >
-              <CalendarDays size={18} /> Schedule a Free Visit
+              <CalendarDays size={18} /> {p.category === 'entire_house' ? 'Schedule House Visit' : 'Schedule a Free Visit'}
             </button>
 
             <button
