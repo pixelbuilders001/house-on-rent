@@ -11,15 +11,56 @@ export interface CityConfig {
   state: string;
   lat: number;
   lng: number;
+  bbox?: string; // minLon,minLat,maxLon,maxLat
   isAvailable?: boolean;
 }
 
 export const SUPPORTED_CITIES: CityConfig[] = [
-  { name: 'Samastipur', state: 'Bihar', lat: 25.8631, lng: 85.7812, isAvailable: true },
-  { name: 'Patna', state: 'Bihar', lat: 25.5941, lng: 85.1376, isAvailable: false },
-  { name: 'Darbhanga', state: 'Bihar', lat: 26.1542, lng: 85.8918, isAvailable: false },
-  { name: 'Muzaffarpur', state: 'Bihar', lat: 26.1209, lng: 85.3647, isAvailable: false },
+  {
+    name: 'Samastipur',
+    state: 'Bihar',
+    lat: 25.8631,
+    lng: 85.7812,
+    bbox: '85.45,25.65,86.15,26.10',
+    isAvailable: true,
+  },
+  {
+    name: 'Patna',
+    state: 'Bihar',
+    lat: 25.5941,
+    lng: 85.1376,
+    bbox: '85.00,25.45,85.35,25.75',
+    isAvailable: false,
+  },
+  {
+    name: 'Darbhanga',
+    state: 'Bihar',
+    lat: 26.1542,
+    lng: 85.8918,
+    bbox: '85.75,26.00,86.05,26.30',
+    isAvailable: false,
+  },
+  {
+    name: 'Muzaffarpur',
+    state: 'Bihar',
+    lat: 26.1209,
+    lng: 85.3647,
+    bbox: '85.20,26.00,85.55,26.25',
+    isAvailable: false,
+  },
 ];
+
+/**
+ * Computes or retrieves a bounding box [minLon, minLat, maxLon, maxLat] for a city
+ */
+export function getCityBoundingBox(city: CityConfig, delta: number = 0.22): string {
+  if (city.bbox) return city.bbox;
+  const minLon = (city.lng - delta).toFixed(4);
+  const minLat = (city.lat - delta).toFixed(4);
+  const maxLon = (city.lng + delta).toFixed(4);
+  const maxLat = (city.lat + delta).toFixed(4);
+  return `${minLon},${minLat},${maxLon},${maxLat}`;
+}
 
 /**
  * Gets list of selectable cities, dynamically including any city found in active listings
@@ -33,7 +74,14 @@ export function getAvailableCities(properties: Property[] = []): CityConfig[] {
       const c = p.city.trim();
       const k = c.toLowerCase();
       if (!map.has(k)) {
-        map.set(k, { name: c, state: 'Bihar', lat: 25.8631, lng: 85.7812, isAvailable: true });
+        map.set(k, {
+          name: c,
+          state: 'Bihar',
+          lat: 25.8631,
+          lng: 85.7812,
+          bbox: '85.45,25.65,86.15,26.10',
+          isAvailable: true,
+        });
       }
     }
   });

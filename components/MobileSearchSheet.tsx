@@ -2,7 +2,17 @@
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, X, Search, Crosshair, Compass } from 'lucide-react';
+import {
+  ArrowLeft,
+  X,
+  Search,
+  Crosshair,
+  Compass,
+  MapPin,
+  GraduationCap,
+  Hospital,
+  Train,
+} from 'lucide-react';
 import { useSearchSheet } from '@/context/SearchSheetContext';
 import { CitySelector } from '@/components/CitySelector';
 import { getProperties } from '@/lib/services/propertyService';
@@ -90,7 +100,7 @@ export function MobileSearchSheet() {
     let alive = true;
     setIsSearchingPlaces(true);
     const timer = setTimeout(() => {
-      searchPlacesLive(q, activeCity.lat, activeCity.lng)
+      searchPlacesLive(q, activeCity)
         .then((places) => {
           if (alive) {
             setGeoSuggestions(places);
@@ -427,9 +437,13 @@ export function MobileSearchSheet() {
               </div>
             )}
 
-            {/* 3. Live Geocoded Places */}
+            {/* 3. Live Geocoded Places (Google Autocomplete Style) */}
             {geoSuggestions.length > 0 && (
               <div className="mobile-search-group">
+                <div className="mobile-search-group-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span>📍 Areas & Landmarks in {selectedCity}</span>
+                  <span style={{ fontSize: 10, color: '#94a3b8', fontWeight: 500 }}>Live Suggestions</span>
+                </div>
                 <div className="mobile-search-landmarks-list">
                   {geoSuggestions.map((place) => (
                     <button
@@ -440,21 +454,90 @@ export function MobileSearchSheet() {
                         closeSearchSheet();
                         handleSelectPlace(place);
                       }}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'flex-start',
+                        gap: 10,
+                        padding: '10px 12px',
+                        width: '100%',
+                        textAlign: 'left',
+                        background: '#ffffff',
+                        border: '1px solid #f1f5f9',
+                        borderRadius: 10,
+                        marginBottom: 6,
+                      }}
                     >
-                      <div className="mobile-search-landmark-icon">
-                        <Compass size={15} color="#0284c7" />
+                      <div
+                        className="mobile-search-landmark-icon"
+                        style={{
+                          width: 28,
+                          height: 28,
+                          borderRadius: 8,
+                          background: '#f1f5f9',
+                          display: 'grid',
+                          placeItems: 'center',
+                          flexShrink: 0,
+                          marginTop: 1,
+                        }}
+                      >
+                        {place.type === 'college' ? (
+                          <GraduationCap size={15} color="#2563eb" />
+                        ) : place.type === 'hospital' ? (
+                          <Hospital size={15} color="#dc2626" />
+                        ) : place.type === 'transit' ? (
+                          <Train size={15} color="#7c3aed" />
+                        ) : place.type === 'road' ? (
+                          <MapPin size={15} color="#059669" />
+                        ) : (
+                          <Compass size={15} color="#0284c7" />
+                        )}
                       </div>
-                      <div style={{ flex: 1, textAlign: 'left' }}>
-                        <div style={{ fontWeight: 600, fontSize: 13, color: '#1e293b' }}>
-                          {place.name}
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                          <span style={{ fontWeight: 700, fontSize: 13.5, color: '#0f172a' }}>
+                            {place.name}
+                          </span>
+                          {place.categoryLabel && (
+                            <span
+                              style={{
+                                fontSize: 10,
+                                fontWeight: 600,
+                                padding: '1px 5px',
+                                borderRadius: 4,
+                                background: '#f0f9ff',
+                                color: '#0369a1',
+                                border: '1px solid #bae6fd',
+                              }}
+                            >
+                              {place.categoryLabel}
+                            </span>
+                          )}
                         </div>
-                        <div style={{ fontSize: 11, color: '#64748b' }}>
-                          {place.displayName}
+                        <div
+                          style={{
+                            fontSize: 11.5,
+                            color: '#64748b',
+                            marginTop: 2,
+                            lineHeight: 1.35,
+                            whiteSpace: 'nowrap',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                          }}
+                        >
+                          {place.subtitle || place.displayName}
                         </div>
                       </div>
-                      <span style={{ fontSize: 11, color: '#0284c7', fontWeight: 600 }}>
-                        Explore →
-                      </span>
+                      <div style={{ textAlign: 'right', flexShrink: 0, alignSelf: 'center' }}>
+                        {place.distanceKm != null && place.distanceKm > 0 ? (
+                          <span style={{ fontSize: 11, color: '#0284c7', fontWeight: 600, background: '#eff6ff', padding: '2px 6px', borderRadius: 6 }}>
+                            {place.distanceKm} km
+                          </span>
+                        ) : (
+                          <span style={{ fontSize: 11, color: '#0284c7', fontWeight: 600 }}>
+                            Explore →
+                          </span>
+                        )}
+                      </div>
                     </button>
                   ))}
                 </div>

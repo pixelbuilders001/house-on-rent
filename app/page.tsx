@@ -132,7 +132,7 @@ export default function Home() {
     let alive = true;
     setIsSearchingPlaces(true);
     const timer = setTimeout(() => {
-      searchPlacesLive(q, activeCity.lat, activeCity.lng)
+      searchPlacesLive(q, activeCity)
         .then((places) => {
           if (alive) {
             setGeoSuggestions(places);
@@ -590,9 +590,25 @@ export default function Home() {
                   </div>
                 )}
 
-                {/* Section 3: Geocoded Location Results */}
+                {/* Section 3: Geocoded Location Results (Google Autocomplete Style) */}
                 {geoSuggestions.length > 0 && (
                   <div style={{ padding: '4px 0', borderTop: '1px solid #f1f5f9' }}>
+                    <div
+                      style={{
+                        fontSize: 10.5,
+                        fontWeight: 700,
+                        letterSpacing: '0.04em',
+                        textTransform: 'uppercase',
+                        color: '#0284c7',
+                        padding: '4px 16px 6px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                      }}
+                    >
+                      <span>📍 Areas & Landmarks in {selectedCity}</span>
+                      <span style={{ fontSize: 10, fontWeight: 500, color: '#94a3b8' }}>Live Suggestions</span>
+                    </div>
                     {geoSuggestions.map((place) => (
                       <button
                         key={place.id}
@@ -601,8 +617,9 @@ export default function Home() {
                         style={{
                           width: '100%',
                           display: 'flex',
-                          alignItems: 'center',
+                          alignItems: 'flex-start',
                           justifyContent: 'space-between',
+                          gap: 12,
                           padding: '8px 16px',
                           background: 'transparent',
                           border: 'none',
@@ -610,22 +627,84 @@ export default function Home() {
                           textAlign: 'left',
                           fontSize: 13,
                           color: '#1e293b',
+                          transition: 'background 0.15s ease',
                         }}
                         onMouseEnter={(e) => (e.currentTarget.style.background = '#f8fafc')}
                         onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
                       >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                          <Compass size={14} color="#0284c7" />
-                          <div>
-                            <div style={{ fontWeight: 600 }}>{place.name}</div>
-                            <div style={{ fontSize: 11, color: '#64748b' }}>
-                              {place.displayName}
+                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, flex: 1, minWidth: 0 }}>
+                          <div
+                            style={{
+                              width: 28,
+                              height: 28,
+                              borderRadius: 8,
+                              background: '#f1f5f9',
+                              display: 'grid',
+                              placeItems: 'center',
+                              flexShrink: 0,
+                              marginTop: 1,
+                            }}
+                          >
+                            {place.type === 'college' ? (
+                              <GraduationCap size={15} color="#2563eb" />
+                            ) : place.type === 'hospital' ? (
+                              <Hospital size={15} color="#dc2626" />
+                            ) : place.type === 'transit' ? (
+                              <Train size={15} color="#7c3aed" />
+                            ) : place.type === 'road' ? (
+                              <MapPin size={15} color="#059669" />
+                            ) : (
+                              <Compass size={15} color="#0284c7" />
+                            )}
+                          </div>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                              <span style={{ fontWeight: 600, color: '#0f172a', fontSize: 13.5 }}>
+                                {place.name}
+                              </span>
+                              {place.categoryLabel && (
+                                <span
+                                  style={{
+                                    fontSize: 10,
+                                    fontWeight: 600,
+                                    padding: '1px 6px',
+                                    borderRadius: 4,
+                                    background: '#f0f9ff',
+                                    color: '#0369a1',
+                                    border: '1px solid #bae6fd',
+                                  }}
+                                >
+                                  {place.categoryLabel}
+                                </span>
+                              )}
+                            </div>
+                            <div
+                              style={{
+                                fontSize: 11.5,
+                                color: '#64748b',
+                                marginTop: 2,
+                                lineHeight: 1.35,
+                                whiteSpace: 'nowrap',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                              }}
+                              title={place.subtitle || place.displayName}
+                            >
+                              {place.subtitle || place.displayName}
                             </div>
                           </div>
                         </div>
-                        <span style={{ fontSize: 11, color: '#0284c7', fontWeight: 500 }}>
-                          Explore nearby →
-                        </span>
+                        <div style={{ textAlign: 'right', flexShrink: 0, alignSelf: 'center' }}>
+                          {place.distanceKm != null && place.distanceKm > 0 ? (
+                            <span style={{ fontSize: 11, color: '#0284c7', fontWeight: 600, background: '#eff6ff', padding: '2px 7px', borderRadius: 6 }}>
+                              {place.distanceKm} km
+                            </span>
+                          ) : (
+                            <span style={{ fontSize: 11, color: '#0284c7', fontWeight: 500 }}>
+                              Explore →
+                            </span>
+                          )}
+                        </div>
                       </button>
                     ))}
                   </div>
