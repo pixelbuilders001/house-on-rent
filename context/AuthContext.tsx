@@ -46,9 +46,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [savedIds, setSavedIds] = useState<string[]>([]);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
-  // Initialize saved IDs from localStorage on mount
+  // Initialize saved IDs from localStorage and cleanup stale service workers on mount
   useEffect(() => {
     setSavedIds(getLocalSavedIds());
+
+    // Unregister any stale Service Workers registered on localhost:3000 from previous projects (e.g. Firebase SBS Store)
+    if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then((registrations) => {
+        for (const registration of registrations) {
+          registration.unregister().then((unregistered) => {
+            if (unregistered) {
+              console.log('Unregistered stale service worker from localhost:3000');
+            }
+          }).catch(() => {});
+        }
+      }).catch(() => {});
+    }
   }, []);
 
   // Sync profile & merge saved properties for an authenticated user
@@ -72,7 +85,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const fullName = existingProf?.full_name || userMeta.full_name || userMeta.name || 'User';
       const avatarUrl = existingProf?.avatar_url || userMeta.avatar_url || userMeta.picture || '';
       const email = authUser.email || existingProf?.email || '';
-      const currentRole = existingProf?.role || 'user';
 
       let activeProfile: UserProfile;
 
@@ -109,6 +121,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       activeProfile.saved_properties = mergedSaved;
       setProfile(activeProfile);
       setSavedIds(mergedSaved);
+
+      // Check if there was a saved redirect path from before sign in
+      if (typeof window !== 'undefined') {
+        try {
+          const returnTo = sessionStorage.getItem('roomsaathi_auth_redirect');
+          if (returnTo && returnTo !== '/' && window.location.pathname === '/') {
+            sessionStorage.removeItem('roomsaathi_auth_redirect');
+            window.location.replace(returnTo);
+          }
+        } catch (_) {}
+      }
     } catch (err) {
       console.error('Error syncing user profile:', err);
     } finally {
@@ -188,15 +211,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signInWithGoogle = useCallback(async (): Promise<void> => {
     const supabase = getSupabaseBrowserClient();
     if (!supabase) {
-      alert('Supabase credentials are not configured.');
+      alert('Supabase credentials are not configured. Please check your .env.local file.');
       return;
     }
 
+    // Save return path so user returns to their current page after login
+    if (typeof window !== 'undefined') {
+      try {
+        sessionStorage.setItem('roomsaathi_auth_redirect', window.location.pathname + window.location.search);
+      } catch (_) {}
+    }
+
+    // Use root origin as redirect URL to match Supabase Site URL whitelist
     const redirectUrl = typeof window !== 'undefined'
-      ? `${window.location.origin}${window.location.pathname}`
+      ? `${window.location.origin}/`
       : undefined;
 
-    await supabase.auth.signInWithOAuth({
+    const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
         redirectTo: redirectUrl,
@@ -206,6 +237,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         },
       },
     });
+
+    if (error) {
+      console.error('Google OAuth Sign In error:', error);
+      alert(`Google Sign-In Error: ${error.message}`);
+      return;
+    }
+
+    if (data?.url) {
+      window.location.href = data.url;
+    }
   }, []);
 
   // Sign out
