@@ -3,6 +3,7 @@ import './globals.css';
 import { AppShell } from '@/components/AppShell';
 import { RouteLoader } from '@/components/RouteLoader';
 import { SearchSheetProvider } from '@/context/SearchSheetContext';
+import { AuthProvider } from '@/context/AuthContext';
 
 export const metadata: Metadata = {
   title: 'Find Affordable Rooms & PGs Near Your College or Workplace | RoomSaathi',
@@ -19,9 +20,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en">
       <body>
         <RouteLoader>
-          <SearchSheetProvider>
-            <AppShell>{children}</AppShell>
-          </SearchSheetProvider>
+          <AuthProvider>
+            <SearchSheetProvider>
+              <AppShell>{children}</AppShell>
+            </SearchSheetProvider>
+          </AuthProvider>
         </RouteLoader>
       </body>
     </html>

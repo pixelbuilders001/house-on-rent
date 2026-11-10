@@ -30,6 +30,7 @@ import { PropertyCard } from '@/components/PropertyCard';
 import { PropertyCardSkeleton } from '@/components/PropertyCardSkeleton';
 import { CitySelector } from '@/components/CitySelector';
 import { useSearchSheet } from '@/context/SearchSheetContext';
+import { useAuth } from '@/context/AuthContext';
 import { getStorageItem, setStorageItem } from '@/lib/storage';
 import {
   searchPlacesLive,
@@ -45,9 +46,9 @@ import {
 export default function Home() {
   const router = useRouter();
   const { isSearchSheetOpen, openSearchSheet } = useSearchSheet();
+  const { savedIds: saved, toggleSave } = useAuth();
   const [properties, setProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
-  const [saved, setSaved] = useState<string[]>([]);
 
   // Search State with Extensible City Selection
   const [selectedCity, setSelectedCity] = useState<string>('Samastipur');
@@ -80,7 +81,6 @@ export default function Home() {
           setLoading(false);
         }
       });
-    setSaved(getStorageItem('roomsaathi_saved_properties', []));
     return () => {
       isMounted = false;
     };
@@ -208,12 +208,6 @@ export default function Home() {
     if (e.key === 'Enter') {
       executeSearch();
     }
-  };
-
-  const toggleSave = (id: string) => {
-    const next = saved.includes(id) ? saved.filter((x) => x !== id) : [...saved, id];
-    setSaved(next);
-    setStorageItem('roomsaathi_saved_properties', next);
   };
 
   // Dynamic matching properties in DB

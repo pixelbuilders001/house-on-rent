@@ -21,6 +21,7 @@ import { getAmenities } from '@/lib/services/catalogService';
 import { PropertyCard, PropertyCardSkeleton } from '@/components/PropertyCard';
 import { Modal } from '@/components/Modal';
 import { getStorageItem, setStorageItem } from '@/lib/storage';
+import { useAuth } from '@/context/AuthContext';
 import {
   extractLiveLocationFacets,
   getLiveSubAreasForPin,
@@ -50,12 +51,12 @@ const defaultFilters: PropertyFilters = {
 };
 
 export default function SearchPage() {
+  const { savedIds: saved, toggleSave } = useAuth();
   const [amenityOptions, setAmenityOptions] = useState<string[]>(mockAmenities);
   const [filters, setFilters] = useState<PropertyFilters>(defaultFilters);
   const [selectedCity, setSelectedCity] = useState<string>('Samastipur');
   const [sort, setSort] = useState('best');
   const [properties, setProperties] = useState<Property[]>([]);
-  const [saved, setSaved] = useState<string[]>([]);
   const [compare, setCompare] = useState<string[]>([]);
   const [mobileFilters, setMobileFilters] = useState(false);
   const [busy, setBusy] = useState(true);
@@ -101,7 +102,6 @@ export default function SearchPage() {
       amenities: p.get('amenities') ? p.get('amenities')!.split(',').filter(Boolean) : [],
     });
 
-    setSaved(getStorageItem('roomsaathi_saved_properties', []));
     setCompare(getStorageItem('roomsaathi_compare', []));
   }, []);
 
@@ -181,12 +181,6 @@ export default function SearchPage() {
   const resetAllFilters = () => {
     setFilters(defaultFilters);
     router.replace('/search');
-  };
-
-  const toggleSave = (id: string) => {
-    const next = saved.includes(id) ? saved.filter((x) => x !== id) : [...saved, id];
-    setSaved(next);
-    setStorageItem('roomsaathi_saved_properties', next);
   };
 
   const toggleCompare = (id: string) => {

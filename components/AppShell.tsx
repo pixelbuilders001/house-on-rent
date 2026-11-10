@@ -3,15 +3,18 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Heart, House, Search, Bell, UserRound, Building2, Menu, X } from 'lucide-react';
+import { Heart, House, Search, Bell, UserRound, Building2, Menu, X, LogIn } from 'lucide-react';
 import { useSearchSheet } from '@/context/SearchSheetContext';
 import { MobileSearchSheet } from '@/components/MobileSearchSheet';
+import { useAuth } from '@/context/AuthContext';
+import { AuthModal } from '@/components/AuthModal';
 
 const OWNER_PORTAL_URL = 'https://hosue-on-rent-owner-tenant.vercel.app?role=owner';
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const path = usePathname();
   const { isSearchSheetOpen, openSearchSheet } = useSearchSheet();
+  const { user, profile, savedIds, openAuthModal } = useAuth();
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -62,9 +65,76 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <Building2 size={14} />
               Host Portal
             </a>
-            <Link href="/saved" className={active('/saved') ? 'active-link' : ''}>Saved</Link>
+            <Link href="/saved" className={active('/saved') ? 'active-link' : ''} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              <span>Saved</span>
+              {savedIds.length > 0 && (
+                <span
+                  style={{
+                    background: '#10b981',
+                    color: '#ffffff',
+                    fontSize: 11,
+                    fontWeight: 700,
+                    padding: '1px 6px',
+                    borderRadius: 999,
+                    lineHeight: '14px',
+                  }}
+                >
+                  {savedIds.length}
+                </span>
+              )}
+            </Link>
             <Link href="/alerts" className={active('/alerts') ? 'active-link' : ''}>Alerts</Link>
-            <Link href="/profile" className={active('/profile') ? 'active-link' : ''}>Profile</Link>
+
+            {user ? (
+              <Link
+                href="/profile"
+                className={active('/profile') ? 'active-link' : ''}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  padding: '4px 10px',
+                  borderRadius: 999,
+                  background: isHome && !isScrolled ? 'rgba(255, 255, 255, 0.15)' : '#f1f5f9',
+                  color: isHome && !isScrolled ? '#ffffff' : '#0f172a',
+                }}
+              >
+                {profile?.avatar_url || user.user_metadata?.avatar_url ? (
+                  <img
+                    src={profile?.avatar_url || user.user_metadata?.avatar_url}
+                    alt="Avatar"
+                    style={{ width: 22, height: 22, borderRadius: '50%', objectFit: 'cover' }}
+                  />
+                ) : (
+                  <UserRound size={14} />
+                )}
+                <span style={{ fontSize: 13, fontWeight: 600 }}>
+                  {(profile?.full_name || user.user_metadata?.full_name || 'Account').split(' ')[0]}
+                </span>
+              </Link>
+            ) : (
+              <button
+                type="button"
+                onClick={openAuthModal}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  padding: '6px 14px',
+                  borderRadius: 10,
+                  background: isHome && !isScrolled ? 'rgba(255, 255, 255, 0.2)' : '#10b981',
+                  color: '#ffffff',
+                  border: isHome && !isScrolled ? '1px solid rgba(255, 255, 255, 0.4)' : 'none',
+                  fontSize: 13,
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  transition: 'opacity 0.15s ease',
+                }}
+              >
+                <LogIn size={14} />
+                <span>Sign In</span>
+              </button>
+            )}
           </nav>
 
           {/* Mobile Hamburger Button */}
@@ -207,6 +277,34 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               </button>
             );
           }
+          if (label === 'Saved') {
+            return (
+              <Link key={href} href={href} className={active(href) ? 'active-link' : ''} style={{ position: 'relative' }}>
+                <Icon size={19} />
+                <span>{label}</span>
+                {savedIds.length > 0 && (
+                  <span
+                    style={{
+                      position: 'absolute',
+                      top: 4,
+                      right: 'calc(50% - 16px)',
+                      background: '#10b981',
+                      color: '#ffffff',
+                      fontSize: 10,
+                      fontWeight: 800,
+                      width: 16,
+                      height: 16,
+                      borderRadius: '50%',
+                      display: 'grid',
+                      placeItems: 'center',
+                    }}
+                  >
+                    {savedIds.length}
+                  </span>
+                )}
+              </Link>
+            );
+          }
           return (
             <Link key={href} href={href} className={active(href) ? 'active-link' : ''}>
               <Icon size={19} />
@@ -218,6 +316,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       {/* Global App-Grade Mobile Search Sheet */}
       <MobileSearchSheet />
+
+      {/* Global Google OAuth Sign-in Modal */}
+      <AuthModal />
     </>
   );
 }

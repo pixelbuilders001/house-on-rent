@@ -39,8 +39,11 @@ import { calculateMonthlyCost, calculateMoveInCost } from '@/lib/pricing';
 import { Modal } from '@/components/Modal';
 import { getStorageItem, setStorageItem } from '@/lib/storage';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
+import { useAuth } from '@/context/AuthContext';
 
 export default function Detail({ params }: { params: { id: string } }) {
+  const { isSaved, toggleSave } = useAuth();
+  const saved = isSaved(params.id);
   const [p, setP] = useState<Property>();
   const [isLoading, setIsLoading] = useState(true);
   const [reviews, setReviews] = useState<PropertyReview[]>(
@@ -49,7 +52,6 @@ export default function Detail({ params }: { params: { id: string } }) {
   const [beds, setBeds] = useState<any[]>([]);
   const [modal, setModal] = useState('');
   const [message, setMessage] = useState('');
-  const [saved, setSaved] = useState(false);
   const [chosen, setChosen] = useState<any>();
   const [pricingTab, setPricingTab] = useState<'monthly' | 'movein'>('monthly');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -84,7 +86,6 @@ export default function Detail({ params }: { params: { id: string } }) {
       .finally(() => {
         setIsLoading(false);
       });
-    setSaved(getStorageItem<string[]>('roomsaathi_saved_properties', []).includes(params.id));
   }, [params.id]);
 
   const showToast = useCallback((msg: string) => {
@@ -119,11 +120,9 @@ export default function Detail({ params }: { params: { id: string } }) {
 
   const handleSaveToggle = () => {
     if (!p) return;
-    const arr = getStorageItem<string[]>('roomsaathi_saved_properties', []);
-    const next = saved ? arr.filter((x) => x !== p.id) : [...arr, p.id];
-    setStorageItem('roomsaathi_saved_properties', next);
-    setSaved(!saved);
-    showToast(!saved ? 'Saved to your favorites!' : 'Removed from saved properties');
+    const willBeSaved = !saved;
+    toggleSave(p.id);
+    showToast(willBeSaved ? 'Saved to your favorites!' : 'Removed from saved properties');
   };
 
   // Keyboard navigation for Lightbox
