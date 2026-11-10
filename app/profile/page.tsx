@@ -100,15 +100,17 @@ export default function Profile() {
                       background: '#ecfdf5',
                       color: '#065f46',
                       border: '1px solid #a7f3d0',
-                      fontSize: 10.5,
+                      fontSize: 11,
                       fontWeight: 700,
-                      padding: '2px 8px',
+                      padding: '3px 10px',
                       borderRadius: 999,
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.04em',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 4,
                     }}
                   >
-                    Role: {profile?.role || 'user'}
+                    <ShieldCheck size={12} color="#059669" />
+                    <span>Verified Member · सत्यापित सदस्य</span>
                   </span>
                 </div>
                 <div style={{ fontSize: 13, color: '#64748b', marginTop: 3 }}>
@@ -136,7 +138,7 @@ export default function Profile() {
               }}
             >
               <LogOut size={14} />
-              <span>Sign Out</span>
+              <span>Sign Out · बाहर निकलें</span>
             </button>
           </div>
 
@@ -156,9 +158,9 @@ export default function Profile() {
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <CheckCircle2 size={16} color="#10b981" />
+              <Heart size={16} color="#e11d48" />
               <span style={{ fontSize: 13, color: '#334155', fontWeight: 600 }}>
-                Cloud Sync Active · {savedIds.length} properties saved to your profile
+                {savedIds.length} {savedIds.length === 1 ? 'room' : 'rooms'} saved in your wishlist · {savedIds.length} कमरे आपकी पसंद में
               </span>
             </div>
             <Link
@@ -172,7 +174,7 @@ export default function Profile() {
                 gap: 4,
               }}
             >
-              <span>View Saved Rooms</span>
+              <span>View Saved Rooms · पसंदीदा देखें</span>
               <span>→</span>
             </Link>
           </div>

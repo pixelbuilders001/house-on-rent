@@ -29,6 +29,7 @@ interface AuthContextType {
   savedIds: string[];
   isSaved: (propertyId: string) => boolean;
   toggleSave: (propertyId: string) => Promise<void>;
+  clearAllSaved: () => Promise<void>;
   signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
   isAuthModalOpen: boolean;
@@ -207,6 +208,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
   }, [user, profile]);
 
+  // Clear all saved properties
+  const clearAllSaved = useCallback(async (): Promise<void> => {
+    setSavedIds([]);
+    persistUserSavedIds(user?.id, []);
+    if (profile) {
+      setProfile({ ...profile, saved_properties: [] });
+    }
+  }, [user, profile]);
+
   // Trigger Google OAuth Sign In
   const signInWithGoogle = useCallback(async (): Promise<void> => {
     const supabase = getSupabaseBrowserClient();
@@ -277,6 +287,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       savedIds,
       isSaved,
       toggleSave,
+      clearAllSaved,
       signInWithGoogle,
       signOut,
       isAuthModalOpen,
@@ -291,6 +302,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       savedIds,
       isSaved,
       toggleSave,
+      clearAllSaved,
       signInWithGoogle,
       signOut,
       isAuthModalOpen,
