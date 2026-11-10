@@ -179,7 +179,7 @@ export default function SavedPage() {
             }}
           >
             <ShieldCheck size={14} color="#059669" />
-            <span>Saved to your Google account · गूगल खाते में सुरक्षित</span>
+            <span>Shortlist Saved · सहेजी गई लिस्ट</span>
           </div>
         ) : null}
       </div>
@@ -308,9 +308,9 @@ export default function SavedPage() {
                 Keep your saved rooms safe · अपनी पसंद की लिस्ट सुरक्षित रखें
               </div>
               <div style={{ fontSize: 12.5, color: '#047857', marginTop: 3, lineHeight: 1.4 }}>
-                These {savedListings.length} rooms are currently saved only on this browser. Sign in with Google so your shortlist is never lost when you switch phones or clear browser data.
+                These {savedListings.length} rooms are saved on this device. Sign in so your shortlist is always accessible whenever you visit.
                 <span style={{ display: 'block', color: '#065f46', fontSize: 11.5, marginTop: 1, opacity: 0.9 }}>
-                  गूगल से साइन इन करें ताकि फोन बदलने पर भी आपके सहेजे गए कमरे हमेशा सुरक्षित रहें।
+                  अपनी पसंदीदा लिस्ट को हमेशा सुरक्षित रखने और आसानी से देखने के लिए साइन इन करें।
                 </span>
               </div>
             </div>
@@ -336,7 +336,7 @@ export default function SavedPage() {
             }}
           >
             <LogIn size={15} />
-            <span>Sign In with Google · साइन इन करें</span>
+            <span>Sign In · साइन इन करें</span>
           </button>
         </div>
       )}

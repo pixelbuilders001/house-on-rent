@@ -13,86 +13,103 @@ import {
   Sparkles,
   ExternalLink,
   Building2,
+  MapPin,
+  ChevronRight,
+  MessageCircle,
+  PhoneCall,
   CheckCircle2,
+  LogIn,
+  Home,
+  Check,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 
 const OWNER_PORTAL_URL = 'https://hosue-on-rent-owner-tenant.vercel.app?role=owner';
 
 export default function Profile() {
-  const { user, profile, savedIds, signOut, openAuthModal, signInWithGoogle, isLoading } = useAuth();
+  const { user, profile, savedIds, signOut, openAuthModal } = useAuth();
 
-  const displayName = profile?.full_name || user?.user_metadata?.full_name || user?.user_metadata?.name || 'RoomSaathi User';
+  const displayName =
+    profile?.full_name ||
+    user?.user_metadata?.full_name ||
+    user?.user_metadata?.name ||
+    'RoomSaathi Resident';
   const email = user?.email || profile?.email || '';
-  const avatarUrl = profile?.avatar_url || user?.user_metadata?.avatar_url || user?.user_metadata?.picture;
-  const userInitial = displayName.charAt(0).toUpperCase() || 'U';
+  const avatarUrl =
+    profile?.avatar_url ||
+    user?.user_metadata?.avatar_url ||
+    user?.user_metadata?.picture;
+  const userInitial = displayName.charAt(0).toUpperCase() || 'R';
 
   return (
-    <div className="container section" style={{ maxWidth: 780, minHeight: '75vh', paddingBottom: 80 }}>
+    <div className="container section" style={{ maxWidth: 840, minHeight: '75vh', paddingBottom: 80 }}>
       {/* Header Eyebrow */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
         <div className="eyebrow" style={{ margin: 0 }}>
-          आपका RoomSaathi
+          मेरा अकाउंट · MY ACCOUNT
         </div>
       </div>
 
-      <h1 style={{ fontSize: 'clamp(28px, 4vw, 36px)', fontWeight: 800, margin: '0 0 8px', letterSpacing: '-1px' }}>
-        Your <span className="title-accent">Profile</span>
+      <h1 style={{ fontSize: 'clamp(28px, 4vw, 38px)', fontWeight: 800, margin: '0 0 6px', letterSpacing: '-1.2px' }}>
+        Profile & Services <span className="title-accent">· प्रोफ़ाइल और सेवाएँ</span>
       </h1>
-      <p className="muted" style={{ margin: '0 0 24px', fontSize: 14 }}>
-        {user
-          ? 'Manage your account session, synced saved properties, and tenant preferences.'
-          : 'Sign in with Google to sync saved properties across devices and connect with verified hosts.'}
+      <p className="muted" style={{ margin: '0 0 24px', fontSize: 14.5, lineHeight: 1.5 }}>
+        Manage your shortlisted rooms, cost calculations, and tenant assistance in Samastipur.
+        <span style={{ display: 'block', color: '#64748b', fontSize: 13, marginTop: 2 }}>
+          अपनी पसंदीदा जगहें, खर्च कैलकुलेशन और रूममेट खोज को एक ही जगह से मैनेज करें।
+        </span>
       </p>
 
-      {/* Profile Card / Sign In Card */}
+      {/* Main Account Card */}
       {user ? (
         <div
           style={{
-            background: '#ffffff',
-            borderRadius: 20,
+            background: 'linear-gradient(145deg, #ffffff 0%, #f8fafc 100%)',
+            borderRadius: 22,
             border: '1px solid #e2e8f0',
-            padding: '24px 22px',
-            boxShadow: '0 4px 18px rgba(15, 23, 42, 0.04)',
-            marginBottom: 24,
+            padding: '26px 24px',
+            boxShadow: '0 8px 30px rgba(15, 23, 42, 0.05)',
+            marginBottom: 28,
           }}
         >
-          {/* User Info Row */}
+          {/* Top Row: Avatar + Info + Sign Out */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
               {avatarUrl ? (
                 <img
                   src={avatarUrl}
                   alt={displayName}
                   style={{
-                    width: 56,
-                    height: 56,
+                    width: 64,
+                    height: 64,
                     borderRadius: '50%',
                     objectFit: 'cover',
-                    border: '2px solid #10b981',
-                    boxShadow: '0 4px 12px rgba(16, 185, 129, 0.2)',
+                    border: '3px solid #10b981',
+                    boxShadow: '0 4px 14px rgba(16, 185, 129, 0.25)',
                   }}
                 />
               ) : (
                 <div
                   style={{
-                    width: 56,
-                    height: 56,
+                    width: 64,
+                    height: 64,
                     borderRadius: '50%',
                     background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
                     color: '#ffffff',
                     display: 'grid',
                     placeItems: 'center',
-                    fontSize: 22,
+                    fontSize: 26,
                     fontWeight: 800,
+                    boxShadow: '0 4px 14px rgba(16, 185, 129, 0.25)',
                   }}
                 >
                   {userInitial}
                 </div>
               )}
+
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                  <h2 style={{ fontSize: 18, fontWeight: 800, margin: 0, color: '#0f172a' }}>
+                  <h2 style={{ fontSize: 20, fontWeight: 800, margin: 0, color: '#0f172a' }}>
                     {displayName}
                   </h2>
                   <span
@@ -110,11 +127,17 @@ export default function Profile() {
                     }}
                   >
                     <ShieldCheck size={12} color="#059669" />
-                    <span>Verified Member · सत्यापित सदस्य</span>
+                    <span>Verified Member · सदस्य</span>
                   </span>
                 </div>
-                <div style={{ fontSize: 13, color: '#64748b', marginTop: 3 }}>
+
+                <div style={{ fontSize: 13, color: '#64748b', marginTop: 4 }}>
                   {email}
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, color: '#0f766e', marginTop: 4, fontWeight: 600 }}>
+                  <MapPin size={13} />
+                  <span>Samastipur, Bihar · समस्तीपुर</span>
                 </div>
               </div>
             </div>
@@ -126,168 +149,532 @@ export default function Profile() {
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: 6,
-                padding: '8px 14px',
-                borderRadius: 10,
-                background: '#fef2f2',
+                padding: '9px 16px',
+                borderRadius: 12,
+                background: '#fff1f2',
                 color: '#dc2626',
-                border: '1px solid #fecaca',
-                fontSize: 12.5,
+                border: '1px solid #fecdd3',
+                fontSize: 13,
                 fontWeight: 700,
                 cursor: 'pointer',
-                transition: 'background 0.15s ease',
+                transition: 'all 0.15s ease',
               }}
             >
-              <LogOut size={14} />
-              <span>Sign Out · बाहर निकलें</span>
+              <LogOut size={15} />
+              <span>Log Out · बाहर निकलें</span>
             </button>
           </div>
 
-          {/* Sync Status Banner */}
+          {/* Quick Highlight Stats Row */}
           <div
             style={{
-              marginTop: 18,
-              padding: '12px 14px',
-              background: '#f8fafc',
-              borderRadius: 12,
-              border: '1px solid #e2e8f0',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
+              marginTop: 22,
+              paddingTop: 18,
+              borderTop: '1px solid #e2e8f0',
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
               gap: 12,
-              flexWrap: 'wrap',
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Heart size={16} color="#e11d48" />
-              <span style={{ fontSize: 13, color: '#334155', fontWeight: 600 }}>
-                {savedIds.length} {savedIds.length === 1 ? 'room' : 'rooms'} saved in your wishlist · {savedIds.length} कमरे आपकी पसंद में
-              </span>
-            </div>
             <Link
               href="/saved"
               style={{
-                fontSize: 12.5,
-                fontWeight: 700,
-                color: '#059669',
-                display: 'inline-flex',
+                display: 'flex',
                 alignItems: 'center',
-                gap: 4,
+                gap: 12,
+                padding: '12px 14px',
+                background: '#ffffff',
+                borderRadius: 14,
+                border: '1px solid #e2e8f0',
+                transition: 'transform 0.15s ease, border-color 0.15s ease',
               }}
             >
-              <span>View Saved Rooms · पसंदीदा देखें</span>
-              <span>→</span>
+              <div
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: 10,
+                  background: '#fff1f2',
+                  color: '#e11d48',
+                  display: 'grid',
+                  placeItems: 'center',
+                  flexShrink: 0,
+                }}
+              >
+                <Heart size={18} fill="#f43f5e" />
+              </div>
+              <div style={{ minWidth: 0, flex: 1 }}>
+                <div style={{ fontSize: 11, color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>
+                  Wishlist · पसंदीदा
+                </div>
+                <div style={{ fontSize: 15, fontWeight: 800, color: '#0f172a' }}>
+                  {savedIds.length} {savedIds.length === 1 ? 'Room' : 'Rooms'}
+                </div>
+              </div>
+              <ChevronRight size={16} color="#94a3b8" />
             </Link>
+
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 12,
+                padding: '12px 14px',
+                background: '#ffffff',
+                borderRadius: 14,
+                border: '1px solid #e2e8f0',
+              }}
+            >
+              <div
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: 10,
+                  background: '#f0fdf4',
+                  color: '#16a34a',
+                  display: 'grid',
+                  placeItems: 'center',
+                  flexShrink: 0,
+                }}
+              >
+                <CheckCircle2 size={18} />
+              </div>
+              <div>
+                <div style={{ fontSize: 11, color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>
+                  Brokerage · दलाली
+                </div>
+                <div style={{ fontSize: 15, fontWeight: 800, color: '#16a34a' }}>
+                  ₹0 Zero Always
+                </div>
+              </div>
+            </div>
+
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 12,
+                padding: '12px 14px',
+                background: '#ffffff',
+                borderRadius: 14,
+                border: '1px solid #e2e8f0',
+              }}
+            >
+              <div
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: 10,
+                  background: '#eff6ff',
+                  color: '#2563eb',
+                  display: 'grid',
+                  placeItems: 'center',
+                  flexShrink: 0,
+                }}
+              >
+                <ShieldCheck size={18} />
+              </div>
+              <div>
+                <div style={{ fontSize: 11, color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>
+                  Verification · सुरक्षा
+                </div>
+                <div style={{ fontSize: 15, fontWeight: 800, color: '#0f172a' }}>
+                  100% Direct Owners
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       ) : (
+        /* Logged Out Welcome Card */
         <div
           style={{
-            background: '#ffffff',
-            borderRadius: 20,
-            border: '1px solid #e2e8f0',
-            padding: '28px 24px',
-            boxShadow: '0 4px 20px rgba(15, 23, 42, 0.05)',
-            marginBottom: 24,
+            background: 'linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%)',
+            borderRadius: 22,
+            border: '1.5px solid #a7f3d0',
+            padding: '32px 24px',
+            boxShadow: '0 8px 30px rgba(16, 185, 129, 0.08)',
+            marginBottom: 28,
             textAlign: 'center',
           }}
         >
           <div
             style={{
-              width: 52,
-              height: 52,
-              borderRadius: 16,
-              background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+              width: 58,
+              height: 58,
+              borderRadius: 18,
+              background: '#10b981',
               color: '#ffffff',
               display: 'grid',
               placeItems: 'center',
-              fontSize: 24,
+              fontSize: 26,
               fontWeight: 800,
-              margin: '0 auto 12px',
-              boxShadow: '0 6px 16px rgba(16, 185, 129, 0.25)',
+              margin: '0 auto 14px',
+              boxShadow: '0 8px 20px rgba(16, 185, 129, 0.28)',
             }}
           >
             ⌂
           </div>
-          <h3 style={{ fontSize: 19, fontWeight: 800, color: '#0f172a', margin: '0 0 6px' }}>
-            Sign In with Google
-          </h3>
-          <p style={{ fontSize: 13.5, color: '#64748b', maxWidth: 440, margin: '0 auto 18px', lineHeight: 1.5 }}>
-            {savedIds.length > 0
-              ? `You currently have ${savedIds.length} property bookmarked on this device. Sign in with Google to permanently save and merge them into your profile.`
-              : 'Save rooms, track rent calculations, and access direct owner chat across all your devices.'}
+
+          <h2 style={{ fontSize: 22, fontWeight: 800, color: '#065f46', margin: '0 0 6px' }}>
+            Welcome to RoomSaathi <span style={{ fontWeight: 700 }}>· रूमसाथी में आपका स्वागत है</span>
+          </h2>
+
+          <p style={{ fontSize: 14, color: '#047857', maxWidth: 480, margin: '0 auto 18px', lineHeight: 1.5 }}>
+            Sign in to access your shortlisted rooms, contact verified homeowners, and connect with fellow residents in Samastipur.
+            <span style={{ display: 'block', color: '#065f46', fontSize: 12.5, marginTop: 4 }}>
+              कमरे और पीजी सुरक्षित रखने, सीधे मकान मालिकों से संपर्क करने और रूममेट खोजने के लिए साइन इन करें।
+            </span>
           </p>
 
           <button
             type="button"
             onClick={openAuthModal}
+            className="btn"
             style={{
               display: 'inline-flex',
               alignItems: 'center',
-              justifyContent: 'center',
-              gap: 10,
-              padding: '12px 24px',
-              backgroundColor: '#ffffff',
-              border: '1.5px solid #cbd5e1',
-              borderRadius: 12,
-              fontSize: 14,
-              fontWeight: 700,
-              color: '#1e293b',
-              cursor: 'pointer',
-              boxShadow: '0 2px 8px rgba(15, 23, 42, 0.06)',
+              gap: 8,
+              padding: '12px 28px',
+              fontSize: 14.5,
+              borderRadius: 14,
+              boxShadow: '0 4px 14px rgba(5, 150, 105, 0.25)',
             }}
           >
-            <svg width="18" height="18" viewBox="0 0 24 24">
-              <path
-                fill="#4285F4"
-                d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.17z"
-              />
-              <path
-                fill="#34A853"
-                d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.33 24 12 24z"
-              />
-              <path
-                fill="#FBBC05"
-                d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 9.99 0 12s.45 3.82 1.25 5.42l4.03-3.15z"
-              />
-              <path
-                fill="#EA4335"
-                d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.33 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z"
-              />
-            </svg>
-            <span>Continue with Google</span>
+            <LogIn size={16} />
+            <span>Sign In / Continue · साइन इन करें</span>
           </button>
+
+          {/* Quick Perks Row */}
+          <div style={{ display: 'flex', justifyContent: 'center', gap: 14, flexWrap: 'wrap', marginTop: 20 }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: '#065f46', background: 'rgba(255,255,255,0.7)', padding: '4px 12px', borderRadius: 999 }}>
+              ✓ 100% Zero Brokerage · ₹0 दलाली
+            </span>
+            <span style={{ fontSize: 12, fontWeight: 700, color: '#065f46', background: 'rgba(255,255,255,0.7)', padding: '4px 12px', borderRadius: 999 }}>
+              ✓ Verified Rooms & PGs · सत्यापित जगहें
+            </span>
+            <span style={{ fontSize: 12, fontWeight: 700, color: '#065f46', background: 'rgba(255,255,255,0.7)', padding: '4px 12px', borderRadius: 999 }}>
+              ✓ Direct Owner Contact · सीधी बात
+            </span>
+          </div>
         </div>
       )}
 
-      {/* Useful Shortcuts Grid */}
-      <div style={{ marginTop: 24 }}>
-        <h3 style={{ fontSize: 15, fontWeight: 700, color: '#0f172a', marginBottom: 12 }}>
-          Quick Shortcuts
+      {/* Services & Quick Links Hub */}
+      <div style={{ marginBottom: 32 }}>
+        <h3 style={{ fontSize: 17, fontWeight: 800, color: '#0f172a', marginBottom: 14 }}>
+          Tenant Services & Tools · सेवाएँ और टूल्स
         </h3>
-        <div className="sidebar-links">
-          <Link href="/saved">
-            <Heart size={15} color="#e11d48" />
-            <span>Saved properties ({savedIds.length})</span>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 14 }}>
+          {/* 1. Saved Rooms */}
+          <Link
+            href="/saved"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 14,
+              padding: '18px 20px',
+              background: '#ffffff',
+              borderRadius: 18,
+              border: '1px solid #e2e8f0',
+              boxShadow: '0 2px 10px rgba(15, 23, 42, 0.03)',
+              transition: 'all 0.18s ease',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+              <div
+                style={{
+                  width: 44,
+                  height: 44,
+                  borderRadius: 14,
+                  background: '#fff1f2',
+                  color: '#e11d48',
+                  display: 'grid',
+                  placeItems: 'center',
+                  flexShrink: 0,
+                }}
+              >
+                <Heart size={22} fill="#f43f5e" />
+              </div>
+              <div>
+                <div style={{ fontWeight: 800, fontSize: 14.5, color: '#0f172a' }}>
+                  Saved Rooms · पसंदीदा कमरे
+                </div>
+                <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>
+                  {savedIds.length} {savedIds.length === 1 ? 'room' : 'rooms'} shortlisted for comparison
+                </div>
+              </div>
+            </div>
+            <ChevronRight size={18} color="#94a3b8" />
           </Link>
-          <Link href="/calculator">
-            <Calculator size={15} color="#059669" />
-            <span>Rent & Monthly Cost Calculator</span>
+
+          {/* 2. Rent Calculator */}
+          <Link
+            href="/calculator"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 14,
+              padding: '18px 20px',
+              background: '#ffffff',
+              borderRadius: 18,
+              border: '1px solid #e2e8f0',
+              boxShadow: '0 2px 10px rgba(15, 23, 42, 0.03)',
+              transition: 'all 0.18s ease',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+              <div
+                style={{
+                  width: 44,
+                  height: 44,
+                  borderRadius: 14,
+                  background: '#ecfdf5',
+                  color: '#059669',
+                  display: 'grid',
+                  placeItems: 'center',
+                  flexShrink: 0,
+                }}
+              >
+                <Calculator size={22} />
+              </div>
+              <div>
+                <div style={{ fontWeight: 800, fontSize: 14.5, color: '#0f172a' }}>
+                  Rent Calculator · खर्च कैलकुलेटर
+                </div>
+                <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>
+                  Calculate electricity, food & move-in costs
+                </div>
+              </div>
+            </div>
+            <ChevronRight size={18} color="#94a3b8" />
           </Link>
-          <Link href="/alerts">
-            <Bell size={15} color="#d97706" />
-            <span>Vacancy & Price Drop Alerts</span>
+
+          {/* 3. Roommates */}
+          <Link
+            href="/roommates"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 14,
+              padding: '18px 20px',
+              background: '#ffffff',
+              borderRadius: 18,
+              border: '1px solid #e2e8f0',
+              boxShadow: '0 2px 10px rgba(15, 23, 42, 0.03)',
+              transition: 'all 0.18s ease',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+              <div
+                style={{
+                  width: 44,
+                  height: 44,
+                  borderRadius: 14,
+                  background: '#f5f3ff',
+                  color: '#7c3aed',
+                  display: 'grid',
+                  placeItems: 'center',
+                  flexShrink: 0,
+                }}
+              >
+                <Users size={22} />
+              </div>
+              <div>
+                <div style={{ fontWeight: 800, fontSize: 14.5, color: '#0f172a' }}>
+                  Find Roommates · रूममेट खोजें
+                </div>
+                <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>
+                  Connect with students & working professionals
+                </div>
+              </div>
+            </div>
+            <ChevronRight size={18} color="#94a3b8" />
           </Link>
-          <Link href="/roommates">
-            <Users size={15} color="#7c3aed" />
-            <span>Find a Roommate</span>
+
+          {/* 4. Vacancy Alerts */}
+          <Link
+            href="/alerts"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 14,
+              padding: '18px 20px',
+              background: '#ffffff',
+              borderRadius: 18,
+              border: '1px solid #e2e8f0',
+              boxShadow: '0 2px 10px rgba(15, 23, 42, 0.03)',
+              transition: 'all 0.18s ease',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+              <div
+                style={{
+                  width: 44,
+                  height: 44,
+                  borderRadius: 14,
+                  background: '#fffbeb',
+                  color: '#d97706',
+                  display: 'grid',
+                  placeItems: 'center',
+                  flexShrink: 0,
+                }}
+              >
+                <Bell size={22} />
+              </div>
+              <div>
+                <div style={{ fontWeight: 800, fontSize: 14.5, color: '#0f172a' }}>
+                  Room Alerts · कमरों के अलर्ट
+                </div>
+                <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>
+                  Get notified when price drops or rooms open
+                </div>
+              </div>
+            </div>
+            <ChevronRight size={18} color="#94a3b8" />
           </Link>
-          <a href={OWNER_PORTAL_URL} target="_blank" rel="noopener noreferrer">
-            <Building2 size={15} color="#0284c7" />
-            <span>Property Owner / Host Portal</span>
-            <ExternalLink size={12} style={{ marginLeft: 4 }} />
+
+          {/* 5. Host & Landlord Portal */}
+          <a
+            href={OWNER_PORTAL_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 14,
+              padding: '18px 20px',
+              background: '#f0f9ff',
+              borderRadius: 18,
+              border: '1.5px solid #bae6fd',
+              boxShadow: '0 2px 10px rgba(14, 165, 233, 0.06)',
+              transition: 'all 0.18s ease',
+              gridColumn: '1 / -1',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+              <div
+                style={{
+                  width: 44,
+                  height: 44,
+                  borderRadius: 14,
+                  background: '#0284c7',
+                  color: '#ffffff',
+                  display: 'grid',
+                  placeItems: 'center',
+                  flexShrink: 0,
+                }}
+              >
+                <Building2 size={22} />
+              </div>
+              <div>
+                <div style={{ fontWeight: 800, fontSize: 15, color: '#0369a1', display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span>Property Owner & Host Portal · मकान मालिक पोर्टल</span>
+                  <span style={{ fontSize: 11, background: '#0284c7', color: '#ffffff', padding: '2px 8px', borderRadius: 6, fontWeight: 700 }}>
+                    List Room
+                  </span>
+                </div>
+                <div style={{ fontSize: 12.5, color: '#0284c7', marginTop: 2 }}>
+                  Are you a landlord or PG host? List rooms, verify tenants & manage rent khata.
+                </div>
+              </div>
+            </div>
+            <ExternalLink size={18} color="#0284c7" />
+          </a>
+        </div>
+      </div>
+
+      {/* Samastipur Resident Helpdesk Card */}
+      <div
+        style={{
+          background: '#ffffff',
+          borderRadius: 20,
+          border: '1px solid #e2e8f0',
+          padding: '22px 24px',
+          boxShadow: '0 4px 16px rgba(15, 23, 42, 0.03)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 20,
+          flexWrap: 'wrap',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+          <div
+            style={{
+              width: 44,
+              height: 44,
+              borderRadius: 14,
+              background: '#e0f2fe',
+              color: '#0369a1',
+              display: 'grid',
+              placeItems: 'center',
+              flexShrink: 0,
+            }}
+          >
+            <PhoneCall size={20} />
+          </div>
+          <div>
+            <div style={{ fontWeight: 800, fontSize: 15, color: '#0f172a' }}>
+              Need Help Finding a Room? · कमरा खोजने में मदद चाहिए?
+            </div>
+            <div style={{ fontSize: 12.5, color: '#64748b', marginTop: 2 }}>
+              Our local Samastipur team is ready to assist you (10 AM - 8 PM). Zero brokerage fees.
+            </div>
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+          <a
+            href="https://wa.me/917461824651?text=Hi%20RoomSaathi,%20I%20need%20help%20finding%20a%20room%20in%20Samastipur"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+              padding: '9px 16px',
+              borderRadius: 12,
+              background: '#25D366',
+              color: '#ffffff',
+              fontSize: 13,
+              fontWeight: 700,
+              textDecoration: 'none',
+              boxShadow: '0 2px 8px rgba(37, 211, 102, 0.25)',
+            }}
+          >
+            <MessageCircle size={15} />
+            <span>WhatsApp · सहायता</span>
+          </a>
+
+          <a
+            href="tel:7461824651"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+              padding: '9px 16px',
+              borderRadius: 12,
+              background: '#f8fafc',
+              color: '#334155',
+              border: '1px solid #cbd5e1',
+              fontSize: 13,
+              fontWeight: 700,
+              textDecoration: 'none',
+            }}
+          >
+            <PhoneCall size={15} />
+            <span>Call Helpdesk</span>
           </a>
         </div>
       </div>
     </div>
   );
 }
+

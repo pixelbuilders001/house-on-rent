@@ -121,7 +121,7 @@ export function AuthModal() {
             Sign in to RoomSaathi
           </h2>
           <p style={{ fontSize: 13, color: '#64748b', margin: 0, lineHeight: 1.45 }}>
-            Sync your saved rooms, send visit requests, and connect directly with verified owners.
+            Access your saved rooms, send visit requests, and connect directly with verified owners.
           </p>
         </div>
 
@@ -153,7 +153,7 @@ export function AuthModal() {
               <Heart size={14} color="#059669" />
             </div>
             <div style={{ fontSize: 12.5, color: '#334155' }}>
-              <strong>Permanent Saved Rooms</strong> — Keep your favorite rooms saved across all devices.
+              <strong>Shortlisted Rooms</strong> — Keep your favorite rooms saved whenever you return.
             </div>
           </div>
 
@@ -191,7 +191,7 @@ export function AuthModal() {
               <ShieldCheck size={14} color="#16a34a" />
             </div>
             <div style={{ fontSize: 12.5, color: '#334155' }}>
-              <strong>100% Free & Safe</strong> — Zero passwords. Fast, secure 1-tap Google login.
+              <strong>100% Free & Verified</strong> — Fast, secure 1-tap resident login.
             </div>
           </div>
         </div>
