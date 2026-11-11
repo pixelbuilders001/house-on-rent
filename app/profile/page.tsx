@@ -367,6 +367,51 @@ export default function Profile() {
         </h3>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 14 }}>
+          {/* 0. My Stay & Rent Portal */}
+          <Link
+            href="/my-stay"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 14,
+              padding: '18px 20px',
+              background: 'linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%)',
+              borderRadius: 18,
+              border: '1.5px solid #86efac',
+              boxShadow: '0 4px 14px rgba(16, 185, 129, 0.08)',
+              transition: 'all 0.18s ease',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+              <div
+                style={{
+                  width: 44,
+                  height: 44,
+                  borderRadius: 14,
+                  background: '#10b981',
+                  color: '#ffffff',
+                  display: 'grid',
+                  placeItems: 'center',
+                  flexShrink: 0,
+                  boxShadow: '0 4px 12px rgba(16, 185, 129, 0.25)',
+                }}
+              >
+                <Home size={22} />
+              </div>
+              <div>
+                <div style={{ fontWeight: 800, fontSize: 14.5, color: '#0f172a', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span>My Stay · मेरा कमरा</span>
+                  <span style={{ fontSize: 10, background: '#10b981', color: '#ffffff', padding: '1px 6px', borderRadius: 99, fontWeight: 700 }}>Active</span>
+                </div>
+                <div style={{ fontSize: 12, color: '#047857', marginTop: 2, fontWeight: 600 }}>
+                  Rent due, UPI payments & receipts
+                </div>
+              </div>
+            </div>
+            <ChevronRight size={18} color="#059669" />
+          </Link>
+
           {/* 1. Saved Rooms */}
           <Link
             href="/saved"

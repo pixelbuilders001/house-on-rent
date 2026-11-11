@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Heart, House, Search, Bell, UserRound, Building2, Menu, X, LogIn } from 'lucide-react';
+import { Heart, House, Search, Bell, UserRound, Building2, Menu, X, LogIn, DoorClosed } from 'lucide-react';
 import { useSearchSheet } from '@/context/SearchSheetContext';
 import { MobileSearchSheet } from '@/components/MobileSearchSheet';
 import { useAuth } from '@/context/AuthContext';
@@ -56,6 +56,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
           <nav className="navlinks">
             <Link href="/search" className={active('/search') ? 'active-link' : ''}>Find a room</Link>
+            <Link href="/my-stay" className={active('/my-stay') ? 'active-link' : ''} style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+              <span>My Stay</span>
+              <span style={{ fontSize: 10, background: '#ecfdf5', color: '#047857', padding: '1px 6px', borderRadius: 99, fontWeight: 700 }}>Tenant</span>
+            </Link>
             <a 
               href={OWNER_PORTAL_URL} 
               target="_blank" 
@@ -203,6 +207,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 <Search size={18} />
                 <span>Find a Room</span>
               </button>
+              <Link
+                href="/my-stay"
+                className={`mobile-menu-item ${path.startsWith('/my-stay') ? 'active' : ''}`}
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                <DoorClosed size={18} />
+                <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                  My Stay (मेरा कमरा)
+                  <span style={{ fontSize: 10, background: '#ecfdf5', color: '#047857', padding: '2px 8px', borderRadius: 99, fontWeight: 700 }}>Tenant</span>
+                </span>
+              </Link>
               <a
                 href={OWNER_PORTAL_URL}
                 target="_blank"
