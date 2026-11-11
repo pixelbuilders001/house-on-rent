@@ -38,123 +38,12 @@ import {
   fetchRoommates,
   fetchTenantVisits,
   markRentPaidOnline,
-  linkTenantByPhone,
   type ActiveTenantStay,
   type RentRecordItem,
   type ComplaintItem,
   type RoommateItem,
   type VisitRequestItem
 } from '@/lib/services/tenantService';
-
-// Fallback demo stay for preview/testing
-const DEMO_STAY: ActiveTenantStay = {
-  tenant: {
-    id: 'demo-tenant-101',
-    propertyId: 'prop-sam-01',
-    roomNumber: '102',
-    bedLabel: 'B2',
-    fullName: 'Rahul Kumar',
-    phone: '9876543210',
-    email: 'rahul.kumar@gmail.com',
-    collegeOrWork: 'Samastipur College',
-    checkInDate: '2025-01-01',
-    monthlyRent: 4200,
-    depositPaid: 4200,
-    status: 'active',
-    policeVerificationStatus: 'verified',
-    tenantCategory: 'student'
-  },
-  property: {
-    id: 'prop-sam-01',
-    name: 'Balaji PG & Student Residency',
-    address: 'Near Station Road, Mohanpur',
-    area: 'Mohanpur',
-    city: 'Samastipur',
-    type: 'PG',
-    ownerName: 'Sunil Sharma',
-    ownerPhone: '9876543210',
-    upiId: 'sunilsharma@okaxis',
-    images: ['https://images.unsplash.com/photo-1555854877-bab0e564b8d5?auto=format&fit=crop&w=800&q=80']
-  },
-  room: {
-    id: 'room-102',
-    roomNumber: '102',
-    floor: 1,
-    type: 'Double Sharing AC',
-    rentAmount: 4200
-  }
-};
-
-const DEMO_RENTS: RentRecordItem[] = [
-  {
-    id: 'rent-current',
-    tenantId: 'demo-tenant-101',
-    tenantName: 'Rahul Kumar',
-    propertyId: 'prop-sam-01',
-    propertyName: 'Balaji PG & Student Residency',
-    roomNumber: '102',
-    month: 'November 2026',
-    baseRent: 4200,
-    electricityUnits: 45,
-    electricityAmount: 450,
-    wifiAmount: 150,
-    foodAmount: 0,
-    otherAmount: 0,
-    totalAmount: 4800,
-    status: 'pending',
-    dueDate: '2026-11-15'
-  },
-  {
-    id: 'rent-prev',
-    tenantId: 'demo-tenant-101',
-    tenantName: 'Rahul Kumar',
-    propertyId: 'prop-sam-01',
-    propertyName: 'Balaji PG & Student Residency',
-    roomNumber: '102',
-    month: 'October 2026',
-    baseRent: 4200,
-    electricityUnits: 38,
-    electricityAmount: 380,
-    wifiAmount: 150,
-    foodAmount: 0,
-    otherAmount: 0,
-    totalAmount: 4730,
-    status: 'paid',
-    dueDate: '2026-10-10',
-    paidDate: '2026-10-05',
-    paymentMethod: 'UPI',
-    transactionRef: 'UPI/261005882739'
-  }
-];
-
-const DEMO_COMPLAINTS: ComplaintItem[] = [
-  {
-    id: 'comp-1',
-    propertyId: 'prop-sam-01',
-    propertyName: 'Balaji PG & Student Residency',
-    tenantName: 'Rahul Kumar',
-    roomNumber: '102',
-    category: 'wifi',
-    title: 'WiFi speed slow on 1st floor',
-    description: 'The router frequently disconnects between 8 PM to 10 PM during study hours.',
-    priority: 'medium',
-    status: 'in_progress',
-    createdAt: '2026-11-08T10:30:00Z',
-    adminNote: 'Owner arranged ISP technician visit for router inspection.'
-  }
-];
-
-const DEMO_ROOMMATES: RoommateItem[] = [
-  {
-    id: 'roommate-1',
-    fullName: 'Amit Verma',
-    phone: '9871122334',
-    roomNumber: '102',
-    bedLabel: 'B1',
-    collegeOrWork: 'RNAR College, Samastipur',
-    checkInDate: '2024-11-10'
-  }
-];
 
 export default function MyStayPage() {
   const { user, profile, openAuthModal } = useAuth();
@@ -166,7 +55,6 @@ export default function MyStayPage() {
   const [complaints, setComplaints] = useState<ComplaintItem[]>([]);
   const [roommates, setRoommates] = useState<RoommateItem[]>([]);
   const [visits, setVisits] = useState<VisitRequestItem[]>([]);
-  const [isDemoMode, setIsDemoMode] = useState(false);
 
   // Modals state
   const [showPayModal, setShowPayModal] = useState(false);
@@ -187,47 +75,18 @@ export default function MyStayPage() {
   const [submittingComplaint, setSubmittingComplaint] = useState(false);
   const [complaintSuccess, setComplaintSuccess] = useState(false);
 
-  // Phone linking state
-  const [linkPhoneInput, setLinkPhoneInput] = useState('');
-  const [linkingPhone, setLinkingPhone] = useState(false);
-  const [linkPhoneError, setLinkPhoneError] = useState('');
-  const [reloadTrigger, setReloadTrigger] = useState(0);
-
-  const handleLinkPhone = async () => {
-    if (!linkPhoneInput.trim()) return;
-    setLinkingPhone(true);
-    setLinkPhoneError('');
-    const res = await linkTenantByPhone(linkPhoneInput, user?.id, user?.email);
-    setLinkingPhone(false);
-    if (res.success) {
-      setReloadTrigger(prev => prev + 1);
-    } else {
-      setLinkPhoneError(res.error || 'No matching active tenant record found for this number.');
-    }
-  };
-
   // Load active stay data
   useEffect(() => {
     async function loadData() {
       setLoading(true);
 
       const userEmail = user?.email || profile?.email || null;
-      let userPhone = profile?.phone || (typeof window !== 'undefined' ? localStorage.getItem('roomsaathi_tenant_phone') : null);
+      const userPhone = profile?.phone || user?.phone || user?.user_metadata?.phone || (typeof window !== 'undefined' ? localStorage.getItem('roomsaathi_tenant_phone') : null);
       const userProfileId = user?.id || null;
       const userFullName = profile?.full_name || user?.user_metadata?.full_name || null;
 
-      if (!user && !isDemoMode) {
+      if (!user) {
         setStay(null);
-        setLoading(false);
-        return;
-      }
-
-      if (isDemoMode) {
-        setStay(DEMO_STAY);
-        setRentRecords(DEMO_RENTS);
-        setComplaints(DEMO_COMPLAINTS);
-        setRoommates(DEMO_ROOMMATES);
-        setVisits([]);
         setLoading(false);
         return;
       }
@@ -267,7 +126,7 @@ export default function MyStayPage() {
     }
 
     loadData();
-  }, [user, profile, isDemoMode, reloadTrigger]);
+  }, [user, profile]);
 
   const activeRentDue = rentRecords.find(r => r.status === 'pending' || r.status === 'overdue') || rentRecords[0];
 
@@ -280,18 +139,6 @@ export default function MyStayPage() {
 
   const handleConfirmPayment = async () => {
     if (!payingRecord) return;
-    if (isDemoMode) {
-      setRentRecords(prev =>
-        prev.map(r =>
-          r.id === payingRecord.id
-            ? { ...r, status: 'paid', paidDate: new Date().toISOString().split('T')[0], paymentMethod: 'UPI', transactionRef: paymentUtr || 'UPI-MANUAL' }
-            : r
-        )
-      );
-      setPaymentSubmitted(true);
-      setTimeout(() => setShowPayModal(false), 1500);
-      return;
-    }
 
     const ok = await markRentPaidOnline(payingRecord.id, 'UPI', paymentUtr);
     if (ok) {
@@ -314,31 +161,6 @@ export default function MyStayPage() {
     if (!stay || !complaintForm.title.trim()) return;
 
     setSubmittingComplaint(true);
-
-    if (isDemoMode) {
-      const newC: ComplaintItem = {
-        id: 'comp-' + Date.now(),
-        propertyId: stay.tenant.propertyId,
-        propertyName: stay.property?.name || 'Property',
-        tenantName: stay.tenant.fullName,
-        roomNumber: stay.tenant.roomNumber,
-        category: complaintForm.category as any,
-        title: complaintForm.title,
-        description: complaintForm.description,
-        priority: complaintForm.priority as any,
-        status: 'open',
-        createdAt: new Date().toISOString()
-      };
-      setComplaints([newC, ...complaints]);
-      setComplaintSuccess(true);
-      setSubmittingComplaint(false);
-      setTimeout(() => {
-        setShowComplaintModal(false);
-        setComplaintSuccess(false);
-        setComplaintForm({ category: 'wifi', priority: 'medium', title: '', description: '' });
-      }, 1200);
-      return;
-    }
 
     const res = await submitTenantComplaint({
       propertyId: stay.tenant.propertyId,
@@ -378,34 +200,7 @@ export default function MyStayPage() {
           <span className="eyebrow" style={{ margin: 0 }}>
             किरायेदार पोर्टल · RESIDENT PORTAL
           </span>
-          {isDemoMode && (
-            <span style={{ fontSize: 11, background: '#fef3c7', color: '#92400e', padding: '2px 8px', borderRadius: 99, fontWeight: 700 }}>
-              Demo Preview Mode
-            </span>
-          )}
         </div>
-
-        {/* Demo Switcher */}
-        <button
-          type="button"
-          onClick={() => setIsDemoMode(!isDemoMode)}
-          style={{
-            fontSize: 12,
-            padding: '5px 12px',
-            borderRadius: 99,
-            background: isDemoMode ? '#f1f5f9' : '#ecfdf5',
-            color: isDemoMode ? '#475569' : '#047857',
-            border: `1px solid ${isDemoMode ? '#cbd5e1' : '#a7f3d0'}`,
-            fontWeight: 700,
-            cursor: 'pointer',
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 6
-          }}
-        >
-          <Sparkles size={13} />
-          {isDemoMode ? 'Exit Demo View' : 'Try Demo Stay View'}
-        </button>
       </div>
 
       <h1 style={{ fontSize: 'clamp(26px, 4vw, 36px)', fontWeight: 800, margin: '0 0 6px', letterSpacing: '-1px' }}>
@@ -497,93 +292,6 @@ export default function MyStayPage() {
               >
                 Explore Rooms in Samastipur
               </Link>
-            )}
-
-            <button
-              type="button"
-              onClick={() => setIsDemoMode(true)}
-              style={{
-                background: '#ffffff',
-                color: '#0f172a',
-                padding: '12px 20px',
-                borderRadius: 14,
-                fontWeight: 700,
-                fontSize: 14,
-                border: '1px solid #cbd5e1',
-                cursor: 'pointer',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 8
-              }}
-            >
-              <Sparkles size={16} color="#10b981" />
-              Preview Demo Tenant Portal
-            </button>
-          </div>
-
-          {/* Quick Mobile Number Linker */}
-          <div
-            style={{
-              maxWidth: 460,
-              margin: '28px auto 0',
-              padding: '18px 20px',
-              background: '#f8fafc',
-              borderRadius: 18,
-              border: '1px solid #e2e8f0',
-              textAlign: 'left',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.02)'
-            }}
-          >
-            <div style={{ fontSize: 13.5, fontWeight: 700, color: '#0f172a', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
-              <Phone size={15} color="#10b981" />
-              <span>Link with your Mobile Number (मोबाइल नंबर जोड़ें)</span>
-            </div>
-            <p style={{ fontSize: 12, color: '#64748b', margin: '0 0 12px', lineHeight: 1.5 }}>
-              If your landlord onboarded you with your 10-digit phone number, enter it below to immediately connect your room, rent due & receipts:
-            </p>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <input
-                type="tel"
-                placeholder="Enter 10-digit mobile number"
-                value={linkPhoneInput}
-                onChange={e => setLinkPhoneInput(e.target.value)}
-                onKeyDown={e => {
-                  if (e.key === 'Enter') handleLinkPhone();
-                }}
-                style={{
-                  flex: 1,
-                  padding: '10px 14px',
-                  borderRadius: 10,
-                  border: '1px solid #cbd5e1',
-                  fontSize: 13.5,
-                  outline: 'none',
-                  background: '#ffffff'
-                }}
-              />
-              <button
-                type="button"
-                onClick={handleLinkPhone}
-                disabled={linkingPhone || !linkPhoneInput.trim()}
-                style={{
-                  background: '#10b981',
-                  color: '#ffffff',
-                  border: 'none',
-                  padding: '10px 18px',
-                  borderRadius: 10,
-                  fontSize: 13,
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  opacity: linkingPhone || !linkPhoneInput.trim() ? 0.7 : 1,
-                  whiteSpace: 'nowrap'
-                }}
-              >
-                {linkingPhone ? 'Linking...' : 'Connect Room'}
-              </button>
-            </div>
-            {linkPhoneError && (
-              <div style={{ fontSize: 12, color: '#dc2626', marginTop: 8, fontWeight: 600 }}>
-                ⚠️ {linkPhoneError}
-              </div>
             )}
           </div>
         </div>
