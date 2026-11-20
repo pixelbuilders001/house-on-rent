@@ -44,6 +44,9 @@ function RouteLoaderInner({ children }: { children: React.ReactNode }) {
     if (path.includes('/profile')) {
       return 'Loading your tenant profile...';
     }
+    if (path.includes('/my-stay')) {
+      return 'Loading your stay & rent details...';
+    }
     return 'Finding your home in Samastipur...';
   };
 

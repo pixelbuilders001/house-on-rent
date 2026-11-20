@@ -67,7 +67,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}
             >
               <Building2 size={14} />
-              Host Portal
+              Owner Portal
             </a>
             <Link href="/saved" className={active('/saved') ? 'active-link' : ''} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
               <span>Saved</span>
@@ -227,8 +227,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               >
                 <Building2 size={18} />
                 <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-                  Host Portal
-                  <span style={{ fontSize: 10, background: '#ecfdf5', color: '#065f46', padding: '2px 8px', borderRadius: 99, fontWeight: 700 }}>Host</span>
+                  Owner Portal
+                  <span style={{ fontSize: 10, background: '#ecfdf5', color: '#065f46', padding: '2px 8px', borderRadius: 99, fontWeight: 700 }}>Owner</span>
                 </span>
               </a>
               <Link
@@ -267,7 +267,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <span><b>RoomSaathi</b> · Verified student & bachelor rooms in Samastipur.</span>
           <span>Samastipur, Bihar · Live Listings</span>
           <span>
-            <a href={OWNER_PORTAL_URL} target="_blank" rel="noopener noreferrer">Host Portal & Rent Manager</a>
+            <a href={OWNER_PORTAL_URL} target="_blank" rel="noopener noreferrer">Owner Portal & Rent Manager</a>
           </span>
         </div>
       </footer>

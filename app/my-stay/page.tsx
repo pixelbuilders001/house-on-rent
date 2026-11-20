@@ -4,8 +4,6 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import {
   Home,
-  DoorClosed,
-  Bed,
   IndianRupee,
   Receipt,
   Wrench,
@@ -23,14 +21,17 @@ import {
   ShieldCheck,
   Send,
   Building2,
-  Sparkles,
-  Info,
   X,
   FileText,
   Printer,
   PenLine,
   Download,
-  Check
+  Check,
+  Sparkles,
+  MapPin,
+  ArrowUpRight,
+  Copy,
+  Info
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import {
@@ -74,6 +75,7 @@ export default function MyStayPage() {
   const [payingRecord, setPayingRecord] = useState<RentRecordItem | null>(null);
   const [paymentUtr, setPaymentUtr] = useState('');
   const [paymentSubmitted, setPaymentSubmitted] = useState(false);
+  const [copiedUpi, setCopiedUpi] = useState(false);
 
   const [showReceiptModal, setShowReceiptModal] = useState(false);
   const [selectedReceipt, setSelectedReceipt] = useState<RentRecordItem | null>(null);
@@ -247,6 +249,7 @@ export default function MyStayPage() {
     setPayingRecord(record);
     setPaymentUtr('');
     setPaymentSubmitted(false);
+    setCopiedUpi(false);
     setShowPayModal(true);
   };
 
@@ -301,1561 +304,1018 @@ export default function MyStayPage() {
     }
   };
 
+  const upiIdString = stay?.property?.upiId || 'roomsaathi@upi';
   const upiUrl = payingRecord && stay?.property?.upiId
-    ? `upi://pay?pa=${encodeURIComponent(stay.property.upiId)}&pn=${encodeURIComponent(stay.property.ownerName || 'Host')}&am=${payingRecord.totalAmount}&cu=INR&tn=${encodeURIComponent(`${stay.property.name} Rent ${payingRecord.month}`)}`
-    : '';
+    ? `upi://pay?pa=${encodeURIComponent(stay.property.upiId)}&pn=${encodeURIComponent(stay.property.ownerName || 'Owner')}&am=${payingRecord.totalAmount}&cu=INR&tn=${encodeURIComponent(`${stay.property.name} Rent ${payingRecord.month}`)}`
+    : `upi://pay?pa=${encodeURIComponent(upiIdString)}&pn=Owner&am=${payingRecord?.totalAmount || 0}&cu=INR`;
+
+  const copyUpiToClipboard = () => {
+    navigator.clipboard.writeText(upiIdString);
+    setCopiedUpi(true);
+    setTimeout(() => setCopiedUpi(false), 2000);
+  };
+
+  const pendingComplaintsCount = complaints.filter(c => c.status !== 'resolved').length;
+  const isAgreementSigned = Boolean(agreement?.status === 'completed' || agreement?.tenantSignature);
 
   return (
-    <div className="container section" style={{ maxWidth: 960, minHeight: '80vh', paddingBottom: 80 }}>
-      {/* Top Banner / Eyebrow */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 12 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span className="eyebrow" style={{ margin: 0 }}>
-            किरायेदार पोर्टल · RESIDENT PORTAL
-          </span>
-        </div>
-      </div>
+    <div className="min-h-[85vh] bg-slate-50/60 py-6 md:py-10 pb-28 md:pb-20">
+      <div className="max-w-3xl mx-auto px-4 sm:px-6">
 
-      <h1 style={{ fontSize: 'clamp(26px, 4vw, 36px)', fontWeight: 800, margin: '0 0 6px', letterSpacing: '-1px' }}>
-        My Stay <span className="title-accent">· मेरा कमरा और किराया</span>
-      </h1>
-      <p className="muted" style={{ margin: '0 0 24px', fontSize: 14.5 }}>
-        Track your room details, pay rent directly to host via UPI, view receipts, and raise maintenance tickets.
-      </p>
-
-      {/* Loading State */}
-      {loading ? (
-        <div style={{ padding: '60px 20px', textAlign: 'center', background: '#ffffff', borderRadius: 20, border: '1px solid #e2e8f0' }}>
-          <div className="spinner" style={{ width: 36, height: 36, border: '3px solid #e2e8f0', borderTopColor: '#10b981', borderRadius: '50%', margin: '0 auto 16px', animation: 'spin 0.8s linear infinite' }} />
-          <p style={{ color: '#64748b', fontSize: 14, fontWeight: 600 }}>Loading your room details from RoomSaathi...</p>
-        </div>
-      ) : !stay ? (
-        /* Empty / Not Onboarded State */
-        <div
-          style={{
-            background: 'linear-gradient(145deg, #ffffff 0%, #f8fafc 100%)',
-            borderRadius: 24,
-            border: '1.5px dashed #cbd5e1',
-            padding: '48px 24px',
-            textAlign: 'center',
-            boxShadow: '0 10px 30px rgba(15, 23, 42, 0.04)'
-          }}
-        >
-          <div
-            style={{
-              width: 68,
-              height: 68,
-              borderRadius: 20,
-              background: '#ecfdf5',
-              color: '#059669',
-              display: 'grid',
-              placeItems: 'center',
-              margin: '0 auto 20px'
-            }}
-          >
-            <Building2 size={32} />
+        {/* Page Header */}
+        <div className="mb-6">
+          <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200/60 text-emerald-800 text-xs font-semibold tracking-wide uppercase mb-2">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            Resident Portal · किरायेदार पोर्टल
           </div>
-
-          <h2 style={{ fontSize: 22, fontWeight: 800, color: '#0f172a', margin: '0 0 8px' }}>
-            {user ? 'No Active Stay Linked Yet' : 'Sign in to View Your Active Stay'}
-          </h2>
-          <p style={{ color: '#64748b', fontSize: 14, maxWidth: 520, margin: '0 auto 24px', lineHeight: 1.6 }}>
-            {user
-              ? `Hi ${profile?.full_name || user.email}! When your property owner onboards your mobile number (${profile?.phone || 'not set'}) or email, your stay, rent invoices, and room details will automatically show up here.`
-              : 'Sign in with your registered Google account or phone to access your room information, digital rent receipts, and maintenance desk.'}
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+            My Stay
+          </h1>
+          <p className="text-sm text-slate-500 mt-1">
+            Track your room details, pay rent directly to owner via UPI, view receipts, and raise maintenance tickets.
           </p>
-
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, flexWrap: 'wrap' }}>
-            {!user ? (
-              <button
-                type="button"
-                onClick={openAuthModal}
-                style={{
-                  background: '#10b981',
-                  color: '#ffffff',
-                  padding: '12px 24px',
-                  borderRadius: 14,
-                  fontWeight: 700,
-                  fontSize: 14,
-                  border: 'none',
-                  cursor: 'pointer',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 8,
-                  boxShadow: '0 4px 14px rgba(16, 185, 129, 0.25)'
-                }}
-              >
-                Sign In to View Stay
-              </button>
-            ) : (
-              <Link
-                href="/search"
-                style={{
-                  background: '#10b981',
-                  color: '#ffffff',
-                  padding: '12px 24px',
-                  borderRadius: 14,
-                  fontWeight: 700,
-                  fontSize: 14,
-                  textDecoration: 'none',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 8
-                }}
-              >
-                Explore Rooms in Samastipur
-              </Link>
-            )}
-          </div>
         </div>
-      ) : (
-        /* Resident Active Stay Portal */
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-          {/* Main Resident Property Banner */}
-          <div
-            style={{
-              background: 'linear-gradient(145deg, #ffffff 0%, #f0fdf4 100%)',
-              borderRadius: 22,
-              border: '1px solid #bbf7d0',
-              padding: '24px',
-              boxShadow: '0 8px 30px rgba(16, 185, 129, 0.08)'
-            }}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16, flexWrap: 'wrap' }}>
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                  <span style={{ fontSize: 11, background: '#10b981', color: '#ffffff', padding: '3px 10px', borderRadius: 99, fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                    <ShieldCheck size={13} />
-                    Active Resident · सक्रिय किरायेदार
-                  </span>
-                  <span style={{ fontSize: 12, color: '#047857', fontWeight: 600 }}>
-                    Since {stay.tenant.checkInDate}
-                  </span>
-                </div>
 
-                <h2 style={{ fontSize: 24, fontWeight: 800, color: '#0f172a', margin: '0 0 6px' }}>
-                  {stay.property?.name || 'My Rented Property'}
-                </h2>
-                <p style={{ color: '#475569', fontSize: 13.5, margin: 0 }}>
-                  {stay.property?.address}, {stay.property?.area}, {stay.property?.city}
-                </p>
-              </div>
-
-              {/* Host Contact Quick Actions */}
-              {stay.property?.ownerPhone && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <a
-                    href={`https://wa.me/91${stay.property.ownerPhone.replace(/\D/g, '')}?text=Hi%20${encodeURIComponent(stay.property.ownerName || 'Host')},%20this%20is%20${encodeURIComponent(stay.tenant.fullName)}%20from%20Room%20${stay.tenant.roomNumber}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: 6,
-                      background: '#25d366',
-                      color: '#ffffff',
-                      padding: '8px 14px',
-                      borderRadius: 12,
-                      fontSize: 13,
-                      fontWeight: 700,
-                      textDecoration: 'none',
-                      boxShadow: '0 2px 8px rgba(37, 211, 102, 0.3)'
-                    }}
-                  >
-                    <MessageCircle size={15} />
-                    <span>WhatsApp Host</span>
-                  </a>
-
-                  <a
-                    href={`tel:${stay.property.ownerPhone}`}
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: 6,
-                      background: '#ffffff',
-                      color: '#0f172a',
-                      padding: '8px 14px',
-                      borderRadius: 12,
-                      fontSize: 13,
-                      fontWeight: 700,
-                      textDecoration: 'none',
-                      border: '1px solid #cbd5e1'
-                    }}
-                  >
-                    <Phone size={15} />
-                    <span>Call Host</span>
-                  </a>
-                </div>
-              )}
-            </div>
-
-            {/* Room Info Badges */}
-            <div
-              style={{
-                marginTop: 20,
-                paddingTop: 16,
-                borderTop: '1px solid #dcfce7',
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-                gap: 12
-              }}
-            >
-              <div style={{ background: '#ffffff', padding: '12px 14px', borderRadius: 14, border: '1px solid #e2e8f0' }}>
-                <div style={{ fontSize: 11, color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Room & Bed</div>
-                <div style={{ fontSize: 16, fontWeight: 800, color: '#0f172a', marginTop: 2 }}>
-                  Room {stay.tenant.roomNumber} {stay.tenant.bedLabel ? `· Bed ${stay.tenant.bedLabel}` : ''}
-                </div>
-              </div>
-
-              <div style={{ background: '#ffffff', padding: '12px 14px', borderRadius: 14, border: '1px solid #e2e8f0' }}>
-                <div style={{ fontSize: 11, color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Monthly Base Rent</div>
-                <div style={{ fontSize: 16, fontWeight: 800, color: '#059669', marginTop: 2 }}>
-                  ₹{stay.tenant.monthlyRent.toLocaleString('en-IN')}/mo
-                </div>
-              </div>
-
-              <div style={{ background: '#ffffff', padding: '12px 14px', borderRadius: 14, border: '1px solid #e2e8f0' }}>
-                <div style={{ fontSize: 11, color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Security Deposit</div>
-                <div style={{ fontSize: 16, fontWeight: 800, color: '#0f172a', marginTop: 2 }}>
-                  ₹{stay.tenant.depositPaid.toLocaleString('en-IN')} (Paid)
-                </div>
-              </div>
-
-              <div style={{ background: '#ffffff', padding: '12px 14px', borderRadius: 14, border: '1px solid #e2e8f0' }}>
-                <div style={{ fontSize: 11, color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Verification Status</div>
-                <div style={{ fontSize: 14, fontWeight: 700, color: '#059669', marginTop: 3, display: 'flex', alignItems: 'center', gap: 5 }}>
-                  <CheckCircle2 size={15} />
-                  <span>Verified Resident</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Agreement Quick Status Banner */}
-            {agreement && (
-              <div
-                style={{
-                  marginTop: 16,
-                  padding: '14px 18px',
-                  borderRadius: 16,
-                  background: agreement.status === 'completed' || agreement.tenantSignature
-                    ? 'linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%)'
-                    : 'linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)',
-                  border: `1.5px solid ${agreement.status === 'completed' || agreement.tenantSignature ? '#86efac' : '#fcd34d'}`,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  gap: 12,
-                  flexWrap: 'wrap'
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <div
-                    style={{
-                      width: 38,
-                      height: 38,
-                      borderRadius: 10,
-                      background: agreement.status === 'completed' || agreement.tenantSignature ? '#059669' : '#d97706',
-                      color: '#ffffff',
-                      display: 'grid',
-                      placeItems: 'center',
-                      flexShrink: 0
-                    }}
-                  >
-                    <FileText size={20} />
-                  </div>
-                  <div>
-                    <div style={{ fontSize: 13.5, fontWeight: 800, color: '#0f172a', display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <span>
-                        {agreement.status === 'completed' || agreement.tenantSignature
-                          ? 'Official Tenancy Agreement Executed · किराया अनुबंध हस्ताक्षरित'
-                          : 'Action Required: Review & Sign Tenancy Agreement · हस्ताक्षर करें'}
-                      </span>
-                      <span
-                        style={{
-                          fontSize: 10.5,
-                          fontWeight: 700,
-                          padding: '2px 7px',
-                          borderRadius: 99,
-                          background: agreement.status === 'completed' || agreement.tenantSignature ? '#dcfce7' : '#fef9c3',
-                          color: agreement.status === 'completed' || agreement.tenantSignature ? '#15803d' : '#854d0e'
-                        }}
-                      >
-                        {agreement.status === 'completed' || agreement.tenantSignature ? 'Completed ✓' : 'Awaiting Your Sign ✍️'}
-                      </span>
-                    </div>
-                    <div style={{ fontSize: 12, color: '#475569', marginTop: 2 }}>
-                      {agreement.status === 'completed' || agreement.tenantSignature
-                        ? `Digitally verified for Room ${agreement.roomNumber}. Permanent 11-month lease record.`
-                        : `Host ${agreement.ownerName} has signed. Please add your digital signature to complete legal tenancy.`}
-                    </div>
-                  </div>
-                </div>
-
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  {(!agreement.tenantSignature && agreement.status !== 'completed') && (
-                    <button
-                      type="button"
-                      onClick={() => setShowSignModal(true)}
-                      style={{
-                        background: '#059669',
-                        color: '#ffffff',
-                        padding: '8px 16px',
-                        borderRadius: 10,
-                        fontSize: 12.5,
-                        fontWeight: 700,
-                        border: 'none',
-                        cursor: 'pointer',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: 6,
-                        boxShadow: '0 2px 8px rgba(5, 150, 105, 0.25)'
-                      }}
-                    >
-                      <PenLine size={14} />
-                      <span>Sign Agreement Now</span>
-                    </button>
-                  )}
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setActiveTab('agreement');
-                      setShowAgreementModal(true);
-                    }}
-                    style={{
-                      background: '#ffffff',
-                      color: '#0f172a',
-                      padding: '8px 14px',
-                      borderRadius: 10,
-                      fontSize: 12.5,
-                      fontWeight: 700,
-                      border: '1px solid #cbd5e1',
-                      cursor: 'pointer',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: 6
-                    }}
-                  >
-                    <span>View Document</span>
-                  </button>
-
-                  {(agreement.signedPdfBase64 || agreement.pdfBase64) && (
-                    <button
-                      type="button"
-                      onClick={handleDownloadAgreementPdf}
-                      style={{
-                        background: '#ffffff',
-                        color: '#059669',
-                        padding: '8px 12px',
-                        borderRadius: 10,
-                        fontSize: 12.5,
-                        fontWeight: 700,
-                        border: '1px solid #86efac',
-                        cursor: 'pointer',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: 4
-                      }}
-                      title="Download PDF"
-                    >
-                      <Download size={14} />
-                      <span>PDF</span>
-                    </button>
-                  )}
-                </div>
-              </div>
-            )}
+        {/* Loading State */}
+        {loading ? (
+          <div className="bg-white rounded-3xl border border-slate-200/80 shadow-sm p-12 text-center">
+            <div className="w-9 h-9 border-3 border-slate-200 border-t-emerald-600 rounded-full animate-spin mx-auto mb-4" />
+            <p className="text-sm font-semibold text-slate-600">Loading your room details from RoomSaathi...</p>
           </div>
+        ) : !stay ? (
+          /* Empty / Not Linked Stay State */
+          <div className="bg-white rounded-3xl border border-dashed border-slate-300 shadow-sm p-8 sm:p-12 text-center">
+            <div className="w-14 h-14 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center mx-auto mb-4 shadow-sm">
+              <Building2 className="w-7 h-7" />
+            </div>
 
-          {/* Navigation Sub-Tabs */}
-          <div style={{ display: 'flex', gap: 8, borderBottom: '1px solid #e2e8f0', paddingBottom: 8, overflowX: 'auto' }}>
-            {[
-              { id: 'rent', label: 'Rent & Payments · किराया', icon: IndianRupee },
-              {
-                id: 'agreement',
-                label: agreement?.status === 'completed' || agreement?.tenantSignature
-                  ? 'Agreement (Signed) · अनुबंध'
-                  : agreement?.ownerSignature
-                  ? 'Agreement (Action Required) · अनुबंध'
-                  : 'Rent Agreement · अनुबंध',
-                icon: FileText
-              },
-              { id: 'complaints', label: `Maintenance (${complaints.filter(c => c.status !== 'resolved').length}) · शिकायत`, icon: Wrench },
-              { id: 'roommates', label: `Roommates (${roommates.length}) · साथी`, icon: UsersRound },
-              { id: 'visits', label: `Visits (${visits.length}) · विज़िट`, icon: Calendar }
-            ].map(tab => {
-              const Icon = tab.icon;
-              const isActive = activeTab === tab.id;
-              return (
+            <h2 className="text-xl sm:text-2xl font-bold text-slate-900 mb-2">
+              {user ? 'No Active Stay Linked Yet' : 'Sign in to View Your Active Stay'}
+            </h2>
+            <p className="text-xs sm:text-sm text-slate-500 max-w-md mx-auto mb-6 leading-relaxed">
+              {user
+                ? `Hi ${profile?.full_name || user.email}! When your property owner onboards your mobile number (${profile?.phone || 'not set'}) or email, your room details, UPI rent invoices, and legal lease will automatically appear here.`
+                : 'Sign in with your registered phone or Google account to access your digital room pass, rent payment khata, and maintenance desk.'}
+            </p>
+
+            <div className="flex items-center justify-center gap-3 flex-wrap">
+              {!user ? (
                 <button
-                  key={tab.id}
                   type="button"
-                  onClick={() => setActiveTab(tab.id as any)}
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 8,
-                    padding: '10px 18px',
-                    borderRadius: 12,
-                    fontSize: 13.5,
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                    background: isActive ? '#10b981' : '#f8fafc',
-                    color: isActive ? '#ffffff' : '#475569',
-                    border: isActive ? 'none' : '1px solid #e2e8f0',
-                    transition: 'all 0.15s ease',
-                    whiteSpace: 'nowrap'
-                  }}
+                  onClick={openAuthModal}
+                  className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold shadow-sm transition-all cursor-pointer"
                 >
-                  <Icon size={16} />
-                  <span>{tab.label}</span>
+                  Sign In to View Stay
                 </button>
-              );
-            })}
-          </div>
-
-          {/* TAB 1: RENT & PAYMENTS */}
-          {activeTab === 'rent' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-              {/* Highlight Rent Due Card */}
-              {activeRentDue && (
-                <div
-                  style={{
-                    background: activeRentDue.status === 'paid' ? '#f0fdf4' : activeRentDue.status === 'overdue' ? '#fff1f2' : '#fefce8',
-                    border: `1.5px solid ${activeRentDue.status === 'paid' ? '#86efac' : activeRentDue.status === 'overdue' ? '#fca5a5' : '#fde047'}`,
-                    borderRadius: 20,
-                    padding: '24px',
-                    boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)'
-                  }}
+              ) : (
+                <Link
+                  href="/search"
+                  className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold shadow-sm transition-all"
                 >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
-                    <div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <span
-                          style={{
-                            fontSize: 11,
-                            fontWeight: 800,
-                            padding: '3px 10px',
-                            borderRadius: 99,
-                            textTransform: 'uppercase',
-                            background: activeRentDue.status === 'paid' ? '#10b981' : activeRentDue.status === 'overdue' ? '#ef4444' : '#eab308',
-                            color: '#ffffff'
-                          }}
-                        >
-                          {activeRentDue.status === 'paid' ? 'Paid · भुगतान हो चुका' : activeRentDue.status === 'overdue' ? 'Overdue · बकाया' : 'Rent Due · देय राशि'}
-                        </span>
-                        <span style={{ fontSize: 13, color: '#475569', fontWeight: 600 }}>
-                          For {activeRentDue.month}
-                        </span>
-                      </div>
-                      <div style={{ fontSize: 32, fontWeight: 900, color: '#0f172a', marginTop: 8 }}>
-                        ₹{activeRentDue.totalAmount.toLocaleString('en-IN')}
-                      </div>
-                      <div style={{ fontSize: 12.5, color: '#64748b', marginTop: 2 }}>
-                        Due by: {activeRentDue.dueDate}
-                      </div>
-                    </div>
+                  Explore Rooms in Samastipur
+                </Link>
+              )}
+            </div>
+          </div>
+        ) : (
+          /* Active Stay Linked Portal */
+          <div className="space-y-6">
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      {activeRentDue.status !== 'paid' ? (
-                        <button
-                          type="button"
-                          onClick={() => handleOpenPayModal(activeRentDue)}
-                          style={{
-                            background: '#10b981',
-                            color: '#ffffff',
-                            padding: '12px 24px',
-                            borderRadius: 14,
-                            fontWeight: 700,
-                            fontSize: 14,
-                            border: 'none',
-                            cursor: 'pointer',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: 8,
-                            boxShadow: '0 4px 14px rgba(16, 185, 129, 0.3)'
-                          }}
-                        >
-                          <QrCode size={18} />
-                          <span>Pay via UPI · तुरंत भुगतान</span>
-                        </button>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setSelectedReceipt(activeRentDue);
-                            setShowReceiptModal(true);
-                          }}
-                          style={{
-                            background: '#ffffff',
-                            color: '#059669',
-                            border: '1.5px solid #10b981',
-                            padding: '10px 18px',
-                            borderRadius: 12,
-                            fontWeight: 700,
-                            fontSize: 13,
-                            cursor: 'pointer',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: 6
-                          }}
-                        >
-                          <Receipt size={16} />
-                          <span>View Receipt · रसीद</span>
-                        </button>
-                      )}
+            {/* Main Resident Property Card */}
+            <div className="bg-white rounded-3xl border border-slate-200/80 shadow-sm p-5 sm:p-6 transition-all">
+              <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap mb-2">
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200/80 text-xs font-semibold">
+                      <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                      Active Resident · सक्रिय
+                    </span>
+                    <span className="text-xs text-slate-400 font-medium">
+                      Since {stay.tenant.checkInDate}
+                    </span>
+                  </div>
+
+                  <h2 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
+                    {stay.property?.name || 'My Rented Property'}
+                  </h2>
+                  <p className="text-xs sm:text-sm text-slate-500 flex items-center gap-1.5 mt-1">
+                    <MapPin className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
+                    <span>{stay.property?.address}, {stay.property?.area}, {stay.property?.city}</span>
+                  </p>
+                </div>
+
+                {/* Owner Contact Quick Actions */}
+                {stay.property?.ownerPhone && (
+                  <div className="flex items-center gap-2 self-start sm:self-auto">
+                    <a
+                      href={`https://wa.me/91${stay.property.ownerPhone.replace(/\D/g, '')}?text=Hi%20${encodeURIComponent(stay.property.ownerName || 'Owner')},%20this%20is%20${encodeURIComponent(stay.tenant.fullName)}%20from%20Room%20${stay.tenant.roomNumber}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-sm transition-colors"
+                      title="WhatsApp Owner"
+                    >
+                      <MessageCircle className="w-3.5 h-3.5" />
+                      <span>WhatsApp</span>
+                    </a>
+
+                    <a
+                      href={`tel:${stay.property.ownerPhone}`}
+                      className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold border border-slate-200 transition-colors"
+                      title="Call Owner"
+                    >
+                      <Phone className="w-3.5 h-3.5" />
+                      <span>Call Owner</span>
+                    </a>
+                  </div>
+                )}
+              </div>
+
+              {/* Room & Stay Metrics */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3 mt-5 pt-5 border-t border-slate-100">
+                <div className="p-3 rounded-2xl bg-slate-50/80 border border-slate-100">
+                  <span className="text-[11px] font-medium text-slate-400 uppercase tracking-wider block">Room & Bed</span>
+                  <span className="text-sm sm:text-base font-bold text-slate-900 mt-0.5 block truncate">
+                    Room {stay.tenant.roomNumber} {stay.tenant.bedLabel ? `· Bed ${stay.tenant.bedLabel}` : ''}
+                  </span>
+                </div>
+
+                <div className="p-3 rounded-2xl bg-slate-50/80 border border-slate-100">
+                  <span className="text-[11px] font-medium text-slate-400 uppercase tracking-wider block">Monthly Rent</span>
+                  <span className="text-sm sm:text-base font-bold text-emerald-700 mt-0.5 block">
+                    ₹{stay.tenant.monthlyRent.toLocaleString('en-IN')}<span className="text-xs font-normal text-slate-500">/mo</span>
+                  </span>
+                </div>
+
+                <div className="p-3 rounded-2xl bg-slate-50/80 border border-slate-100">
+                  <span className="text-[11px] font-medium text-slate-400 uppercase tracking-wider block">Security Deposit</span>
+                  <span className="text-sm sm:text-base font-bold text-slate-900 mt-0.5 block">
+                    ₹{stay.tenant.depositPaid.toLocaleString('en-IN')} <span className="text-xs font-medium text-emerald-700">✓</span>
+                  </span>
+                </div>
+
+                <div className="p-3 rounded-2xl bg-slate-50/80 border border-slate-100">
+                  <span className="text-[11px] font-medium text-slate-400 uppercase tracking-wider block">Resident Pass</span>
+                  <span className="text-xs sm:text-sm font-bold text-emerald-700 mt-1 flex items-center gap-1">
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    Verified
+                  </span>
+                </div>
+              </div>
+
+              {/* Quick Agreement Alert Strip if Agreement Exists */}
+              {agreement && (
+                <div className={`mt-4 p-3.5 sm:p-4 rounded-2xl border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 ${
+                  isAgreementSigned
+                    ? 'bg-emerald-50/70 border-emerald-200/80 text-emerald-950'
+                    : 'bg-amber-50/80 border-amber-200 text-amber-950'
+                }`}>
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${
+                      isAgreementSigned ? 'bg-emerald-600 text-white' : 'bg-amber-500 text-white'
+                    }`}>
+                      <FileText className="w-4 h-4" />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs sm:text-sm font-bold truncate">
+                          {isAgreementSigned
+                            ? 'Tenancy Agreement Executed · अनुबंध हस्ताक्षरित'
+                            : 'Review & Sign Tenancy Agreement · हस्ताक्षर करें'}
+                        </span>
+                        <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
+                          isAgreementSigned ? 'bg-emerald-200 text-emerald-900' : 'bg-amber-200 text-amber-900'
+                        }`}>
+                          {isAgreementSigned ? 'Executed ✓' : 'Action Needed'}
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-600 truncate mt-0.5">
+                        {isAgreementSigned
+                          ? `Digitally verified 11-month lease for Room ${agreement.roomNumber}.`
+                          : `Owner ${agreement.ownerName} has signed. Add your digital signature to finalize.`}
+                      </p>
                     </div>
                   </div>
 
-                  {/* Breakdown details */}
-                  <div
-                    style={{
-                      marginTop: 18,
-                      paddingTop: 16,
-                      borderTop: '1px solid rgba(0, 0, 0, 0.08)',
-                      display: 'grid',
-                      gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
-                      gap: 10,
-                      fontSize: 13
-                    }}
-                  >
-                    <div>
-                      <span style={{ color: '#64748b' }}>Base Rent:</span> <b>₹{activeRentDue.baseRent}</b>
-                    </div>
-                    {Boolean(activeRentDue.electricityAmount) && (
-                      <div>
-                        <span style={{ color: '#64748b' }}>Electricity ({activeRentDue.electricityUnits || 0}u):</span> <b>₹{activeRentDue.electricityAmount}</b>
-                      </div>
+                  <div className="flex items-center gap-2 self-end sm:self-auto flex-shrink-0">
+                    {!isAgreementSigned && (
+                      <button
+                        type="button"
+                        onClick={() => setShowSignModal(true)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-sm transition-colors cursor-pointer"
+                      >
+                        <PenLine className="w-3.5 h-3.5" />
+                        <span>Sign Now</span>
+                      </button>
                     )}
-                    {Boolean(activeRentDue.wifiAmount) && (
-                      <div>
-                        <span style={{ color: '#64748b' }}>WiFi Charge:</span> <b>₹{activeRentDue.wifiAmount}</b>
-                      </div>
-                    )}
-                    {Boolean(activeRentDue.foodAmount) && (
-                      <div>
-                        <span style={{ color: '#64748b' }}>Food / Mess:</span> <b>₹{activeRentDue.foodAmount}</b>
-                      </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveTab('agreement');
+                        setShowAgreementModal(true);
+                      }}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white hover:bg-slate-50 text-slate-800 text-xs font-semibold border border-slate-200 transition-colors cursor-pointer"
+                    >
+                      <span>View</span>
+                    </button>
+                    {(agreement.signedPdfBase64 || agreement.pdfBase64) && (
+                      <button
+                        type="button"
+                        onClick={handleDownloadAgreementPdf}
+                        className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-white hover:bg-slate-50 text-emerald-700 text-xs font-semibold border border-emerald-200 transition-colors cursor-pointer"
+                        title="Download PDF"
+                      >
+                        <Download className="w-3.5 h-3.5" />
+                        <span>PDF</span>
+                      </button>
                     )}
                   </div>
                 </div>
               )}
+            </div>
 
-              {/* Past Rent Records History */}
-              <div style={{ background: '#ffffff', borderRadius: 20, border: '1px solid #e2e8f0', padding: '22px' }}>
-                <h3 style={{ fontSize: 17, fontWeight: 800, color: '#0f172a', margin: '0 0 16px' }}>
-                  Rent Payment History (पिछला किराया रिकॉर्ड)
-                </h3>
+            {/* Mobile App Style Segmented Navigation Bar */}
+            <div className="flex items-center gap-1.5 p-1.5 bg-slate-200/70 rounded-2xl overflow-x-auto no-scrollbar">
+              {[
+                { id: 'rent', label: 'Rent & Khata', icon: IndianRupee, badge: activeRentDue?.status === 'pending' || activeRentDue?.status === 'overdue' ? '!' : null },
+                {
+                  id: 'agreement',
+                  label: 'Agreement',
+                  icon: FileText,
+                  badge: agreement && !isAgreementSigned ? '1' : null
+                },
+                {
+                  id: 'complaints',
+                  label: 'Maintenance',
+                  icon: Wrench,
+                  badge: pendingComplaintsCount > 0 ? String(pendingComplaintsCount) : null
+                },
+                { id: 'roommates', label: 'Roommates', icon: UsersRound, badge: roommates.length > 0 ? String(roommates.length) : null },
+                { id: 'visits', label: 'Visits', icon: Calendar, badge: visits.length > 0 ? String(visits.length) : null }
+              ].map(tab => {
+                const Icon = tab.icon;
+                const isActive = activeTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => setActiveTab(tab.id as any)}
+                    className={`flex-1 min-w-[90px] inline-flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer whitespace-nowrap ${
+                      isActive
+                        ? 'bg-white text-slate-900 shadow-sm'
+                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
+                    }`}
+                  >
+                    <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-emerald-600' : 'text-slate-400'}`} />
+                    <span>{tab.label}</span>
+                    {tab.badge && (
+                      <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold leading-tight ${
+                        isActive ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-300 text-slate-700'
+                      }`}>
+                        {tab.badge}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
 
-                {rentRecords.length === 0 ? (
-                  <p style={{ color: '#64748b', fontSize: 13.5, margin: 0 }}>No billing records posted by landlord yet.</p>
-                ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                    {rentRecords.map(record => (
-                      <div
-                        key={record.id}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          padding: '14px 16px',
-                          borderRadius: 14,
-                          background: '#f8fafc',
-                          border: '1px solid #e2e8f0',
-                          gap: 12,
-                          flexWrap: 'wrap'
-                        }}
-                      >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                          <div
-                            style={{
-                              width: 40,
-                              height: 40,
-                              borderRadius: 10,
-                              background: record.status === 'paid' ? '#ecfdf5' : '#fff1f2',
-                              color: record.status === 'paid' ? '#059669' : '#dc2626',
-                              display: 'grid',
-                              placeItems: 'center'
-                            }}
-                          >
-                            <Receipt size={20} />
-                          </div>
-                          <div>
-                            <div style={{ fontSize: 14.5, fontWeight: 800, color: '#0f172a' }}>
-                              {record.month}
-                            </div>
-                            <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>
-                              Due: {record.dueDate} {record.paidDate ? `· Paid on ${record.paidDate}` : ''}
-                            </div>
-                          </div>
+            {/* TAB 1: RENT & INVOICES */}
+            {activeTab === 'rent' && (
+              <div className="space-y-4">
+                {/* Active / Current Month Hero Invoice */}
+                {activeRentDue ? (
+                  <div className="bg-white rounded-3xl border border-slate-200/80 shadow-sm p-5 sm:p-6 transition-all">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-slate-100">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className={`px-2 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider ${
+                            activeRentDue.status === 'paid'
+                              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                              : activeRentDue.status === 'overdue'
+                              ? 'bg-rose-50 text-rose-700 border border-rose-200'
+                              : 'bg-amber-50 text-amber-700 border border-amber-200'
+                          }`}>
+                            {activeRentDue.status === 'paid' ? 'Paid · भुगतान पूर्ण' : activeRentDue.status === 'overdue' ? 'Overdue · बकाया' : 'Rent Due · देय'}
+                          </span>
+                          <span className="text-xs text-slate-500 font-medium">
+                            Invoice for {activeRentDue.month}
+                          </span>
                         </div>
 
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                          <div style={{ textAlign: 'right' }}>
-                            <div style={{ fontSize: 16, fontWeight: 900, color: '#0f172a' }}>
-                              ₹{record.totalAmount.toLocaleString('en-IN')}
+                        <div className="text-3xl sm:text-4xl font-black text-slate-900 mt-2 tracking-tight">
+                          ₹{activeRentDue.totalAmount.toLocaleString('en-IN')}
+                        </div>
+                        <div className="text-xs text-slate-400 mt-1">
+                          Payment due date: <span className="font-semibold text-slate-700">{activeRentDue.dueDate}</span>
+                        </div>
+                      </div>
+
+                      {/* Primary CTA */}
+                      <div>
+                        {activeRentDue.status !== 'paid' ? (
+                          <button
+                            type="button"
+                            onClick={() => handleOpenPayModal(activeRentDue)}
+                            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold shadow-sm hover:shadow transition-all cursor-pointer"
+                          >
+                            <QrCode className="w-4 h-4" />
+                            <span>Pay Owner via UPI</span>
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedReceipt(activeRentDue);
+                              setShowReceiptModal(true);
+                            }}
+                            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs sm:text-sm font-semibold border border-slate-200 transition-colors cursor-pointer"
+                          >
+                            <Receipt className="w-4 h-4 text-emerald-600" />
+                            <span>View Digital Receipt</span>
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Itemized Rent Breakdown */}
+                    <div className="pt-4">
+                      <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2.5">
+                        Invoice Itemization · खर्च विवरण
+                      </div>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+                        <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-100">
+                          <span className="text-slate-400 block text-[11px]">Room Base Rent</span>
+                          <span className="font-bold text-slate-900 text-sm mt-0.5 block">₹{activeRentDue.baseRent}</span>
+                        </div>
+                        {Boolean(activeRentDue.electricityAmount) && (
+                          <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-100">
+                            <span className="text-slate-400 block text-[11px]">Electricity ({activeRentDue.electricityUnits || 0}u)</span>
+                            <span className="font-bold text-slate-900 text-sm mt-0.5 block">₹{activeRentDue.electricityAmount}</span>
+                          </div>
+                        )}
+                        {Boolean(activeRentDue.wifiAmount) && (
+                          <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-100">
+                            <span className="text-slate-400 block text-[11px]">WiFi Charge</span>
+                            <span className="font-bold text-slate-900 text-sm mt-0.5 block">₹{activeRentDue.wifiAmount}</span>
+                          </div>
+                        )}
+                        {Boolean(activeRentDue.foodAmount) && (
+                          <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-100">
+                            <span className="text-slate-400 block text-[11px]">Food / Mess</span>
+                            <span className="font-bold text-slate-900 text-sm mt-0.5 block">₹{activeRentDue.foodAmount}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
+
+                {/* Billing History Section */}
+                <div className="bg-white rounded-3xl border border-slate-200/80 shadow-sm p-5 sm:p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-sm sm:text-base font-bold text-slate-900">
+                      Payment History · पिछला किराया
+                    </h3>
+                    <span className="text-xs text-slate-400">
+                      {rentRecords.length} records
+                    </span>
+                  </div>
+
+                  {rentRecords.length === 0 ? (
+                    <p className="text-xs text-slate-500 py-6 text-center">
+                      No invoices posted by landlord yet.
+                    </p>
+                  ) : (
+                    <div className="divide-y divide-slate-100">
+                      {rentRecords.map(record => (
+                        <div
+                          key={record.id}
+                          className="py-3.5 first:pt-0 last:pb-0 flex items-center justify-between gap-3"
+                        >
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${
+                              record.status === 'paid' ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'
+                            }`}>
+                              <Receipt className="w-4 h-4" />
                             </div>
-                            <div
-                              style={{
-                                fontSize: 11,
-                                fontWeight: 700,
-                                color: record.status === 'paid' ? '#059669' : '#dc2626',
-                                textTransform: 'uppercase'
-                              }}
-                            >
-                              {record.status}
+                            <div className="min-w-0">
+                              <div className="text-xs sm:text-sm font-bold text-slate-900 truncate">
+                                {record.month}
+                              </div>
+                              <div className="text-[11px] text-slate-400 mt-0.5 truncate">
+                                Due: {record.dueDate} {record.paidDate ? `· Paid: ${record.paidDate}` : ''}
+                              </div>
                             </div>
                           </div>
 
-                          {record.status === 'paid' ? (
+                          <div className="flex items-center gap-3 flex-shrink-0">
+                            <div className="text-right">
+                              <div className="text-xs sm:text-sm font-extrabold text-slate-900">
+                                ₹{record.totalAmount.toLocaleString('en-IN')}
+                              </div>
+                              <span className={`text-[10px] font-bold uppercase tracking-wider block ${
+                                record.status === 'paid' ? 'text-emerald-600' : 'text-rose-600'
+                              }`}>
+                                {record.status}
+                              </span>
+                            </div>
+
+                            {record.status === 'paid' ? (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setSelectedReceipt(record);
+                                  setShowReceiptModal(true);
+                                }}
+                                className="px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold border border-slate-200 transition-colors cursor-pointer"
+                              >
+                                Receipt
+                              </button>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => handleOpenPayModal(record)}
+                                className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-colors cursor-pointer"
+                              >
+                                Pay
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* TAB 2: TENANCY AGREEMENT */}
+            {activeTab === 'agreement' && (
+              <div className="space-y-5">
+                {!agreement ? (
+                  <div className="bg-white rounded-3xl border border-dashed border-slate-300 p-8 sm:p-12 text-center">
+                    <div className="w-12 h-12 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center mx-auto mb-3">
+                      <FileText className="w-6 h-6" />
+                    </div>
+                    <h3 className="text-base sm:text-lg font-bold text-slate-900 mb-1">
+                      No Rent Agreement Issued Yet
+                    </h3>
+                    <p className="text-xs sm:text-sm text-slate-500 max-w-md mx-auto mb-5 leading-relaxed">
+                      Your owner hasn&apos;t generated the digital 11-month lease agreement for Room {stay?.tenant?.roomNumber || ''} yet. Once issued, you can review, sign with your finger, and download it here.
+                    </p>
+                    {stay?.property?.ownerPhone && (
+                      <a
+                        href={`https://wa.me/91${stay.property.ownerPhone.replace(/\D/g, '')}?text=Hi%20${encodeURIComponent(stay.property.ownerName || 'Owner')},%20could%20you%20please%20generate%20the%20digital%20rent%20agreement%20for%20my%20stay%20in%20Room%20${stay.tenant.roomNumber}?`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-sm transition-colors"
+                      >
+                        <MessageCircle className="w-3.5 h-3.5" />
+                        <span>Request Agreement on WhatsApp</span>
+                      </a>
+                    )}
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {/* Status Header Banner */}
+                    <div className={`p-5 sm:p-6 rounded-3xl border transition-all ${
+                      isAgreementSigned
+                        ? 'bg-gradient-to-br from-emerald-800 to-teal-900 text-white border-emerald-700 shadow-sm'
+                        : 'bg-gradient-to-br from-amber-900 to-stone-900 text-white border-amber-800 shadow-sm'
+                    }`}>
+                      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                        <div className="max-w-lg">
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/15 text-white text-xs font-semibold tracking-wide uppercase mb-2">
+                            <ShieldCheck className="w-3.5 h-3.5" />
+                            {isAgreementSigned
+                              ? 'Legally Executed · पूर्ण अनुबंध'
+                              : 'Pending Tenant Signature · हस्ताक्षर आवश्यक'}
+                          </span>
+                          <h2 className="text-xl sm:text-2xl font-bold tracking-tight">
+                            {isAgreementSigned
+                              ? '11-Month Tenancy Agreement Executed'
+                              : 'Review & Sign Your Tenancy Agreement'}
+                          </h2>
+                          <p className="text-xs sm:text-sm text-white/80 mt-1 leading-relaxed">
+                            {isAgreementSigned
+                              ? `Both property owner ${agreement.ownerName} and tenant ${agreement.tenantName} have signed this legal lease for Room ${agreement.roomNumber}. Permanent record stored securely.`
+                              : `Owner ${agreement.ownerName} has signed. Add your digital signature to finalize legally binding contract.`}
+                          </p>
+                        </div>
+
+                        <div className="flex items-center gap-2 self-start sm:self-auto flex-wrap">
+                          {!isAgreementSigned && (
                             <button
                               type="button"
-                              onClick={() => {
-                                setSelectedReceipt(record);
-                                setShowReceiptModal(true);
-                              }}
-                              style={{
-                                background: '#ffffff',
-                                border: '1px solid #cbd5e1',
-                                padding: '6px 12px',
-                                borderRadius: 10,
-                                fontSize: 12,
-                                fontWeight: 700,
-                                color: '#0f172a',
-                                cursor: 'pointer',
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: 4
-                              }}
+                              onClick={() => setShowSignModal(true)}
+                              className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-white text-xs sm:text-sm font-bold shadow-sm transition-colors cursor-pointer"
                             >
-                              <FileText size={14} />
-                              <span>Receipt</span>
+                              <PenLine className="w-4 h-4" />
+                              <span>Sign Now</span>
                             </button>
-                          ) : (
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => setShowAgreementModal(true)}
+                            className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-white/20 hover:bg-white/30 text-white text-xs sm:text-sm font-semibold border border-white/30 transition-colors cursor-pointer"
+                          >
+                            <span>Fullscreen</span>
+                          </button>
+                          {(agreement.signedPdfBase64 || agreement.pdfBase64) && (
                             <button
                               type="button"
-                              onClick={() => handleOpenPayModal(record)}
-                              style={{
-                                background: '#10b981',
-                                border: 'none',
-                                padding: '6px 14px',
-                                borderRadius: 10,
-                                fontSize: 12,
-                                fontWeight: 700,
-                                color: '#ffffff',
-                                cursor: 'pointer'
-                              }}
+                              onClick={handleDownloadAgreementPdf}
+                              className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-white text-slate-900 hover:bg-slate-100 text-xs sm:text-sm font-bold transition-colors cursor-pointer"
                             >
-                              Pay Now
+                              <Download className="w-4 h-4 text-emerald-600" />
+                              <span>PDF</span>
                             </button>
                           )}
                         </div>
+                      </div>
+                    </div>
+
+                    {/* Agreement Key Terms Grid */}
+                    <div className="bg-white rounded-3xl border border-slate-200/80 shadow-sm p-4 sm:p-5 grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                      <div className="p-3 rounded-2xl bg-slate-50 border border-slate-100">
+                        <span className="text-[11px] font-medium text-slate-400 uppercase tracking-wider block">Monthly Rent</span>
+                        <span className="text-sm sm:text-base font-bold text-emerald-700 mt-0.5 block">
+                          ₹{agreement.monthlyRent.toLocaleString('en-IN')}<span className="text-xs font-normal text-slate-500">/mo</span>
+                        </span>
+                        <span className="text-[10px] text-slate-400 block mt-0.5">Payable by 5th</span>
+                      </div>
+
+                      <div className="p-3 rounded-2xl bg-slate-50 border border-slate-100">
+                        <span className="text-[11px] font-medium text-slate-400 uppercase tracking-wider block">Security Deposit</span>
+                        <span className="text-sm sm:text-base font-bold text-slate-900 mt-0.5 block">
+                          ₹{agreement.depositAmount.toLocaleString('en-IN')}
+                        </span>
+                        <span className="text-[10px] text-slate-400 block mt-0.5">Refundable</span>
+                      </div>
+
+                      <div className="p-3 rounded-2xl bg-slate-50 border border-slate-100">
+                        <span className="text-[11px] font-medium text-slate-400 uppercase tracking-wider block">Duration</span>
+                        <span className="text-sm sm:text-base font-bold text-slate-900 mt-0.5 block">
+                          {agreement.durationMonths || 11} Months
+                        </span>
+                        <span className="text-[10px] text-slate-400 block mt-0.5">From {agreement.startDate}</span>
+                      </div>
+
+                      <div className="p-3 rounded-2xl bg-slate-50 border border-slate-100">
+                        <span className="text-[11px] font-medium text-slate-400 uppercase tracking-wider block">Room Allotted</span>
+                        <span className="text-sm sm:text-base font-bold text-slate-900 mt-0.5 block">
+                          Room {agreement.roomNumber}
+                        </span>
+                        <span className="text-[10px] text-slate-400 block mt-0.5 truncate">{agreement.propertyName}</span>
+                      </div>
+                    </div>
+
+                    {/* Dual Signature Cards */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                      {/* Property Owner Party */}
+                      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-4 flex flex-col justify-between">
+                        <div>
+                          <div className="flex items-center justify-between mb-1.5">
+                            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                              First Party · Landlord
+                            </span>
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-bold">
+                              <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                              {agreement.ownerSignature ? 'Signed ✓' : 'Pending'}
+                            </span>
+                          </div>
+                          <div className="text-sm font-bold text-slate-900">
+                            {agreement.ownerName || 'Property Landlord'}
+                          </div>
+                          <div className="text-xs text-slate-400 mt-0.5">
+                            Phone: {agreement.ownerPhone || 'N/A'}
+                          </div>
+                        </div>
+
+                        <div className="mt-4 pt-3 border-t border-slate-100">
+                          {agreement.ownerSignature ? (
+                            <div className="bg-slate-50 rounded-xl p-2.5 border border-slate-100 flex items-center justify-between">
+                              <img
+                                src={agreement.ownerSignature}
+                                alt="Landlord Signature"
+                                className="h-10 max-w-[120px] object-contain"
+                              />
+                              <span className="text-[10px] font-semibold text-emerald-700">Verified</span>
+                            </div>
+                          ) : (
+                            <div className="text-xs text-slate-400 text-center py-2">
+                              Awaiting landlord signature
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Tenant Party (You) */}
+                      <div className={`bg-white rounded-2xl border shadow-sm p-4 flex flex-col justify-between ${
+                        isAgreementSigned ? 'border-slate-200/80' : 'border-amber-300'
+                      }`}>
+                        <div>
+                          <div className="flex items-center justify-between mb-1.5">
+                            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                              Second Party · Tenant (You)
+                            </span>
+                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                              agreement.tenantSignature ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-100 text-amber-800'
+                            }`}>
+                              <CheckCircle2 className="w-3 h-3" />
+                              {agreement.tenantSignature ? 'Signed by You ✓' : 'Action Required'}
+                            </span>
+                          </div>
+                          <div className="text-sm font-bold text-slate-900">
+                            {agreement.tenantName}
+                          </div>
+                          <div className="text-xs text-slate-400 mt-0.5">
+                            Phone: {agreement.tenantPhone} {agreement.tenantAadhaar ? `· Aadhaar: ${agreement.tenantAadhaar}` : ''}
+                          </div>
+                        </div>
+
+                        <div className="mt-4 pt-3 border-t border-slate-100">
+                          {agreement.tenantSignature ? (
+                            <div className="bg-slate-50 rounded-xl p-2.5 border border-slate-100 flex items-center justify-between">
+                              <img
+                                src={agreement.tenantSignature}
+                                alt="Tenant Signature"
+                                className="h-10 max-w-[120px] object-contain"
+                              />
+                              <span className="text-[10px] font-semibold text-emerald-700">Verified</span>
+                            </div>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => setShowSignModal(true)}
+                              className="w-full inline-flex items-center justify-center gap-1.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-colors cursor-pointer"
+                            >
+                              <PenLine className="w-3.5 h-3.5" />
+                              <span>Draw Signature Now</span>
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* PDF Reader / Frame */}
+                    {(agreement.signedPdfBase64 || agreement.pdfBase64) && (
+                      <div className="bg-white rounded-3xl border border-slate-200/80 shadow-sm p-4 sm:p-5">
+                        <div className="flex items-center justify-between mb-3">
+                          <h4 className="text-xs sm:text-sm font-bold text-slate-900 flex items-center gap-2">
+                            <FileText className="w-4 h-4 text-emerald-600" />
+                            Official Lease Document Frame
+                          </h4>
+                          <button
+                            type="button"
+                            onClick={() => setShowAgreementModal(true)}
+                            className="text-xs font-semibold text-emerald-700 hover:underline"
+                          >
+                            Open Fullscreen Reader →
+                          </button>
+                        </div>
+                        <div className="w-full h-[450px] rounded-2xl overflow-hidden border border-slate-200 bg-slate-100">
+                          <iframe
+                            src={`${agreement.signedPdfBase64 || agreement.pdfBase64}#toolbar=0`}
+                            title="Agreement Document Frame"
+                            className="w-full h-full border-none"
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* TAB 3: MAINTENANCE TICKETS */}
+            {activeTab === 'complaints' && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <h3 className="text-sm sm:text-base font-bold text-slate-900">
+                      Maintenance & Helpdesk
+                    </h3>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      Report plumbing, WiFi, electrical issues directly to property manager.
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setShowComplaintModal(true)}
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-sm transition-colors cursor-pointer"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>New Ticket</span>
+                  </button>
+                </div>
+
+                {complaints.length === 0 ? (
+                  <div className="bg-white rounded-3xl border border-dashed border-slate-300 p-8 sm:p-12 text-center">
+                    <Wrench className="w-10 h-10 text-slate-300 mx-auto mb-3" />
+                    <p className="text-sm font-semibold text-slate-700 mb-1">No maintenance tickets raised</p>
+                    <p className="text-xs text-slate-500 mb-4">Facing any issue in your room? Your owner is one ticket away.</p>
+                    <button
+                      type="button"
+                      onClick={() => setShowComplaintModal(true)}
+                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-semibold border border-slate-200 transition-colors cursor-pointer"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>Raise Your First Ticket</span>
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {complaints.map(c => (
+                      <div
+                        key={c.id}
+                        className="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-4 sm:p-5 transition-all"
+                      >
+                        <div className="flex items-center justify-between gap-2 flex-wrap mb-2">
+                          <div className="flex items-center gap-2">
+                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
+                              c.status === 'resolved'
+                                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                : c.status === 'in_progress'
+                                ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                                : 'bg-amber-50 text-amber-700 border border-amber-200'
+                            }`}>
+                              {c.status.replace('_', ' ')}
+                            </span>
+                            <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-600 text-[10px] font-semibold uppercase tracking-wider">
+                              {c.category}
+                            </span>
+                          </div>
+                          <span className="text-[11px] text-slate-400">
+                            {new Date(c.createdAt).toLocaleDateString()}
+                          </span>
+                        </div>
+
+                        <h4 className="text-sm font-bold text-slate-900 mb-1">
+                          {c.title}
+                        </h4>
+                        <p className="text-xs text-slate-600 leading-relaxed">
+                          {c.description}
+                        </p>
+
+                        {c.adminNote && (
+                          <div className="mt-3 p-3 rounded-xl bg-emerald-50/60 border border-emerald-100 text-xs text-emerald-950">
+                            <span className="font-bold text-emerald-800">Owner Response:</span> {c.adminNote}
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
                 )}
               </div>
-            </div>
-          )}
+            )}
 
-          {/* TAB: RENT AGREEMENT & LEASE */}
-          {activeTab === 'agreement' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-              {!agreement ? (
-                <div
-                  style={{
-                    background: '#ffffff',
-                    borderRadius: 20,
-                    border: '1.5px dashed #cbd5e1',
-                    padding: '48px 24px',
-                    textAlign: 'center'
-                  }}
-                >
-                  <div
-                    style={{
-                      width: 56,
-                      height: 56,
-                      borderRadius: 16,
-                      background: '#f1f5f9',
-                      color: '#64748b',
-                      display: 'grid',
-                      placeItems: 'center',
-                      margin: '0 auto 16px'
-                    }}
-                  >
-                    <FileText size={28} />
-                  </div>
-                  <h3 style={{ fontSize: 18, fontWeight: 800, color: '#0f172a', margin: '0 0 6px' }}>
-                    No Rent Agreement Issued Yet
-                  </h3>
-                  <p style={{ color: '#64748b', fontSize: 13.5, maxWidth: 460, margin: '0 auto 20px', lineHeight: 1.6 }}>
-                    Your host hasn&apos;t generated the digital 11-month lease agreement for Room {stay?.tenant?.roomNumber || ''} yet. Once created by the landlord, you can review, digitally sign, and download your verified lease right here.
-                  </p>
-                  {stay?.property?.ownerPhone && (
-                    <a
-                      href={`https://wa.me/91${stay.property.ownerPhone.replace(/\D/g, '')}?text=Hi%20${encodeURIComponent(stay.property.ownerName || 'Host')},%20could%20you%20please%20generate%20the%20digital%20rent%20agreement%20for%20my%20stay%20in%20Room%20${stay.tenant.roomNumber}?`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: 6,
-                        background: '#25d366',
-                        color: '#ffffff',
-                        padding: '10px 18px',
-                        borderRadius: 12,
-                        fontSize: 13,
-                        fontWeight: 700,
-                        textDecoration: 'none'
-                      }}
-                    >
-                      <MessageCircle size={15} />
-                      <span>Request Agreement on WhatsApp</span>
-                    </a>
-                  )}
-                </div>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-                  {/* Status Banner */}
-                  <div
-                    style={{
-                      background: agreement.status === 'completed' || agreement.tenantSignature
-                        ? 'linear-gradient(145deg, #065f46 0%, #047857 100%)'
-                        : 'linear-gradient(145deg, #78350f 0%, #92400e 100%)',
-                      borderRadius: 22,
-                      padding: '24px',
-                      color: '#ffffff',
-                      boxShadow: '0 10px 30px rgba(0, 0, 0, 0.12)'
-                    }}
-                  >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16, flexWrap: 'wrap' }}>
-                      <div style={{ maxWidth: 580 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                          <span
-                            style={{
-                              fontSize: 11,
-                              background: 'rgba(255, 255, 255, 0.2)',
-                              padding: '3px 10px',
-                              borderRadius: 99,
-                              fontWeight: 700,
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: 5
-                            }}
-                          >
-                            <ShieldCheck size={13} />
-                            {agreement.status === 'completed' || agreement.tenantSignature
-                              ? 'Fully Executed & Legally Verified · प्रमाणित अनुबंध'
-                              : 'Pending Tenant Digital Signature · हस्ताक्षर आवश्यक'}
-                          </span>
-                        </div>
-
-                        <h2 style={{ fontSize: 22, fontWeight: 800, margin: '0 0 6px' }}>
-                          {agreement.status === 'completed' || agreement.tenantSignature
-                            ? '11-Month Tenancy Agreement Completed!'
-                            : 'Review & Sign Your Tenancy Agreement'}
-                        </h2>
-                        <p style={{ fontSize: 13.5, opacity: 0.9, margin: 0, lineHeight: 1.5 }}>
-                          {agreement.status === 'completed' || agreement.tenantSignature
-                            ? `Both landlord ${agreement.ownerName} and tenant ${agreement.tenantName} have verified and digitally signed this legal contract. Both parties have permanent access.`
-                            : `Landlord ${agreement.ownerName} has digitally signed your lease for Room ${agreement.roomNumber}. Review the contract and sign with your finger or stylus to finalize.`}
-                        </p>
-                      </div>
-
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                        {(!agreement.tenantSignature && agreement.status !== 'completed') && (
-                          <button
-                            type="button"
-                            onClick={() => setShowSignModal(true)}
-                            style={{
-                              background: '#10b981',
-                              color: '#ffffff',
-                              padding: '10px 20px',
-                              borderRadius: 12,
-                              fontSize: 13.5,
-                              fontWeight: 800,
-                              border: 'none',
-                              cursor: 'pointer',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: 6,
-                              boxShadow: '0 4px 14px rgba(0,0,0,0.2)'
-                            }}
-                          >
-                            <PenLine size={16} />
-                            <span>Sign Agreement Now</span>
-                          </button>
-                        )}
-
-                        <button
-                          type="button"
-                          onClick={() => setShowAgreementModal(true)}
-                          style={{
-                            background: 'rgba(255, 255, 255, 0.15)',
-                            color: '#ffffff',
-                            padding: '10px 16px',
-                            borderRadius: 12,
-                            fontSize: 13.5,
-                            fontWeight: 700,
-                            border: '1px solid rgba(255, 255, 255, 0.3)',
-                            cursor: 'pointer',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: 6
-                          }}
-                        >
-                          <FileText size={15} />
-                          <span>Fullscreen View</span>
-                        </button>
-
-                        {(agreement.signedPdfBase64 || agreement.pdfBase64) && (
-                          <button
-                            type="button"
-                            onClick={handleDownloadAgreementPdf}
-                            style={{
-                              background: '#ffffff',
-                              color: '#0f172a',
-                              padding: '10px 16px',
-                              borderRadius: 12,
-                              fontSize: 13.5,
-                              fontWeight: 800,
-                              border: 'none',
-                              cursor: 'pointer',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: 6
-                            }}
-                          >
-                            <Download size={15} />
-                            <span>Download PDF</span>
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Agreement Terms Grid */}
-                  <div
-                    style={{
-                      background: '#ffffff',
-                      borderRadius: 20,
-                      border: '1px solid #e2e8f0',
-                      padding: '20px',
-                      display: 'grid',
-                      gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-                      gap: 16
-                    }}
-                  >
-                    <div style={{ background: '#f8fafc', padding: '14px', borderRadius: 14, border: '1px solid #f1f5f9' }}>
-                      <div style={{ fontSize: 11, color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>Monthly Base Rent</div>
-                      <div style={{ fontSize: 18, fontWeight: 900, color: '#059669', marginTop: 3 }}>
-                        ₹{agreement.monthlyRent.toLocaleString('en-IN')}/month
-                      </div>
-                      <div style={{ fontSize: 11.5, color: '#64748b', marginTop: 2 }}>Payable by 5th of every month</div>
-                    </div>
-
-                    <div style={{ background: '#f8fafc', padding: '14px', borderRadius: 14, border: '1px solid #f1f5f9' }}>
-                      <div style={{ fontSize: 11, color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>Security Deposit</div>
-                      <div style={{ fontSize: 18, fontWeight: 900, color: '#0f172a', marginTop: 3 }}>
-                        ₹{agreement.depositAmount.toLocaleString('en-IN')}
-                      </div>
-                      <div style={{ fontSize: 11.5, color: '#64748b', marginTop: 2 }}>Refundable upon vacating</div>
-                    </div>
-
-                    <div style={{ background: '#f8fafc', padding: '14px', borderRadius: 14, border: '1px solid #f1f5f9' }}>
-                      <div style={{ fontSize: 11, color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>Agreement Tenure</div>
-                      <div style={{ fontSize: 18, fontWeight: 900, color: '#0f172a', marginTop: 3 }}>
-                        {agreement.durationMonths || 11} Months
-                      </div>
-                      <div style={{ fontSize: 11.5, color: '#64748b', marginTop: 2 }}>Effective from {agreement.startDate}</div>
-                    </div>
-
-                    <div style={{ background: '#f8fafc', padding: '14px', borderRadius: 14, border: '1px solid #f1f5f9' }}>
-                      <div style={{ fontSize: 11, color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>Premises & Room</div>
-                      <div style={{ fontSize: 18, fontWeight: 900, color: '#0f172a', marginTop: 3 }}>
-                        Room {agreement.roomNumber}
-                      </div>
-                      <div style={{ fontSize: 11.5, color: '#64748b', marginTop: 2 }}>{agreement.propertyName}</div>
-                    </div>
-                  </div>
-
-                  {/* Dual Signature Status Cards */}
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 }}>
-                    {/* Landlord Box */}
-                    <div
-                      style={{
-                        background: '#ffffff',
-                        borderRadius: 20,
-                        border: '1.5px solid #e2e8f0',
-                        padding: '20px',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        justifyContent: 'space-between',
-                        gap: 14
-                      }}
-                    >
-                      <div>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                          <span style={{ fontSize: 11, fontWeight: 800, color: '#059669', textTransform: 'uppercase' }}>
-                            FIRST PARTY · LANDLORD
-                          </span>
-                          <span
-                            style={{
-                              fontSize: 11,
-                              fontWeight: 700,
-                              padding: '2px 8px',
-                              borderRadius: 99,
-                              background: agreement.ownerSignature ? '#dcfce7' : '#f1f5f9',
-                              color: agreement.ownerSignature ? '#15803d' : '#64748b',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: 4
-                            }}
-                          >
-                            <CheckCircle2 size={12} />
-                            {agreement.ownerSignature ? 'Signed ✓' : 'Pending'}
-                          </span>
-                        </div>
-                        <div style={{ fontSize: 16, fontWeight: 800, color: '#0f172a', marginTop: 6 }}>
-                          {agreement.ownerName || 'Property Landlord'}
-                        </div>
-                        <div style={{ fontSize: 12.5, color: '#64748b' }}>
-                          Phone: {agreement.ownerPhone || 'N/A'}
-                        </div>
-                      </div>
-
-                      {agreement.ownerSignature ? (
-                        <div style={{ background: '#f8fafc', padding: '10px 14px', borderRadius: 12, border: '1px solid #e2e8f0' }}>
-                          <div style={{ height: 50, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            <img
-                              src={agreement.ownerSignature}
-                              alt="Landlord Signature"
-                              style={{ maxHeight: 46, maxWidth: '100%', objectFit: 'contain' }}
-                            />
-                          </div>
-                          <div style={{ fontSize: 11, color: '#059669', textAlign: 'center', fontWeight: 600, marginTop: 4 }}>
-                            Digitally signed on {new Date(agreement.ownerSignedAt || agreement.createdAt || Date.now()).toLocaleDateString('en-IN')}
-                          </div>
-                        </div>
-                      ) : (
-                        <div style={{ background: '#f8fafc', padding: '16px', borderRadius: 12, textAlign: 'center', color: '#94a3b8', fontSize: 12 }}>
-                          Awaiting landlord signature
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Tenant Box */}
-                    <div
-                      style={{
-                        background: '#ffffff',
-                        borderRadius: 20,
-                        border: `1.5px solid ${agreement.tenantSignature ? '#e2e8f0' : '#f59e0b'}`,
-                        padding: '20px',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        justifyContent: 'space-between',
-                        gap: 14
-                      }}
-                    >
-                      <div>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                          <span style={{ fontSize: 11, fontWeight: 800, color: '#2563eb', textTransform: 'uppercase' }}>
-                            SECOND PARTY · TENANT (YOU)
-                          </span>
-                          <span
-                            style={{
-                              fontSize: 11,
-                              fontWeight: 700,
-                              padding: '2px 8px',
-                              borderRadius: 99,
-                              background: agreement.tenantSignature ? '#dcfce7' : '#fef3c7',
-                              color: agreement.tenantSignature ? '#15803d' : '#92400e',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: 4
-                            }}
-                          >
-                            <CheckCircle2 size={12} />
-                            {agreement.tenantSignature ? 'Signed by You ✓' : 'Action Required ✍️'}
-                          </span>
-                        </div>
-                        <div style={{ fontSize: 16, fontWeight: 800, color: '#0f172a', marginTop: 6 }}>
-                          {agreement.tenantName}
-                        </div>
-                        <div style={{ fontSize: 12.5, color: '#64748b' }}>
-                          Phone: {agreement.tenantPhone} {agreement.tenantAadhaar ? `· Aadhaar: ${agreement.tenantAadhaar}` : ''}
-                        </div>
-                      </div>
-
-                      {agreement.tenantSignature ? (
-                        <div style={{ background: '#f8fafc', padding: '10px 14px', borderRadius: 12, border: '1px solid #e2e8f0' }}>
-                          <div style={{ height: 50, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            <img
-                              src={agreement.tenantSignature}
-                              alt="Tenant Signature"
-                              style={{ maxHeight: 46, maxWidth: '100%', objectFit: 'contain' }}
-                            />
-                          </div>
-                          <div style={{ fontSize: 11, color: '#2563eb', textAlign: 'center', fontWeight: 600, marginTop: 4 }}>
-                            Digitally signed by you on {new Date(agreement.tenantSignedAt || Date.now()).toLocaleDateString('en-IN')}
-                          </div>
-                        </div>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => setShowSignModal(true)}
-                          style={{
-                            background: '#059669',
-                            color: '#ffffff',
-                            padding: '12px',
-                            borderRadius: 12,
-                            fontWeight: 800,
-                            fontSize: 13.5,
-                            border: 'none',
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            gap: 8,
-                            boxShadow: '0 2px 10px rgba(5, 150, 105, 0.25)'
-                          }}
-                        >
-                          <PenLine size={16} />
-                          <span>Draw / Type Your Signature</span>
-                        </button>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Embedded PDF Viewer Frame */}
-                  <div
-                    style={{
-                      background: '#ffffff',
-                      borderRadius: 20,
-                      border: '1px solid #e2e8f0',
-                      padding: '20px',
-                      overflow: 'hidden'
-                    }}
-                  >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, flexWrap: 'wrap', gap: 10 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <FileText size={18} color="#059669" />
-                        <h4 style={{ fontSize: 15, fontWeight: 800, color: '#0f172a', margin: 0 }}>
-                          Official Tenancy Document Preview
-                        </h4>
-                      </div>
-
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <button
-                          type="button"
-                          onClick={() => setShowAgreementModal(true)}
-                          style={{
-                            background: '#f8fafc',
-                            border: '1px solid #cbd5e1',
-                            padding: '6px 12px',
-                            borderRadius: 8,
-                            fontSize: 12,
-                            fontWeight: 700,
-                            color: '#334155',
-                            cursor: 'pointer'
-                          }}
-                        >
-                          Open in Fullscreen
-                        </button>
-
-                        {(agreement.signedPdfBase64 || agreement.pdfBase64) && (
-                          <button
-                            type="button"
-                            onClick={handleDownloadAgreementPdf}
-                            style={{
-                              background: '#059669',
-                              border: 'none',
-                              padding: '6px 14px',
-                              borderRadius: 8,
-                              fontSize: 12,
-                              fontWeight: 700,
-                              color: '#ffffff',
-                              cursor: 'pointer',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: 5
-                            }}
-                          >
-                            <Download size={13} />
-                            <span>Download PDF</span>
-                          </button>
-                        )}
-                      </div>
-                    </div>
-
-                    {(agreement.signedPdfBase64 || agreement.pdfBase64) ? (
-                      <div
-                        style={{
-                          height: 580,
-                          borderRadius: 14,
-                          overflow: 'hidden',
-                          border: '1px solid #cbd5e1',
-                          background: '#525659'
-                        }}
-                      >
-                        <iframe
-                          src={`${agreement.signedPdfBase64 || agreement.pdfBase64}#toolbar=0`}
-                          title="Agreement Document Frame"
-                          style={{ width: '100%', height: '100%', border: 'none', display: 'block' }}
-                        />
-                      </div>
-                    ) : (
-                      <div style={{ padding: '40px 20px', textAlign: 'center', color: '#64748b' }}>
-                        Document preview loading...
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* TAB 2: COMPLAINTS & MAINTENANCE */}
-          {activeTab === 'complaints' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+            {/* TAB 4: ROOMMATES */}
+            {activeTab === 'roommates' && (
+              <div className="space-y-4">
                 <div>
-                  <h3 style={{ fontSize: 18, fontWeight: 800, color: '#0f172a', margin: '0 0 4px' }}>
-                    Maintenance & Helpdesk
+                  <h3 className="text-sm sm:text-base font-bold text-slate-900">
+                    Roommates & Co-Residents
                   </h3>
-                  <p style={{ color: '#64748b', fontSize: 13.5, margin: 0 }}>
-                    Report plumbing, WiFi, electrical issues directly to your host.
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Other students and working professionals living in your room or flat.
                   </p>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={() => setShowComplaintModal(true)}
-                  style={{
-                    background: '#10b981',
-                    color: '#ffffff',
-                    padding: '10px 18px',
-                    borderRadius: 12,
-                    fontWeight: 700,
-                    fontSize: 13.5,
-                    border: 'none',
-                    cursor: 'pointer',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 6,
-                    boxShadow: '0 4px 12px rgba(16, 185, 129, 0.25)'
-                  }}
-                >
-                  <Plus size={16} />
-                  <span>Raise New Ticket · शिकायत दर्ज करें</span>
-                </button>
-              </div>
-
-              {/* Complaints List */}
-              {complaints.length === 0 ? (
-                <div style={{ padding: '40px 20px', textAlign: 'center', background: '#ffffff', borderRadius: 18, border: '1px solid #e2e8f0' }}>
-                  <Wrench size={32} color="#94a3b8" style={{ margin: '0 auto 12px' }} />
-                  <p style={{ color: '#64748b', fontSize: 14, margin: '0 0 12px' }}>No issues or complaints reported yet.</p>
-                  <button
-                    type="button"
-                    onClick={() => setShowComplaintModal(true)}
-                    style={{
-                      background: '#f1f5f9',
-                      border: '1px solid #cbd5e1',
-                      padding: '8px 16px',
-                      borderRadius: 10,
-                      fontWeight: 700,
-                      fontSize: 13,
-                      cursor: 'pointer'
-                    }}
-                  >
-                    Raise Your First Ticket
-                  </button>
-                </div>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                  {complaints.map(c => (
-                    <div
-                      key={c.id}
-                      style={{
-                        background: '#ffffff',
-                        borderRadius: 16,
-                        border: '1px solid #e2e8f0',
-                        padding: '18px',
-                        boxShadow: '0 2px 8px rgba(0,0,0,0.02)'
-                      }}
-                    >
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
+                {roommates.length === 0 ? (
+                  <div className="bg-white rounded-3xl border border-dashed border-slate-300 p-8 sm:p-12 text-center">
+                    <UsersRound className="w-10 h-10 text-slate-300 mx-auto mb-3" />
+                    <p className="text-sm font-semibold text-slate-700 mb-1">Single Occupancy / No Co-Residents Listed</p>
+                    <p className="text-xs text-slate-500">Currently no other roommates assigned to this room by landlord.</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                    {roommates.map(m => (
+                      <div
+                        key={m.id}
+                        className="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-4 sm:p-4.5 flex flex-col justify-between"
+                      >
                         <div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                            <span
-                              style={{
-                                fontSize: 11,
-                                fontWeight: 800,
-                                padding: '2px 8px',
-                                borderRadius: 6,
-                                textTransform: 'uppercase',
-                                background: c.status === 'resolved' ? '#ecfdf5' : c.status === 'in_progress' ? '#eff6ff' : '#fef3c7',
-                                color: c.status === 'resolved' ? '#059669' : c.status === 'in_progress' ? '#2563eb' : '#d97706'
-                              }}
-                            >
-                              {c.status.replace('_', ' ')}
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 text-[11px] font-bold">
+                              Room {m.roomNumber} {m.bedLabel ? `· Bed ${m.bedLabel}` : ''}
                             </span>
-                            <span style={{ fontSize: 11.5, background: '#f1f5f9', color: '#475569', padding: '2px 8px', borderRadius: 6, fontWeight: 600 }}>
-                              {c.category}
-                            </span>
-                            <span style={{ fontSize: 11.5, color: '#94a3b8' }}>
-                              {new Date(c.createdAt).toLocaleDateString()}
-                            </span>
+                            <span className="text-[10px] text-slate-400">Since {m.checkInDate}</span>
                           </div>
-
-                          <h4 style={{ fontSize: 15.5, fontWeight: 800, color: '#0f172a', margin: '0 0 6px' }}>
-                            {c.title}
+                          <h4 className="text-sm sm:text-base font-bold text-slate-900">
+                            {m.fullName}
                           </h4>
-                          <p style={{ fontSize: 13.5, color: '#475569', margin: 0, lineHeight: 1.5 }}>
-                            {c.description}
-                          </p>
-
-                          {c.adminNote && (
-                            <div style={{ marginTop: 12, padding: '10px 12px', background: '#f8fafc', borderRadius: 10, borderLeft: '3px solid #10b981', fontSize: 12.5, color: '#334155' }}>
-                              <b>Host Note:</b> {c.adminNote}
-                            </div>
+                          {m.collegeOrWork && (
+                            <p className="text-xs text-slate-500 mt-0.5">
+                              {m.collegeOrWork}
+                            </p>
                           )}
                         </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
 
-          {/* TAB 3: ROOMMATES */}
-          {activeTab === 'roommates' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-              <div>
-                <h3 style={{ fontSize: 18, fontWeight: 800, color: '#0f172a', margin: '0 0 4px' }}>
-                  Roommates & Co-Residents
-                </h3>
-                <p style={{ color: '#64748b', fontSize: 13.5, margin: 0 }}>
-                  Other students and working professionals living in your room or flat.
-                </p>
-              </div>
-
-              {roommates.length === 0 ? (
-                <div style={{ padding: '40px 20px', textAlign: 'center', background: '#ffffff', borderRadius: 18, border: '1px solid #e2e8f0' }}>
-                  <UsersRound size={32} color="#94a3b8" style={{ margin: '0 auto 12px' }} />
-                  <p style={{ color: '#64748b', fontSize: 14, margin: 0 }}>No other roommates currently sharing this room.</p>
-                </div>
-              ) : (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 14 }}>
-                  {roommates.map(m => (
-                    <div
-                      key={m.id}
-                      style={{
-                        background: '#ffffff',
-                        borderRadius: 16,
-                        border: '1px solid #e2e8f0',
-                        padding: '18px',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        justifyContent: 'space-between',
-                        gap: 12
-                      }}
-                    >
-                      <div>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                          <span style={{ fontSize: 12, background: '#f1f5f9', color: '#0f172a', padding: '2px 8px', borderRadius: 6, fontWeight: 700 }}>
-                            Room {m.roomNumber} {m.bedLabel ? `· Bed ${m.bedLabel}` : ''}
-                          </span>
-                          <span style={{ fontSize: 11, color: '#64748b' }}>Since {m.checkInDate}</span>
-                        </div>
-                        <h4 style={{ fontSize: 16, fontWeight: 800, color: '#0f172a', margin: '0 0 4px' }}>
-                          {m.fullName}
-                        </h4>
-                        {m.collegeOrWork && (
-                          <div style={{ fontSize: 12.5, color: '#64748b' }}>
-                            {m.collegeOrWork}
+                        {m.phone && (
+                          <div className="flex items-center gap-2 mt-4 pt-3 border-t border-slate-100">
+                            <a
+                              href={`https://wa.me/91${m.phone.replace(/\D/g, '')}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex-1 inline-flex items-center justify-center gap-1.5 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-semibold transition-colors"
+                            >
+                              <MessageCircle className="w-3.5 h-3.5" />
+                              <span>WhatsApp</span>
+                            </a>
+                            <a
+                              href={`tel:${m.phone}`}
+                              className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold border border-slate-200 transition-colors"
+                              title="Call Roommate"
+                            >
+                              <Phone className="w-3.5 h-3.5" />
+                            </a>
                           </div>
                         )}
                       </div>
-
-                      {m.phone && (
-                        <div style={{ display: 'flex', gap: 8, paddingTop: 10, borderTop: '1px solid #f1f5f9' }}>
-                          <a
-                            href={`https://wa.me/91${m.phone.replace(/\D/g, '')}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            style={{
-                              flex: 1,
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              gap: 6,
-                              padding: '8px',
-                              borderRadius: 10,
-                              background: '#ecfdf5',
-                              color: '#059669',
-                              fontSize: 12.5,
-                              fontWeight: 700,
-                              textDecoration: 'none'
-                            }}
-                          >
-                            <MessageCircle size={14} />
-                            <span>WhatsApp</span>
-                          </a>
-                          <a
-                            href={`tel:${m.phone}`}
-                            style={{
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              padding: '8px 12px',
-                              borderRadius: 10,
-                              background: '#f8fafc',
-                              color: '#475569',
-                              fontSize: 12.5,
-                              fontWeight: 700,
-                              textDecoration: 'none',
-                              border: '1px solid #e2e8f0'
-                            }}
-                          >
-                            <Phone size={14} />
-                          </a>
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* TAB 4: VISITS & INQUIRIES */}
-          {activeTab === 'visits' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-              <div>
-                <h3 style={{ fontSize: 18, fontWeight: 800, color: '#0f172a', margin: '0 0 4px' }}>
-                  Property Visits & Inquiries
-                </h3>
-                <p style={{ color: '#64748b', fontSize: 13.5, margin: 0 }}>
-                  Visits you scheduled through RoomSaathi to view rooms and PGs.
-                </p>
+                    ))}
+                  </div>
+                )}
               </div>
+            )}
 
-              {visits.length === 0 ? (
-                <div style={{ padding: '40px 20px', textAlign: 'center', background: '#ffffff', borderRadius: 18, border: '1px solid #e2e8f0' }}>
-                  <Calendar size={32} color="#94a3b8" style={{ margin: '0 auto 12px' }} />
-                  <p style={{ color: '#64748b', fontSize: 14, margin: '0 0 12px' }}>No upcoming property visit requests scheduled.</p>
-                  <Link
-                    href="/search"
-                    style={{
-                      background: '#10b981',
-                      color: '#ffffff',
-                      padding: '8px 16px',
-                      borderRadius: 10,
-                      fontWeight: 700,
-                      fontSize: 13,
-                      textDecoration: 'none',
-                      display: 'inline-block'
-                    }}
-                  >
-                    Schedule a Room Visit
-                  </Link>
+            {/* TAB 5: PROPERTY VISITS */}
+            {activeTab === 'visits' && (
+              <div className="space-y-4">
+                <div>
+                  <h3 className="text-sm sm:text-base font-bold text-slate-900">
+                    Property Visits & Inquiries
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Visits scheduled through RoomSaathi to view rooms and PGs.
+                  </p>
                 </div>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                  {visits.map(v => (
-                    <div
-                      key={v.id}
-                      style={{
-                        background: '#ffffff',
-                        borderRadius: 16,
-                        border: '1px solid #e2e8f0',
-                        padding: '18px'
-                      }}
+
+                {visits.length === 0 ? (
+                  <div className="bg-white rounded-3xl border border-dashed border-slate-300 p-8 sm:p-12 text-center">
+                    <Calendar className="w-10 h-10 text-slate-300 mx-auto mb-3" />
+                    <p className="text-sm font-semibold text-slate-700 mb-1">No upcoming visits scheduled</p>
+                    <p className="text-xs text-slate-500 mb-4">Want to explore another room or PG in Samastipur?</p>
+                    <Link
+                      href="/search"
+                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-sm transition-colors"
                     >
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap' }}>
-                        <div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                            <span style={{ fontSize: 11, fontWeight: 800, padding: '2px 8px', borderRadius: 6, background: '#ecfdf5', color: '#059669', textTransform: 'uppercase' }}>
-                              {v.status}
-                            </span>
-                            <span style={{ fontSize: 12, color: '#64748b' }}>
-                              Created: {new Date(v.createdAt).toLocaleDateString()}
-                            </span>
-                          </div>
-                          <h4 style={{ fontSize: 16, fontWeight: 800, color: '#0f172a', margin: '0 0 4px' }}>
-                            {v.propertyName}
-                          </h4>
-                          {v.visitDate && (
-                            <div style={{ fontSize: 13, color: '#475569', display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
-                              <Calendar size={14} color="#10b981" />
-                              <span>Scheduled for: <b>{v.visitDate} {v.visitTime ? `at ${v.visitTime}` : ''}</b></span>
-                            </div>
-                          )}
-                          {v.notes && (
-                            <div style={{ fontSize: 12.5, color: '#64748b', marginTop: 4 }}>
-                              Note: {v.notes}
-                            </div>
-                          )}
+                      <span>Find Rooms to Visit</span>
+                    </Link>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {visits.map(v => (
+                      <div
+                        key={v.id}
+                        className="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-4 sm:p-5"
+                      >
+                        <div className="flex items-center justify-between gap-2 mb-2">
+                          <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200">
+                            {v.status}
+                          </span>
+                          <span className="text-[11px] text-slate-400">
+                            Requested {new Date(v.createdAt).toLocaleDateString()}
+                          </span>
                         </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-      )}
 
-      {/* MODAL 1: PAY RENT UPI MODAL */}
+                        <h4 className="text-sm font-bold text-slate-900">
+                          {v.propertyName}
+                        </h4>
+
+                        {v.visitDate && (
+                          <div className="flex items-center gap-1.5 text-xs text-slate-700 font-medium mt-1.5">
+                            <Calendar className="w-3.5 h-3.5 text-emerald-600" />
+                            <span>Scheduled for: <b>{v.visitDate} {v.visitTime ? `at ${v.visitTime}` : ''}</b></span>
+                          </div>
+                        )}
+
+                        {v.notes && (
+                          <p className="text-xs text-slate-500 mt-1">
+                            Note: {v.notes}
+                          </p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+          </div>
+        )}
+
+      </div>
+
+      {/* =========================================================================
+          MODAL 1: UPI RENT PAYMENT MODAL (Mobile Bottom Sheet / Desktop Dialog)
+          ========================================================================= */}
       {showPayModal && payingRecord && stay && (
         <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(15, 23, 42, 0.65)',
-            backdropFilter: 'blur(4px)',
-            zIndex: 1000,
-            display: 'grid',
-            placeItems: 'center',
-            padding: 16
-          }}
+          className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-200"
           onClick={() => setShowPayModal(false)}
         >
           <div
-            style={{
-              background: '#ffffff',
-              borderRadius: 24,
-              maxWidth: 440,
-              width: '100%',
-              padding: '24px',
-              boxShadow: '0 20px 40px rgba(0,0,0,0.2)',
-              position: 'relative'
-            }}
+            className="bg-white w-full max-w-md rounded-t-3xl sm:rounded-3xl shadow-xl border border-slate-200 p-5 sm:p-6 max-h-[92vh] overflow-y-auto"
             onClick={e => e.stopPropagation()}
           >
-            <button
-              type="button"
-              onClick={() => setShowPayModal(false)}
-              style={{ position: 'absolute', top: 18, right: 18, background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8' }}
-            >
-              <X size={20} />
-            </button>
-
-            <div style={{ textAlign: 'center', marginBottom: 20 }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: '#10b981', textTransform: 'uppercase' }}>
-                DIRECT HOST UPI PAYMENT
+            {/* Modal Header */}
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center">
+                  <IndianRupee className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900">Direct Owner UPI Payment</h3>
+                  <p className="text-[11px] text-slate-400">Rent for {payingRecord.month}</p>
+                </div>
               </div>
-              <h3 style={{ fontSize: 20, fontWeight: 800, color: '#0f172a', margin: '4px 0 2px' }}>
-                Pay Rent for {payingRecord.month}
-              </h3>
-              <div style={{ fontSize: 28, fontWeight: 900, color: '#0f172a', margin: '6px 0' }}>
+              <button
+                type="button"
+                onClick={() => setShowPayModal(false)}
+                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Total Rent Amount */}
+            <div className="text-center py-4 bg-slate-50/70 rounded-2xl border border-slate-100 my-4">
+              <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider block">Total Amount Due</span>
+              <div className="text-3xl font-black text-slate-900 mt-0.5">
                 ₹{payingRecord.totalAmount.toLocaleString('en-IN')}
               </div>
-              <p style={{ fontSize: 12.5, color: '#64748b', margin: 0 }}>
-                100% direct payment to {stay.property?.ownerName || 'Host'} ({stay.property?.upiId || 'roomsaathi@upi'})
+              <p className="text-xs text-slate-500 mt-1">
+                Paying to: <span className="font-semibold text-slate-800">{stay.property?.ownerName || 'Owner'}</span>
               </p>
             </div>
 
-            {/* QR Code */}
-            <div style={{ textAlign: 'center', background: '#f8fafc', padding: '16px', borderRadius: 16, border: '1px solid #e2e8f0', marginBottom: 16 }}>
+            {/* QR Code Container */}
+            <div className="bg-white rounded-2xl border border-slate-200 p-4 text-center mb-4 shadow-sm">
               <img
                 src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(upiUrl)}`}
                 alt="UPI Payment QR Code"
-                style={{ width: 170, height: 170, margin: '0 auto', display: 'block', borderRadius: 8 }}
+                className="w-40 h-40 mx-auto rounded-xl border border-slate-100"
               />
-              <div style={{ fontSize: 11, color: '#64748b', marginTop: 8, fontWeight: 600 }}>
-                Scan with any UPI App (GPay, PhonePe, Paytm)
+              <div className="mt-3 flex items-center justify-center gap-2">
+                <span className="text-xs font-mono font-semibold text-slate-600 bg-slate-100 px-2.5 py-1 rounded-lg">
+                  {upiIdString}
+                </span>
+                <button
+                  type="button"
+                  onClick={copyUpiToClipboard}
+                  className="text-xs font-semibold text-emerald-700 hover:underline inline-flex items-center gap-1 cursor-pointer"
+                >
+                  <Copy className="w-3 h-3" />
+                  <span>{copiedUpi ? 'Copied!' : 'Copy'}</span>
+                </button>
               </div>
+              <span className="text-[11px] text-slate-400 block mt-1">Scan with GPay, PhonePe, Paytm, or BHIM</span>
             </div>
 
-            {/* Deep Links / Intent for Mobile */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 16 }}>
+            {/* Mobile App Launch Intents */}
+            <div className="grid grid-cols-2 gap-2 mb-4">
               <a
                 href={upiUrl}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 6,
-                  padding: '10px',
-                  borderRadius: 12,
-                  background: '#6739b7',
-                  color: '#ffffff',
-                  fontSize: 13,
-                  fontWeight: 700,
-                  textDecoration: 'none'
-                }}
+                className="flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-[#5f259f] hover:bg-[#521f8a] text-white text-xs font-bold transition-colors"
               >
                 <span>PhonePe</span>
+                <ArrowUpRight className="w-3.5 h-3.5" />
               </a>
               <a
                 href={upiUrl}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 6,
-                  padding: '10px',
-                  borderRadius: 12,
-                  background: '#0084ff',
-                  color: '#ffffff',
-                  fontSize: 13,
-                  fontWeight: 700,
-                  textDecoration: 'none'
-                }}
+                className="flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-[#0086ff] hover:bg-[#0074db] text-white text-xs font-bold transition-colors"
               >
                 <span>GPay / Paytm</span>
+                <ArrowUpRight className="w-3.5 h-3.5" />
               </a>
             </div>
 
             {/* Confirm Payment Section */}
-            <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: 14 }}>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#334155', marginBottom: 6 }}>
-                UPI Ref / UTR No. (Optional):
+            <div className="pt-3 border-t border-slate-100">
+              <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                UPI Reference / UTR No. (Optional):
               </label>
               <input
                 type="text"
                 value={paymentUtr}
                 onChange={e => setPaymentUtr(e.target.value)}
                 placeholder="e.g. 431289901234"
-                style={{
-                  width: '100%',
-                  padding: '10px 12px',
-                  borderRadius: 10,
-                  border: '1px solid #cbd5e1',
-                  fontSize: 13,
-                  marginBottom: 12,
-                  boxSizing: 'border-box'
-                }}
+                className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs sm:text-sm mb-3 focus:outline-none focus:border-emerald-500"
               />
 
               <button
                 type="button"
                 onClick={handleConfirmPayment}
                 disabled={paymentSubmitted}
-                style={{
-                  width: '100%',
-                  background: paymentSubmitted ? '#16a34a' : '#10b981',
-                  color: '#ffffff',
-                  padding: '12px',
-                  borderRadius: 12,
-                  fontWeight: 800,
-                  fontSize: 14,
-                  border: 'none',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 8
-                }}
+                className={`w-full inline-flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold text-white transition-all cursor-pointer ${
+                  paymentSubmitted ? 'bg-emerald-600' : 'bg-emerald-600 hover:bg-emerald-700'
+                }`}
               >
                 {paymentSubmitted ? (
                   <>
-                    <CheckCircle2 size={18} />
+                    <CheckCircle2 className="w-4 h-4" />
                     <span>Payment Marked as Paid!</span>
                   </>
                 ) : (
@@ -1867,116 +1327,102 @@ export default function MyStayPage() {
         </div>
       )}
 
-      {/* MODAL 2: RECEIPT MODAL */}
+      {/* =========================================================================
+          MODAL 2: OFFICIAL RENT RECEIPT VOUCHER
+          ========================================================================= */}
       {showReceiptModal && selectedReceipt && stay && (
         <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(15, 23, 42, 0.65)',
-            backdropFilter: 'blur(4px)',
-            zIndex: 1000,
-            display: 'grid',
-            placeItems: 'center',
-            padding: 16
-          }}
+          className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-200"
           onClick={() => setShowReceiptModal(false)}
         >
           <div
-            style={{
-              background: '#ffffff',
-              borderRadius: 20,
-              maxWidth: 480,
-              width: '100%',
-              padding: '28px',
-              boxShadow: '0 20px 40px rgba(0,0,0,0.2)',
-              position: 'relative'
-            }}
+            className="bg-white w-full max-w-md rounded-t-3xl sm:rounded-3xl shadow-xl border border-slate-200 p-6 max-h-[92vh] overflow-y-auto"
             onClick={e => e.stopPropagation()}
           >
-            <button
-              type="button"
-              onClick={() => setShowReceiptModal(false)}
-              style={{ position: 'absolute', top: 18, right: 18, background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8' }}
-            >
-              <X size={20} />
-            </button>
-
-            {/* Receipt Header */}
-            <div style={{ textAlign: 'center', borderBottom: '2px dashed #e2e8f0', paddingBottom: 16, marginBottom: 16 }}>
-              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: '#10b981', fontWeight: 800, fontSize: 18 }}>
-                <span>⌂</span> RoomSaathi Rent Receipt
-              </div>
-              <h3 style={{ fontSize: 16, fontWeight: 700, color: '#0f172a', margin: '6px 0 2px' }}>
-                {selectedReceipt.propertyName}
-              </h3>
-              <div style={{ fontSize: 12, color: '#64748b' }}>
-                {stay.property?.address}, {stay.property?.city}
-              </div>
-              <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>
-                Receipt #{selectedReceipt.id.substring(0, 10).toUpperCase()} · Month: {selectedReceipt.month}
-              </div>
-            </div>
-
-            {/* Tenant details */}
-            <div style={{ fontSize: 13, display: 'flex', justifyContent: 'space-between', marginBottom: 16, color: '#334155' }}>
-              <div>
-                <div><b>Tenant:</b> {selectedReceipt.tenantName}</div>
-                <div><b>Room / Bed:</b> {selectedReceipt.roomNumber}</div>
-              </div>
-              <div style={{ textAlign: 'right' }}>
-                <div><b>Paid Date:</b> {selectedReceipt.paidDate || 'Paid'}</div>
-                <div><b>Mode:</b> {selectedReceipt.paymentMethod || 'UPI'}</div>
-              </div>
-            </div>
-
-            {/* Itemized Table */}
-            <div style={{ background: '#f8fafc', borderRadius: 12, padding: '12px 14px', marginBottom: 16, fontSize: 13 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0' }}>
-                <span style={{ color: '#64748b' }}>Room Rent:</span>
-                <b>₹{selectedReceipt.baseRent}</b>
-              </div>
-              {Boolean(selectedReceipt.electricityAmount) && (
-                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0' }}>
-                  <span style={{ color: '#64748b' }}>Electricity ({selectedReceipt.electricityUnits || 0} units):</span>
-                  <b>₹{selectedReceipt.electricityAmount}</b>
-                </div>
-              )}
-              {Boolean(selectedReceipt.wifiAmount) && (
-                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0' }}>
-                  <span style={{ color: '#64748b' }}>WiFi Charges:</span>
-                  <b>₹{selectedReceipt.wifiAmount}</b>
-                </div>
-              )}
-              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0 4px', borderTop: '1px solid #e2e8f0', marginTop: 4, fontSize: 15 }}>
-                <span style={{ fontWeight: 800, color: '#0f172a' }}>Total Amount Paid:</span>
-                <span style={{ fontWeight: 900, color: '#059669' }}>₹{selectedReceipt.totalAmount.toLocaleString('en-IN')}</span>
-              </div>
-            </div>
-
-            {/* Stamp & Footer */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginTop: 20 }}>
-              <div style={{ border: '2px solid #10b981', color: '#059669', padding: '4px 12px', borderRadius: 8, fontSize: 12, fontWeight: 800, textTransform: 'uppercase', transform: 'rotate(-4deg)' }}>
-                PAID & VERIFIED
+            {/* Header with Close */}
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+              <div className="flex items-center gap-2">
+                <span className="text-emerald-700 font-extrabold text-lg">⌂ RoomSaathi</span>
+                <span className="text-xs text-slate-400 font-medium">· Digital Receipt</span>
               </div>
               <button
                 type="button"
-                onClick={() => window.print()}
-                style={{
-                  background: '#f1f5f9',
-                  color: '#0f172a',
-                  padding: '8px 14px',
-                  borderRadius: 10,
-                  fontSize: 12.5,
-                  fontWeight: 700,
-                  border: '1px solid #cbd5e1',
-                  cursor: 'pointer',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 6
-                }}
+                onClick={() => setShowReceiptModal(false)}
+                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 cursor-pointer"
               >
-                <Printer size={14} />
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Voucher Card Body */}
+            <div className="bg-slate-50/80 rounded-2xl border border-slate-200/80 p-4 mb-4">
+              <div className="text-center pb-3 border-b border-dashed border-slate-200 mb-3">
+                <h3 className="text-base font-bold text-slate-900">
+                  {selectedReceipt.propertyName}
+                </h3>
+                <p className="text-xs text-slate-500">
+                  {stay.property?.address}, {stay.property?.city}
+                </p>
+                <span className="text-[10px] text-slate-400 block mt-1 font-mono">
+                  Receipt #{selectedReceipt.id.substring(0, 10).toUpperCase()} · Month: {selectedReceipt.month}
+                </span>
+              </div>
+
+              {/* Tenant info */}
+              <div className="grid grid-cols-2 gap-2 text-xs text-slate-600 mb-3 pb-3 border-b border-slate-100">
+                <div>
+                  <span className="text-slate-400 block text-[10px]">Resident</span>
+                  <span className="font-bold text-slate-900">{selectedReceipt.tenantName}</span>
+                  <span className="text-[11px] text-slate-500 block">Room {selectedReceipt.roomNumber}</span>
+                </div>
+                <div className="text-right">
+                  <span className="text-slate-400 block text-[10px]">Payment Mode</span>
+                  <span className="font-bold text-emerald-700">{selectedReceipt.paymentMethod || 'UPI'}</span>
+                  <span className="text-[11px] text-slate-500 block">{selectedReceipt.paidDate || 'Paid'}</span>
+                </div>
+              </div>
+
+              {/* Line items */}
+              <div className="space-y-1.5 text-xs text-slate-600 mb-3">
+                <div className="flex justify-between">
+                  <span>Room Base Rent:</span>
+                  <span className="font-semibold text-slate-900">₹{selectedReceipt.baseRent}</span>
+                </div>
+                {Boolean(selectedReceipt.electricityAmount) && (
+                  <div className="flex justify-between">
+                    <span>Electricity ({selectedReceipt.electricityUnits || 0} units):</span>
+                    <span className="font-semibold text-slate-900">₹{selectedReceipt.electricityAmount}</span>
+                  </div>
+                )}
+                {Boolean(selectedReceipt.wifiAmount) && (
+                  <div className="flex justify-between">
+                    <span>WiFi Charge:</span>
+                    <span className="font-semibold text-slate-900">₹{selectedReceipt.wifiAmount}</span>
+                  </div>
+                )}
+                <div className="flex justify-between pt-2 border-t border-slate-200 text-sm font-bold text-slate-900">
+                  <span>Total Paid:</span>
+                  <span className="text-emerald-700 font-extrabold">₹{selectedReceipt.totalAmount.toLocaleString('en-IN')}</span>
+                </div>
+              </div>
+
+              {/* Official Stamp */}
+              <div className="flex items-center justify-center pt-2">
+                <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-emerald-100/80 text-emerald-800 text-xs font-extrabold uppercase tracking-wider border border-emerald-300">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-700" />
+                  Paid & Verified · सत्यापन पूर्ण
+                </span>
+              </div>
+            </div>
+
+            {/* Print Action */}
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => window.print()}
+                className="flex-1 inline-flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition-colors cursor-pointer"
+              >
+                <Printer className="w-3.5 h-3.5" />
                 <span>Print / Save PDF</span>
               </button>
             </div>
@@ -1984,57 +1430,42 @@ export default function MyStayPage() {
         </div>
       )}
 
-      {/* MODAL 3: RAISE COMPLAINT MODAL */}
+      {/* =========================================================================
+          MODAL 3: RAISE MAINTENANCE TICKET MODAL
+          ========================================================================= */}
       {showComplaintModal && stay && (
         <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(15, 23, 42, 0.65)',
-            backdropFilter: 'blur(4px)',
-            zIndex: 1000,
-            display: 'grid',
-            placeItems: 'center',
-            padding: 16
-          }}
+          className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-200"
           onClick={() => setShowComplaintModal(false)}
         >
           <div
-            style={{
-              background: '#ffffff',
-              borderRadius: 22,
-              maxWidth: 480,
-              width: '100%',
-              padding: '24px',
-              boxShadow: '0 20px 40px rgba(0,0,0,0.2)',
-              position: 'relative'
-            }}
+            className="bg-white w-full max-w-md rounded-t-3xl sm:rounded-3xl shadow-xl border border-slate-200 p-5 sm:p-6 max-h-[92vh] overflow-y-auto"
             onClick={e => e.stopPropagation()}
           >
-            <button
-              type="button"
-              onClick={() => setShowComplaintModal(false)}
-              style={{ position: 'absolute', top: 18, right: 18, background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8' }}
-            >
-              <X size={20} />
-            </button>
-
-            <h3 style={{ fontSize: 18, fontWeight: 800, color: '#0f172a', margin: '0 0 4px' }}>
-              Raise Maintenance Issue (शिकायत दर्ज करें)
-            </h3>
-            <p style={{ color: '#64748b', fontSize: 13, margin: '0 0 16px' }}>
-              Directly notified to {stay.property?.name || 'Property'} owner.
-            </p>
-
-            <form onSubmit={handleSubmitComplaint} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            {/* Header */}
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
               <div>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#334155', marginBottom: 4 }}>
+                <h3 className="text-base font-bold text-slate-900">Raise Maintenance Ticket</h3>
+                <p className="text-xs text-slate-400">Directly notifies {stay.property?.name}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowComplaintModal(false)}
+                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmitComplaint} className="space-y-3.5">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
                   Category (समस्या का प्रकार):
                 </label>
                 <select
                   value={complaintForm.category}
                   onChange={e => setComplaintForm({ ...complaintForm, category: e.target.value })}
-                  style={{ width: '100%', padding: '10px 12px', borderRadius: 10, border: '1px solid #cbd5e1', fontSize: 13.5 }}
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs sm:text-sm bg-white focus:outline-none focus:border-emerald-500"
                 >
                   <option value="wifi">WiFi & Internet</option>
                   <option value="plumbing">Plumbing & Water / नल या पानी</option>
@@ -2046,26 +1477,20 @@ export default function MyStayPage() {
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#334155', marginBottom: 4 }}>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
                   Priority:
                 </label>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
+                <div className="grid grid-cols-3 gap-2">
                   {['low', 'medium', 'urgent'].map(p => (
                     <button
                       key={p}
                       type="button"
                       onClick={() => setComplaintForm({ ...complaintForm, priority: p })}
-                      style={{
-                        padding: '8px',
-                        borderRadius: 8,
-                        fontSize: 12,
-                        fontWeight: 700,
-                        textTransform: 'capitalize',
-                        cursor: 'pointer',
-                        border: complaintForm.priority === p ? '1.5px solid #10b981' : '1px solid #cbd5e1',
-                        background: complaintForm.priority === p ? '#ecfdf5' : '#ffffff',
-                        color: complaintForm.priority === p ? '#059669' : '#475569'
-                      }}
+                      className={`py-2 rounded-xl text-xs font-bold capitalize transition-colors cursor-pointer border ${
+                        complaintForm.priority === p
+                          ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
+                          : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                      }`}
                     >
                       {p}
                     </button>
@@ -2074,61 +1499,49 @@ export default function MyStayPage() {
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#334155', marginBottom: 4 }}>
-                  Short Title (विषय):
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Issue Title (विषय):
                 </label>
                 <input
                   type="text"
                   required
                   value={complaintForm.title}
                   onChange={e => setComplaintForm({ ...complaintForm, title: e.target.value })}
-                  placeholder="e.g. Bathroom tap leaking or WiFi down"
-                  style={{ width: '100%', padding: '10px 12px', borderRadius: 10, border: '1px solid #cbd5e1', fontSize: 13.5, boxSizing: 'border-box' }}
+                  placeholder="e.g. Bathroom tap leaking or WiFi disconnected"
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs sm:text-sm focus:outline-none focus:border-emerald-500"
                 />
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#334155', marginBottom: 4 }}>
-                  Description (विस्तार से बताएं):
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Description (विवरण):
                 </label>
                 <textarea
                   rows={3}
                   value={complaintForm.description}
                   onChange={e => setComplaintForm({ ...complaintForm, description: e.target.value })}
-                  placeholder="Describe when the issue started and any specific details..."
-                  style={{ width: '100%', padding: '10px 12px', borderRadius: 10, border: '1px solid #cbd5e1', fontSize: 13.5, boxSizing: 'border-box', resize: 'vertical' }}
+                  placeholder="Describe when it started and what room or switch is affected..."
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs sm:text-sm focus:outline-none focus:border-emerald-500 resize-none"
                 />
               </div>
 
               <button
                 type="submit"
                 disabled={submittingComplaint || complaintSuccess}
-                style={{
-                  background: complaintSuccess ? '#16a34a' : '#10b981',
-                  color: '#ffffff',
-                  padding: '12px',
-                  borderRadius: 12,
-                  fontWeight: 800,
-                  fontSize: 14,
-                  border: 'none',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 8,
-                  marginTop: 6
-                }}
+                className={`w-full inline-flex items-center justify-center gap-2 py-3 rounded-xl text-xs sm:text-sm font-bold text-white transition-all cursor-pointer ${
+                  complaintSuccess ? 'bg-emerald-600' : 'bg-emerald-600 hover:bg-emerald-700'
+                }`}
               >
                 {complaintSuccess ? (
                   <>
-                    <CheckCircle2 size={18} />
+                    <CheckCircle2 className="w-4 h-4" />
                     <span>Ticket Submitted!</span>
                   </>
                 ) : submittingComplaint ? (
                   <span>Submitting...</span>
                 ) : (
                   <>
-                    <Send size={16} />
+                    <Send className="w-3.5 h-3.5" />
                     <span>Submit Maintenance Ticket</span>
                   </>
                 )}
@@ -2138,7 +1551,7 @@ export default function MyStayPage() {
         </div>
       )}
 
-      {/* Rent Agreement Signature Modal */}
+      {/* Tenancy Agreement Sign Canvas Modal */}
       {showSignModal && agreement && (
         <TenantSignatureModal
           tenantName={agreement.tenantName || stay?.tenant?.fullName || 'Resident'}
@@ -2149,7 +1562,7 @@ export default function MyStayPage() {
         />
       )}
 
-      {/* Rent Agreement Full Viewer Modal */}
+      {/* Fullscreen Tenancy Agreement Document Viewer Modal */}
       {showAgreementModal && agreement && (
         <AgreementViewerModal
           agreement={agreement}
@@ -2160,6 +1573,7 @@ export default function MyStayPage() {
           onClose={() => setShowAgreementModal(false)}
         />
       )}
+
     </div>
   );
 }
