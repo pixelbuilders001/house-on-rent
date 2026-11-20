@@ -27,7 +27,10 @@ import {
   Info,
   X,
   FileText,
-  Printer
+  Printer,
+  PenLine,
+  Download,
+  Check
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import {
@@ -38,25 +41,35 @@ import {
   fetchRoommates,
   fetchTenantVisits,
   markRentPaidOnline,
+  fetchTenantAgreement,
+  submitTenantAgreementSignature,
   type ActiveTenantStay,
   type RentRecordItem,
   type ComplaintItem,
   type RoommateItem,
-  type VisitRequestItem
+  type VisitRequestItem,
+  type TenantAgreement
 } from '@/lib/services/tenantService';
+import { TenantSignatureModal } from '@/components/agreement/TenantSignatureModal';
+import { AgreementViewerModal } from '@/components/agreement/AgreementViewerModal';
 
 export default function MyStayPage() {
   const { user, profile, openAuthModal } = useAuth();
 
-  const [activeTab, setActiveTab] = useState<'rent' | 'complaints' | 'roommates' | 'visits'>('rent');
+  const [activeTab, setActiveTab] = useState<'rent' | 'agreement' | 'complaints' | 'roommates' | 'visits'>('rent');
   const [loading, setLoading] = useState(true);
   const [stay, setStay] = useState<ActiveTenantStay | null>(null);
   const [rentRecords, setRentRecords] = useState<RentRecordItem[]>([]);
   const [complaints, setComplaints] = useState<ComplaintItem[]>([]);
   const [roommates, setRoommates] = useState<RoommateItem[]>([]);
   const [visits, setVisits] = useState<VisitRequestItem[]>([]);
+  const [agreement, setAgreement] = useState<TenantAgreement | null>(null);
 
   // Modals state
+  const [showSignModal, setShowSignModal] = useState(false);
+  const [showAgreementModal, setShowAgreementModal] = useState(false);
+  const [isSigningAgreement, setIsSigningAgreement] = useState(false);
+
   const [showPayModal, setShowPayModal] = useState(false);
   const [payingRecord, setPayingRecord] = useState<RentRecordItem | null>(null);
   const [paymentUtr, setPaymentUtr] = useState('');
@@ -75,7 +88,7 @@ export default function MyStayPage() {
   const [submittingComplaint, setSubmittingComplaint] = useState(false);
   const [complaintSuccess, setComplaintSuccess] = useState(false);
 
-  // Load active stay data
+  // Load active stay and rent agreement data
   useEffect(() => {
     async function loadData() {
       setLoading(true);
@@ -85,32 +98,64 @@ export default function MyStayPage() {
       const userProfileId = user?.id || null;
       const userFullName = profile?.full_name || user?.user_metadata?.full_name || null;
 
-      if (!user) {
-        setStay(null);
-        setLoading(false);
-        return;
-      }
+      const urlParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
+      const signingTokenParam = urlParams?.get('signAgreement') || urlParams?.get('token') || urlParams?.get('agreement') || null;
 
       try {
-        const liveStay = await fetchActiveStay({
-          email: userEmail,
-          phone: userPhone,
-          profileId: userProfileId,
-          fullName: userFullName
-        });
+        let liveStay: ActiveTenantStay | null = null;
+        if (user || userPhone || userEmail) {
+          liveStay = await fetchActiveStay({
+            email: userEmail,
+            phone: userPhone,
+            profileId: userProfileId,
+            fullName: userFullName
+          });
+        }
 
         if (liveStay) {
           setStay(liveStay);
-          const [rents, comps, mates] = await Promise.all([
+          const [rents, comps, mates, ag] = await Promise.all([
             fetchTenantRentRecords(liveStay.tenant.id),
             fetchTenantComplaints(liveStay.tenant.propertyId, liveStay.tenant.fullName),
-            fetchRoommates(liveStay.tenant.propertyId, liveStay.tenant.id, liveStay.tenant.roomId)
+            fetchRoommates(liveStay.tenant.propertyId, liveStay.tenant.id, liveStay.tenant.roomId),
+            fetchTenantAgreement({
+              tenantId: liveStay.tenant.id,
+              phone: liveStay.tenant.phone || userPhone,
+              fullName: liveStay.tenant.fullName,
+              token: signingTokenParam
+            })
           ]);
           setRentRecords(rents);
           setComplaints(comps);
           setRoommates(mates);
+          if (ag) {
+            setAgreement(ag);
+            if (signingTokenParam) {
+              setActiveTab('agreement');
+              if (!ag.tenantSignature) {
+                setShowSignModal(true);
+              }
+            }
+          }
         } else {
           setStay(null);
+          // Check for agreement by token, phone or name if stay is not linked yet
+          if (signingTokenParam || userPhone || userFullName) {
+            const ag = await fetchTenantAgreement({
+              token: signingTokenParam,
+              phone: userPhone,
+              fullName: userFullName
+            });
+            if (ag) {
+              setAgreement(ag);
+              if (signingTokenParam) {
+                setActiveTab('agreement');
+                if (!ag.tenantSignature) {
+                  setShowSignModal(true);
+                }
+              }
+            }
+          }
         }
 
         // Also fetch any visits requested with phone or email
@@ -127,6 +172,74 @@ export default function MyStayPage() {
 
     loadData();
   }, [user, profile]);
+
+  // Periodic polling for real-time agreement sync (e.g. when owner signs in owner portal)
+  useEffect(() => {
+    const pollInterval = setInterval(async () => {
+      const userPhone = profile?.phone || user?.phone || user?.user_metadata?.phone || (typeof window !== 'undefined' ? localStorage.getItem('roomsaathi_tenant_phone') : null);
+      const urlParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
+      const signingTokenParam = urlParams?.get('signAgreement') || urlParams?.get('token') || urlParams?.get('agreement') || null;
+
+      if (!stay && !signingTokenParam && !userPhone && !agreement) return;
+
+      try {
+        const liveAg = await fetchTenantAgreement({
+          tenantId: stay?.tenant?.id,
+          phone: stay?.tenant?.phone || userPhone,
+          fullName: stay?.tenant?.fullName || profile?.full_name || null,
+          token: signingTokenParam || agreement?.signingToken || agreement?.id
+        });
+        if (liveAg) {
+          setAgreement(prev => {
+            if (!prev) return liveAg;
+            if (
+              liveAg.status !== prev.status ||
+              liveAg.ownerSignature !== prev.ownerSignature ||
+              liveAg.tenantSignature !== prev.tenantSignature ||
+              liveAg.signedPdfBase64 !== prev.signedPdfBase64
+            ) {
+              return liveAg;
+            }
+            return prev;
+          });
+        }
+      } catch (e) {
+        // quiet polling failure
+      }
+    }, 4500);
+
+    return () => clearInterval(pollInterval);
+  }, [stay, agreement, user, profile]);
+
+  const handleSaveTenantSignature = async (sigDataUri: string) => {
+    if (!agreement) return;
+    setIsSigningAgreement(true);
+    try {
+      const res = await submitTenantAgreementSignature(agreement, sigDataUri);
+      if (res.success && res.agreement) {
+        setAgreement(res.agreement);
+        setShowSignModal(false);
+        setActiveTab('agreement');
+      } else {
+        alert(res.error || 'Failed to submit signature. Please try again.');
+      }
+    } catch (err: any) {
+      alert(err?.message || 'Error executing agreement signature.');
+    } finally {
+      setIsSigningAgreement(false);
+    }
+  };
+
+  const handleDownloadAgreementPdf = () => {
+    const pdfUrl = agreement?.signedPdfBase64 || agreement?.pdfBase64;
+    if (!pdfUrl) return;
+    const link = document.createElement('a');
+    link.href = pdfUrl;
+    link.download = `Executed_Rent_Agreement_${(agreement?.tenantName || 'Tenant').replace(/\s+/g, '_')}.pdf`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   const activeRentDue = rentRecords.find(r => r.status === 'pending' || r.status === 'overdue') || rentRecords[0];
 
@@ -416,12 +529,157 @@ export default function MyStayPage() {
                 </div>
               </div>
             </div>
+
+            {/* Agreement Quick Status Banner */}
+            {agreement && (
+              <div
+                style={{
+                  marginTop: 16,
+                  padding: '14px 18px',
+                  borderRadius: 16,
+                  background: agreement.status === 'completed' || agreement.tenantSignature
+                    ? 'linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%)'
+                    : 'linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)',
+                  border: `1.5px solid ${agreement.status === 'completed' || agreement.tenantSignature ? '#86efac' : '#fcd34d'}`,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: 12,
+                  flexWrap: 'wrap'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <div
+                    style={{
+                      width: 38,
+                      height: 38,
+                      borderRadius: 10,
+                      background: agreement.status === 'completed' || agreement.tenantSignature ? '#059669' : '#d97706',
+                      color: '#ffffff',
+                      display: 'grid',
+                      placeItems: 'center',
+                      flexShrink: 0
+                    }}
+                  >
+                    <FileText size={20} />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 13.5, fontWeight: 800, color: '#0f172a', display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span>
+                        {agreement.status === 'completed' || agreement.tenantSignature
+                          ? 'Official Tenancy Agreement Executed · किराया अनुबंध हस्ताक्षरित'
+                          : 'Action Required: Review & Sign Tenancy Agreement · हस्ताक्षर करें'}
+                      </span>
+                      <span
+                        style={{
+                          fontSize: 10.5,
+                          fontWeight: 700,
+                          padding: '2px 7px',
+                          borderRadius: 99,
+                          background: agreement.status === 'completed' || agreement.tenantSignature ? '#dcfce7' : '#fef9c3',
+                          color: agreement.status === 'completed' || agreement.tenantSignature ? '#15803d' : '#854d0e'
+                        }}
+                      >
+                        {agreement.status === 'completed' || agreement.tenantSignature ? 'Completed ✓' : 'Awaiting Your Sign ✍️'}
+                      </span>
+                    </div>
+                    <div style={{ fontSize: 12, color: '#475569', marginTop: 2 }}>
+                      {agreement.status === 'completed' || agreement.tenantSignature
+                        ? `Digitally verified for Room ${agreement.roomNumber}. Permanent 11-month lease record.`
+                        : `Host ${agreement.ownerName} has signed. Please add your digital signature to complete legal tenancy.`}
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  {(!agreement.tenantSignature && agreement.status !== 'completed') && (
+                    <button
+                      type="button"
+                      onClick={() => setShowSignModal(true)}
+                      style={{
+                        background: '#059669',
+                        color: '#ffffff',
+                        padding: '8px 16px',
+                        borderRadius: 10,
+                        fontSize: 12.5,
+                        fontWeight: 700,
+                        border: 'none',
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 6,
+                        boxShadow: '0 2px 8px rgba(5, 150, 105, 0.25)'
+                      }}
+                    >
+                      <PenLine size={14} />
+                      <span>Sign Agreement Now</span>
+                    </button>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveTab('agreement');
+                      setShowAgreementModal(true);
+                    }}
+                    style={{
+                      background: '#ffffff',
+                      color: '#0f172a',
+                      padding: '8px 14px',
+                      borderRadius: 10,
+                      fontSize: 12.5,
+                      fontWeight: 700,
+                      border: '1px solid #cbd5e1',
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 6
+                    }}
+                  >
+                    <span>View Document</span>
+                  </button>
+
+                  {(agreement.signedPdfBase64 || agreement.pdfBase64) && (
+                    <button
+                      type="button"
+                      onClick={handleDownloadAgreementPdf}
+                      style={{
+                        background: '#ffffff',
+                        color: '#059669',
+                        padding: '8px 12px',
+                        borderRadius: 10,
+                        fontSize: 12.5,
+                        fontWeight: 700,
+                        border: '1px solid #86efac',
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 4
+                      }}
+                      title="Download PDF"
+                    >
+                      <Download size={14} />
+                      <span>PDF</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Navigation Sub-Tabs */}
           <div style={{ display: 'flex', gap: 8, borderBottom: '1px solid #e2e8f0', paddingBottom: 8, overflowX: 'auto' }}>
             {[
               { id: 'rent', label: 'Rent & Payments · किराया', icon: IndianRupee },
+              {
+                id: 'agreement',
+                label: agreement?.status === 'completed' || agreement?.tenantSignature
+                  ? 'Agreement (Signed) · अनुबंध'
+                  : agreement?.ownerSignature
+                  ? 'Agreement (Action Required) · अनुबंध'
+                  : 'Rent Agreement · अनुबंध',
+                icon: FileText
+              },
               { id: 'complaints', label: `Maintenance (${complaints.filter(c => c.status !== 'resolved').length}) · शिकायत`, icon: Wrench },
               { id: 'roommates', label: `Roommates (${roommates.length}) · साथी`, icon: UsersRound },
               { id: 'visits', label: `Visits (${visits.length}) · विज़िट`, icon: Calendar }
@@ -697,6 +955,463 @@ export default function MyStayPage() {
                   </div>
                 )}
               </div>
+            </div>
+          )}
+
+          {/* TAB: RENT AGREEMENT & LEASE */}
+          {activeTab === 'agreement' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+              {!agreement ? (
+                <div
+                  style={{
+                    background: '#ffffff',
+                    borderRadius: 20,
+                    border: '1.5px dashed #cbd5e1',
+                    padding: '48px 24px',
+                    textAlign: 'center'
+                  }}
+                >
+                  <div
+                    style={{
+                      width: 56,
+                      height: 56,
+                      borderRadius: 16,
+                      background: '#f1f5f9',
+                      color: '#64748b',
+                      display: 'grid',
+                      placeItems: 'center',
+                      margin: '0 auto 16px'
+                    }}
+                  >
+                    <FileText size={28} />
+                  </div>
+                  <h3 style={{ fontSize: 18, fontWeight: 800, color: '#0f172a', margin: '0 0 6px' }}>
+                    No Rent Agreement Issued Yet
+                  </h3>
+                  <p style={{ color: '#64748b', fontSize: 13.5, maxWidth: 460, margin: '0 auto 20px', lineHeight: 1.6 }}>
+                    Your host hasn&apos;t generated the digital 11-month lease agreement for Room {stay?.tenant?.roomNumber || ''} yet. Once created by the landlord, you can review, digitally sign, and download your verified lease right here.
+                  </p>
+                  {stay?.property?.ownerPhone && (
+                    <a
+                      href={`https://wa.me/91${stay.property.ownerPhone.replace(/\D/g, '')}?text=Hi%20${encodeURIComponent(stay.property.ownerName || 'Host')},%20could%20you%20please%20generate%20the%20digital%20rent%20agreement%20for%20my%20stay%20in%20Room%20${stay.tenant.roomNumber}?`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 6,
+                        background: '#25d366',
+                        color: '#ffffff',
+                        padding: '10px 18px',
+                        borderRadius: 12,
+                        fontSize: 13,
+                        fontWeight: 700,
+                        textDecoration: 'none'
+                      }}
+                    >
+                      <MessageCircle size={15} />
+                      <span>Request Agreement on WhatsApp</span>
+                    </a>
+                  )}
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+                  {/* Status Banner */}
+                  <div
+                    style={{
+                      background: agreement.status === 'completed' || agreement.tenantSignature
+                        ? 'linear-gradient(145deg, #065f46 0%, #047857 100%)'
+                        : 'linear-gradient(145deg, #78350f 0%, #92400e 100%)',
+                      borderRadius: 22,
+                      padding: '24px',
+                      color: '#ffffff',
+                      boxShadow: '0 10px 30px rgba(0, 0, 0, 0.12)'
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16, flexWrap: 'wrap' }}>
+                      <div style={{ maxWidth: 580 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                          <span
+                            style={{
+                              fontSize: 11,
+                              background: 'rgba(255, 255, 255, 0.2)',
+                              padding: '3px 10px',
+                              borderRadius: 99,
+                              fontWeight: 700,
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 5
+                            }}
+                          >
+                            <ShieldCheck size={13} />
+                            {agreement.status === 'completed' || agreement.tenantSignature
+                              ? 'Fully Executed & Legally Verified · प्रमाणित अनुबंध'
+                              : 'Pending Tenant Digital Signature · हस्ताक्षर आवश्यक'}
+                          </span>
+                        </div>
+
+                        <h2 style={{ fontSize: 22, fontWeight: 800, margin: '0 0 6px' }}>
+                          {agreement.status === 'completed' || agreement.tenantSignature
+                            ? '11-Month Tenancy Agreement Completed!'
+                            : 'Review & Sign Your Tenancy Agreement'}
+                        </h2>
+                        <p style={{ fontSize: 13.5, opacity: 0.9, margin: 0, lineHeight: 1.5 }}>
+                          {agreement.status === 'completed' || agreement.tenantSignature
+                            ? `Both landlord ${agreement.ownerName} and tenant ${agreement.tenantName} have verified and digitally signed this legal contract. Both parties have permanent access.`
+                            : `Landlord ${agreement.ownerName} has digitally signed your lease for Room ${agreement.roomNumber}. Review the contract and sign with your finger or stylus to finalize.`}
+                        </p>
+                      </div>
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                        {(!agreement.tenantSignature && agreement.status !== 'completed') && (
+                          <button
+                            type="button"
+                            onClick={() => setShowSignModal(true)}
+                            style={{
+                              background: '#10b981',
+                              color: '#ffffff',
+                              padding: '10px 20px',
+                              borderRadius: 12,
+                              fontSize: 13.5,
+                              fontWeight: 800,
+                              border: 'none',
+                              cursor: 'pointer',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 6,
+                              boxShadow: '0 4px 14px rgba(0,0,0,0.2)'
+                            }}
+                          >
+                            <PenLine size={16} />
+                            <span>Sign Agreement Now</span>
+                          </button>
+                        )}
+
+                        <button
+                          type="button"
+                          onClick={() => setShowAgreementModal(true)}
+                          style={{
+                            background: 'rgba(255, 255, 255, 0.15)',
+                            color: '#ffffff',
+                            padding: '10px 16px',
+                            borderRadius: 12,
+                            fontSize: 13.5,
+                            fontWeight: 700,
+                            border: '1px solid rgba(255, 255, 255, 0.3)',
+                            cursor: 'pointer',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 6
+                          }}
+                        >
+                          <FileText size={15} />
+                          <span>Fullscreen View</span>
+                        </button>
+
+                        {(agreement.signedPdfBase64 || agreement.pdfBase64) && (
+                          <button
+                            type="button"
+                            onClick={handleDownloadAgreementPdf}
+                            style={{
+                              background: '#ffffff',
+                              color: '#0f172a',
+                              padding: '10px 16px',
+                              borderRadius: 12,
+                              fontSize: 13.5,
+                              fontWeight: 800,
+                              border: 'none',
+                              cursor: 'pointer',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 6
+                            }}
+                          >
+                            <Download size={15} />
+                            <span>Download PDF</span>
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Agreement Terms Grid */}
+                  <div
+                    style={{
+                      background: '#ffffff',
+                      borderRadius: 20,
+                      border: '1px solid #e2e8f0',
+                      padding: '20px',
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                      gap: 16
+                    }}
+                  >
+                    <div style={{ background: '#f8fafc', padding: '14px', borderRadius: 14, border: '1px solid #f1f5f9' }}>
+                      <div style={{ fontSize: 11, color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>Monthly Base Rent</div>
+                      <div style={{ fontSize: 18, fontWeight: 900, color: '#059669', marginTop: 3 }}>
+                        ₹{agreement.monthlyRent.toLocaleString('en-IN')}/month
+                      </div>
+                      <div style={{ fontSize: 11.5, color: '#64748b', marginTop: 2 }}>Payable by 5th of every month</div>
+                    </div>
+
+                    <div style={{ background: '#f8fafc', padding: '14px', borderRadius: 14, border: '1px solid #f1f5f9' }}>
+                      <div style={{ fontSize: 11, color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>Security Deposit</div>
+                      <div style={{ fontSize: 18, fontWeight: 900, color: '#0f172a', marginTop: 3 }}>
+                        ₹{agreement.depositAmount.toLocaleString('en-IN')}
+                      </div>
+                      <div style={{ fontSize: 11.5, color: '#64748b', marginTop: 2 }}>Refundable upon vacating</div>
+                    </div>
+
+                    <div style={{ background: '#f8fafc', padding: '14px', borderRadius: 14, border: '1px solid #f1f5f9' }}>
+                      <div style={{ fontSize: 11, color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>Agreement Tenure</div>
+                      <div style={{ fontSize: 18, fontWeight: 900, color: '#0f172a', marginTop: 3 }}>
+                        {agreement.durationMonths || 11} Months
+                      </div>
+                      <div style={{ fontSize: 11.5, color: '#64748b', marginTop: 2 }}>Effective from {agreement.startDate}</div>
+                    </div>
+
+                    <div style={{ background: '#f8fafc', padding: '14px', borderRadius: 14, border: '1px solid #f1f5f9' }}>
+                      <div style={{ fontSize: 11, color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>Premises & Room</div>
+                      <div style={{ fontSize: 18, fontWeight: 900, color: '#0f172a', marginTop: 3 }}>
+                        Room {agreement.roomNumber}
+                      </div>
+                      <div style={{ fontSize: 11.5, color: '#64748b', marginTop: 2 }}>{agreement.propertyName}</div>
+                    </div>
+                  </div>
+
+                  {/* Dual Signature Status Cards */}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 }}>
+                    {/* Landlord Box */}
+                    <div
+                      style={{
+                        background: '#ffffff',
+                        borderRadius: 20,
+                        border: '1.5px solid #e2e8f0',
+                        padding: '20px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'space-between',
+                        gap: 14
+                      }}
+                    >
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <span style={{ fontSize: 11, fontWeight: 800, color: '#059669', textTransform: 'uppercase' }}>
+                            FIRST PARTY · LANDLORD
+                          </span>
+                          <span
+                            style={{
+                              fontSize: 11,
+                              fontWeight: 700,
+                              padding: '2px 8px',
+                              borderRadius: 99,
+                              background: agreement.ownerSignature ? '#dcfce7' : '#f1f5f9',
+                              color: agreement.ownerSignature ? '#15803d' : '#64748b',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 4
+                            }}
+                          >
+                            <CheckCircle2 size={12} />
+                            {agreement.ownerSignature ? 'Signed ✓' : 'Pending'}
+                          </span>
+                        </div>
+                        <div style={{ fontSize: 16, fontWeight: 800, color: '#0f172a', marginTop: 6 }}>
+                          {agreement.ownerName || 'Property Landlord'}
+                        </div>
+                        <div style={{ fontSize: 12.5, color: '#64748b' }}>
+                          Phone: {agreement.ownerPhone || 'N/A'}
+                        </div>
+                      </div>
+
+                      {agreement.ownerSignature ? (
+                        <div style={{ background: '#f8fafc', padding: '10px 14px', borderRadius: 12, border: '1px solid #e2e8f0' }}>
+                          <div style={{ height: 50, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <img
+                              src={agreement.ownerSignature}
+                              alt="Landlord Signature"
+                              style={{ maxHeight: 46, maxWidth: '100%', objectFit: 'contain' }}
+                            />
+                          </div>
+                          <div style={{ fontSize: 11, color: '#059669', textAlign: 'center', fontWeight: 600, marginTop: 4 }}>
+                            Digitally signed on {new Date(agreement.ownerSignedAt || agreement.createdAt || Date.now()).toLocaleDateString('en-IN')}
+                          </div>
+                        </div>
+                      ) : (
+                        <div style={{ background: '#f8fafc', padding: '16px', borderRadius: 12, textAlign: 'center', color: '#94a3b8', fontSize: 12 }}>
+                          Awaiting landlord signature
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Tenant Box */}
+                    <div
+                      style={{
+                        background: '#ffffff',
+                        borderRadius: 20,
+                        border: `1.5px solid ${agreement.tenantSignature ? '#e2e8f0' : '#f59e0b'}`,
+                        padding: '20px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'space-between',
+                        gap: 14
+                      }}
+                    >
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <span style={{ fontSize: 11, fontWeight: 800, color: '#2563eb', textTransform: 'uppercase' }}>
+                            SECOND PARTY · TENANT (YOU)
+                          </span>
+                          <span
+                            style={{
+                              fontSize: 11,
+                              fontWeight: 700,
+                              padding: '2px 8px',
+                              borderRadius: 99,
+                              background: agreement.tenantSignature ? '#dcfce7' : '#fef3c7',
+                              color: agreement.tenantSignature ? '#15803d' : '#92400e',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 4
+                            }}
+                          >
+                            <CheckCircle2 size={12} />
+                            {agreement.tenantSignature ? 'Signed by You ✓' : 'Action Required ✍️'}
+                          </span>
+                        </div>
+                        <div style={{ fontSize: 16, fontWeight: 800, color: '#0f172a', marginTop: 6 }}>
+                          {agreement.tenantName}
+                        </div>
+                        <div style={{ fontSize: 12.5, color: '#64748b' }}>
+                          Phone: {agreement.tenantPhone} {agreement.tenantAadhaar ? `· Aadhaar: ${agreement.tenantAadhaar}` : ''}
+                        </div>
+                      </div>
+
+                      {agreement.tenantSignature ? (
+                        <div style={{ background: '#f8fafc', padding: '10px 14px', borderRadius: 12, border: '1px solid #e2e8f0' }}>
+                          <div style={{ height: 50, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <img
+                              src={agreement.tenantSignature}
+                              alt="Tenant Signature"
+                              style={{ maxHeight: 46, maxWidth: '100%', objectFit: 'contain' }}
+                            />
+                          </div>
+                          <div style={{ fontSize: 11, color: '#2563eb', textAlign: 'center', fontWeight: 600, marginTop: 4 }}>
+                            Digitally signed by you on {new Date(agreement.tenantSignedAt || Date.now()).toLocaleDateString('en-IN')}
+                          </div>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setShowSignModal(true)}
+                          style={{
+                            background: '#059669',
+                            color: '#ffffff',
+                            padding: '12px',
+                            borderRadius: 12,
+                            fontWeight: 800,
+                            fontSize: 13.5,
+                            border: 'none',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: 8,
+                            boxShadow: '0 2px 10px rgba(5, 150, 105, 0.25)'
+                          }}
+                        >
+                          <PenLine size={16} />
+                          <span>Draw / Type Your Signature</span>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Embedded PDF Viewer Frame */}
+                  <div
+                    style={{
+                      background: '#ffffff',
+                      borderRadius: 20,
+                      border: '1px solid #e2e8f0',
+                      padding: '20px',
+                      overflow: 'hidden'
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, flexWrap: 'wrap', gap: 10 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <FileText size={18} color="#059669" />
+                        <h4 style={{ fontSize: 15, fontWeight: 800, color: '#0f172a', margin: 0 }}>
+                          Official Tenancy Document Preview
+                        </h4>
+                      </div>
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <button
+                          type="button"
+                          onClick={() => setShowAgreementModal(true)}
+                          style={{
+                            background: '#f8fafc',
+                            border: '1px solid #cbd5e1',
+                            padding: '6px 12px',
+                            borderRadius: 8,
+                            fontSize: 12,
+                            fontWeight: 700,
+                            color: '#334155',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          Open in Fullscreen
+                        </button>
+
+                        {(agreement.signedPdfBase64 || agreement.pdfBase64) && (
+                          <button
+                            type="button"
+                            onClick={handleDownloadAgreementPdf}
+                            style={{
+                              background: '#059669',
+                              border: 'none',
+                              padding: '6px 14px',
+                              borderRadius: 8,
+                              fontSize: 12,
+                              fontWeight: 700,
+                              color: '#ffffff',
+                              cursor: 'pointer',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 5
+                            }}
+                          >
+                            <Download size={13} />
+                            <span>Download PDF</span>
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {(agreement.signedPdfBase64 || agreement.pdfBase64) ? (
+                      <div
+                        style={{
+                          height: 580,
+                          borderRadius: 14,
+                          overflow: 'hidden',
+                          border: '1px solid #cbd5e1',
+                          background: '#525659'
+                        }}
+                      >
+                        <iframe
+                          src={`${agreement.signedPdfBase64 || agreement.pdfBase64}#toolbar=0`}
+                          title="Agreement Document Frame"
+                          style={{ width: '100%', height: '100%', border: 'none', display: 'block' }}
+                        />
+                      </div>
+                    ) : (
+                      <div style={{ padding: '40px 20px', textAlign: 'center', color: '#64748b' }}>
+                        Document preview loading...
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -1421,6 +2136,29 @@ export default function MyStayPage() {
             </form>
           </div>
         </div>
+      )}
+
+      {/* Rent Agreement Signature Modal */}
+      {showSignModal && agreement && (
+        <TenantSignatureModal
+          tenantName={agreement.tenantName || stay?.tenant?.fullName || 'Resident'}
+          propertyName={agreement.propertyName || stay?.property?.name || 'Property'}
+          roomNumber={agreement.roomNumber || stay?.tenant?.roomNumber || 'Room'}
+          onSaveSignature={handleSaveTenantSignature}
+          onClose={() => setShowSignModal(false)}
+        />
+      )}
+
+      {/* Rent Agreement Full Viewer Modal */}
+      {showAgreementModal && agreement && (
+        <AgreementViewerModal
+          agreement={agreement}
+          onOpenSignModal={() => {
+            setShowAgreementModal(false);
+            setShowSignModal(true);
+          }}
+          onClose={() => setShowAgreementModal(false)}
+        />
       )}
     </div>
   );

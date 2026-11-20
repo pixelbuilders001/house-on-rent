@@ -1,4 +1,5 @@
 import { getSupabaseBrowserClient } from '../supabase/client';
+import { embedSignaturesIntoPdf } from './pdfAgreementService';
 
 export interface ActiveTenantStay {
   tenant: {
@@ -541,6 +542,255 @@ export async function linkTenantByPhone(
     return { success: true, tenant: t };
   } catch (err: any) {
     return { success: false, error: err.message || 'Failed to link phone' };
+  }
+}
+
+export interface TenantAgreement {
+  id: string;
+  propertyId: string;
+  propertyName: string;
+  tenantId: string;
+  tenantName: string;
+  tenantPhone: string;
+  tenantAadhaar?: string;
+  ownerName: string;
+  ownerPhone: string;
+  roomNumber: string;
+  monthlyRent: number;
+  depositAmount: number;
+  startDate: string;
+  durationMonths: number;
+  pdfFileName?: string;
+  status: 'draft' | 'pending_tenant' | 'pending_owner' | 'completed';
+  ownerSignature?: string;
+  ownerSignedAt?: string;
+  tenantSignature?: string;
+  tenantSignedAt?: string;
+  signingToken: string;
+  pdfBase64?: string;
+  signedPdfBase64?: string;
+  createdAt?: string;
+}
+
+function mapAgreementRow(row: any): TenantAgreement {
+  return {
+    id: row.id,
+    propertyId: row.property_id || row.propertyId || '',
+    propertyName: row.property_name || row.propertyName || '',
+    tenantId: row.tenant_id || row.tenantId || '',
+    tenantName: row.tenant_name || row.tenantName || '',
+    tenantPhone: row.tenant_phone || row.tenantPhone || '',
+    tenantAadhaar: row.tenant_aadhaar || row.tenantAadhaar || undefined,
+    ownerName: row.owner_name || row.ownerName || '',
+    ownerPhone: row.owner_phone || row.ownerPhone || '',
+    roomNumber: row.room_number || row.roomNumber || '',
+    monthlyRent: Number(row.monthly_rent ?? row.monthlyRent ?? 0),
+    depositAmount: Number(row.deposit_amount ?? row.depositAmount ?? 0),
+    startDate: row.start_date || row.startDate || '',
+    durationMonths: Number(row.duration_months ?? row.durationMonths ?? 11),
+    pdfFileName: row.pdf_file_name || row.pdfFileName || 'rent_agreement.pdf',
+    status: (row.status || 'draft') as TenantAgreement['status'],
+    ownerSignature: row.owner_signature || row.ownerSignature || undefined,
+    ownerSignedAt: row.owner_signed_at || row.ownerSignedAt || undefined,
+    tenantSignature: row.tenant_signature || row.tenantSignature || undefined,
+    tenantSignedAt: row.tenant_signed_at || row.tenantSignedAt || undefined,
+    signingToken: row.signing_token || row.signingToken || row.id,
+    pdfBase64: row.pdf_base64 || row.pdfBase64 || undefined,
+    signedPdfBase64: row.signed_pdf_base64 || row.signedPdfBase64 || undefined,
+    createdAt: row.created_at || row.createdAt
+  };
+}
+
+/**
+ * Fetch tenant agreement from Supabase (agreements table or complaints sync fallback)
+ */
+export async function fetchTenantAgreement(params: {
+  tenantId?: string;
+  phone?: string | null;
+  fullName?: string | null;
+  token?: string | null;
+}): Promise<TenantAgreement | null> {
+  const supabase = getSupabaseBrowserClient();
+  if (!supabase) return null;
+
+  try {
+    const cleanPhone = params.phone ? params.phone.trim().replace(/\D/g, '').slice(-10) : '';
+
+    // 1. Try querying direct agreements table
+    if (params.token) {
+      const { data, error } = await supabase
+        .from('agreements')
+        .select('*')
+        .or(`signing_token.eq.${params.token},id.eq.${params.token}`)
+        .maybeSingle();
+
+      if (!error && data) {
+        return mapAgreementRow(data);
+      }
+    }
+
+    if (params.tenantId) {
+      const { data, error } = await supabase
+        .from('agreements')
+        .select('*')
+        .eq('tenant_id', params.tenantId)
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      if (!error && data && data.length > 0) {
+        return mapAgreementRow(data[0]);
+      }
+    }
+
+    if (cleanPhone) {
+      const { data, error } = await supabase
+        .from('agreements')
+        .select('*')
+        .ilike('tenant_phone', `%${cleanPhone}%`)
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      if (!error && data && data.length > 0) {
+        return mapAgreementRow(data[0]);
+      }
+    }
+
+    if (params.fullName) {
+      const { data, error } = await supabase
+        .from('agreements')
+        .select('*')
+        .ilike('tenant_name', `%${params.fullName.trim()}%`)
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      if (!error && data && data.length > 0) {
+        return mapAgreementRow(data[0]);
+      }
+    }
+
+    // 2. Fallback: Query complaints table where category = '__agreement_sync__'
+    const { data: compRows } = await supabase
+      .from('complaints')
+      .select('*')
+      .eq('category', '__agreement_sync__')
+      .order('created_at', { ascending: false });
+
+    if (compRows && compRows.length > 0) {
+      for (const row of compRows) {
+        try {
+          const parsed = JSON.parse(row.description || '{}');
+          if (!parsed || (!parsed.id && !parsed.signingToken)) continue;
+
+          if (params.token && (parsed.signingToken === params.token || parsed.id === params.token)) {
+            return parsed as TenantAgreement;
+          }
+          if (params.tenantId && parsed.tenantId === params.tenantId) {
+            return parsed as TenantAgreement;
+          }
+          if (cleanPhone && parsed.tenantPhone && parsed.tenantPhone.replace(/\D/g, '').includes(cleanPhone)) {
+            return parsed as TenantAgreement;
+          }
+          if (params.fullName && parsed.tenantName && parsed.tenantName.toLowerCase() === params.fullName.trim().toLowerCase()) {
+            return parsed as TenantAgreement;
+          }
+        } catch {
+          // ignore malformed JSON
+        }
+      }
+    }
+
+    return null;
+  } catch (err) {
+    console.warn('Error fetching tenant agreement:', err);
+    return null;
+  }
+}
+
+/**
+ * Submit tenant's digital signature, embed it onto the PDF, and sync to Supabase
+ */
+export async function submitTenantAgreementSignature(
+  agreement: TenantAgreement,
+  tenantSignature: string
+): Promise<{ success: boolean; agreement?: TenantAgreement; error?: string }> {
+  const supabase = getSupabaseBrowserClient();
+  if (!supabase) return { success: false, error: 'Database connection unavailable' };
+
+  try {
+    const now = new Date().toISOString();
+    let updatedPdf = agreement.signedPdfBase64 || agreement.pdfBase64;
+
+    // Embed tenant signature onto PDF via pdf-lib
+    if (updatedPdf) {
+      try {
+        updatedPdf = await embedSignaturesIntoPdf(
+          updatedPdf,
+          agreement.ownerSignature,
+          tenantSignature,
+          { ...agreement, tenantSignedAt: now }
+        );
+      } catch (pdfErr) {
+        console.warn('PDF embedding notice:', pdfErr);
+      }
+    }
+
+    const updatedAgreement: TenantAgreement = {
+      ...agreement,
+      tenantSignature,
+      tenantSignedAt: now,
+      signedPdfBase64: updatedPdf,
+      status: 'completed'
+    };
+
+    // 1. Update direct agreements table
+    try {
+      await supabase.from('agreements').update({
+        tenant_signature: tenantSignature,
+        tenant_signed_at: now,
+        signed_pdf_base64: updatedPdf,
+        status: 'completed'
+      }).eq('id', agreement.id);
+    } catch (tblErr) {
+      console.warn('Agreements table update notice:', tblErr);
+    }
+
+    // 2. Also update complaints sync fallback
+    try {
+      const { data: compSync } = await supabase
+        .from('complaints')
+        .select('id, description')
+        .eq('category', '__agreement_sync__')
+        .eq('title', agreement.id)
+        .maybeSingle();
+
+      if (compSync) {
+        const prev = JSON.parse(compSync.description || '{}');
+        const merged = { ...prev, ...updatedAgreement };
+        await supabase.from('complaints').update({
+          description: JSON.stringify(merged),
+          status: 'resolved'
+        }).eq('id', compSync.id);
+      } else {
+        await supabase.from('complaints').insert({
+          property_id: agreement.propertyId,
+          property_name: agreement.propertyName,
+          tenant_name: agreement.tenantName,
+          room_number: agreement.roomNumber,
+          category: '__agreement_sync__',
+          title: agreement.id,
+          description: JSON.stringify(updatedAgreement),
+          priority: 'low',
+          status: 'resolved'
+        });
+      }
+    } catch (compErr) {
+      console.warn('Complaints agreement sync notice:', compErr);
+    }
+
+    return { success: true, agreement: updatedAgreement };
+  } catch (err: any) {
+    console.error('Error submitting tenant signature:', err);
+    return { success: false, error: err.message || 'Failed to submit signature' };
   }
 }
 
